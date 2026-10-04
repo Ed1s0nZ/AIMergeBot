@@ -103,6 +103,16 @@ export type Finding = {
   confidence: string;
 };
 export type Run = {
+  retry_info?: {
+    kind: string;
+    source: string;
+    http_status?: number;
+    header_state?: string;
+    retry_after_until?: string;
+    state: string;
+    delay_seconds?: number;
+    eligible_at?: string;
+  };
   retry_child_id?: number;
   retry_parent_id?: number;
   retry_attempt?: number;

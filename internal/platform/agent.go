@@ -46,7 +46,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		cfg.MaxSteps = 100
 	}
 	maxTokens := 4096
-	model, err := eo.NewChatModel(ctx, &eo.ChatModelConfig{APIKey: cfg.APIKey, BaseURL: cfg.BaseURL, Model: cfg.Model, Temperature: &cfg.Temperature, MaxTokens: &maxTokens})
+	model, err := eo.NewChatModel(ctx, &eo.ChatModelConfig{APIKey: cfg.APIKey, BaseURL: cfg.BaseURL, Model: cfg.Model, Temperature: &cfg.Temperature, MaxTokens: &maxTokens, HTTPClient: upstreamHTTPClient("model")})
 	if err != nil {
 		return AuditResult{}, nil, err
 	}

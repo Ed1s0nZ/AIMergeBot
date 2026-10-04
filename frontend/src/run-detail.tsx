@@ -1,3 +1,4 @@
+import { RetryExplanation } from "./retry-explanation";
 import { ObservationLinks } from "./observation-links";
 import { FindingSequence } from "./finding-sequence";
 import { ToolObservation } from "./tool-observation";
@@ -220,23 +221,27 @@ export function RunDetail({ id }: { id: number }) {
           <code>{r.base_sha || "旧数据未记录"}</code>
         </div>
       </section>
-      {r.status === "pending" && resource.data?.queue_wait && (
-        <div className="coverage" role="status">
-          {(
-            {
-              retry_delay: "任务已保留，等待自动重试时间。",
-              project_running: "任务已保留，等待项目并发额度。",
-              user_running: "任务已保留，等待用户并发额度。",
-              global_daily: "任务已保留，等待工作空间 24 小时次数额度恢复。",
-              project_daily: "任务已保留，等待项目 24 小时次数额度恢复。",
-              user_daily: "任务已保留，等待用户 24 小时次数额度恢复。",
-              worker_available: "任务已保留，等待空闲 Worker。",
-            } as Record<string, string>
-          )[resource.data.queue_wait.reason] || "任务等待调度。"}
-          {resource.data.queue_wait.eligible_at &&
-            ` 最早可重新检查时间：${date(resource.data.queue_wait.eligible_at)}。`}
-        </div>
-      )}
+      {r.status === "pending" &&
+        resource.data?.queue_wait &&
+        !(
+          resource.data.queue_wait.reason === "retry_delay" && r.retry_info
+        ) && (
+          <div className="coverage" role="status">
+            {(
+              {
+                retry_delay: "任务已保留，等待自动重试时间。",
+                project_running: "任务已保留，等待项目并发额度。",
+                user_running: "任务已保留，等待用户并发额度。",
+                global_daily: "任务已保留，等待工作空间 24 小时次数额度恢复。",
+                project_daily: "任务已保留，等待项目 24 小时次数额度恢复。",
+                user_daily: "任务已保留，等待用户 24 小时次数额度恢复。",
+                worker_available: "任务已保留，等待空闲 Worker。",
+              } as Record<string, string>
+            )[resource.data.queue_wait.reason] || "任务等待调度。"}
+            {resource.data.queue_wait.eligible_at &&
+              ` 最早可重新检查时间：${date(resource.data.queue_wait.eligible_at)}。`}
+          </div>
+        )}
       {r.retry_child_id && (
         <p className="muted">
           已创建自动重试记录 ·{" "}
@@ -247,11 +252,12 @@ export function RunDetail({ id }: { id: number }) {
         <p className="muted">
           自动重试第 {r.retry_attempt} 次 ·{" "}
           <a href={`#/runs/${r.retry_parent_id}`}>查看前次记录</a>
-          {r.status === "pending" && r.retry_at
+          {r.status === "pending" && r.retry_at && !r.retry_info
             ? ` · 最早执行时间 ${date(r.retry_at)}`
             : ""}
         </p>
       )}
+      <RetryExplanation run={r} />
       {r.error && <ErrorBox error={r.error} />}
       <section className="panel summary">
         <h2>审计摘要</h2>

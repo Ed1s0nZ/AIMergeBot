@@ -172,14 +172,17 @@ func (s *Store) RunSummary(ctx context.Context, id int64) (Run, error) {
 }
 func (s *Store) readRun(ctx context.Context, id int64, includeTrace bool) (Run, error) {
 	var r Run
-	var result, trace, created, policy string
+	var result, trace, created, policy, retryInfo string
 	var started, finished sql.NullString
 	traceColumn := "trace_json"
 	if !includeTrace {
 		traceColumn = "'[]'"
 	}
-	err := s.DB.QueryRowContext(ctx, `SELECT id,project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,error,result_json,`+traceColumn+`,created_at,started_at,finished_at,requested_by,policy_version,audit_policy_json,retry_parent_id,retry_attempt,retry_at,worker_owner,worker_lease_until,COALESCE((SELECT child.id FROM platform_runs child WHERE child.retry_parent_id=platform_runs.id ORDER BY child.id DESC LIMIT 1),0) FROM platform_runs WHERE id=?`, id).Scan(&r.ID, &r.ProjectID, &r.MRIID, &r.SourceProjectID, &r.DiffVersionID, &r.BaseSHA, &r.HeadSHA, &r.Title, &r.URL, &r.Status, &r.Error, &result, &trace, &created, &started, &finished, &r.RequestedBy, &r.PolicyVersion, &policy, &r.RetryParentID, &r.RetryAttempt, &r.RetryAt, &r.WorkerOwner, &r.WorkerLeaseUntil, &r.RetryChildID)
+	err := s.DB.QueryRowContext(ctx, `SELECT id,project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,error,result_json,`+traceColumn+`,created_at,started_at,finished_at,requested_by,policy_version,audit_policy_json,retry_parent_id,retry_attempt,retry_at,retry_info_json,worker_owner,worker_lease_until,COALESCE((SELECT child.id FROM platform_runs child WHERE child.retry_parent_id=platform_runs.id ORDER BY child.id DESC LIMIT 1),0) FROM platform_runs WHERE id=?`, id).Scan(&r.ID, &r.ProjectID, &r.MRIID, &r.SourceProjectID, &r.DiffVersionID, &r.BaseSHA, &r.HeadSHA, &r.Title, &r.URL, &r.Status, &r.Error, &result, &trace, &created, &started, &finished, &r.RequestedBy, &r.PolicyVersion, &policy, &r.RetryParentID, &r.RetryAttempt, &r.RetryAt, &retryInfo, &r.WorkerOwner, &r.WorkerLeaseUntil, &r.RetryChildID)
 	if err != nil {
+		return r, err
+	}
+	if err = json.Unmarshal([]byte(retryInfo), &r.RetryInfo); err != nil {
 		return r, err
 	}
 	if err = json.Unmarshal([]byte(policy), &r.AuditPolicy); err != nil {

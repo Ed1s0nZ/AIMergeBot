@@ -33,7 +33,7 @@ type GitLabRepository struct {
 }
 
 func NewGitLabRepository(token, baseURL string) (*GitLabRepository, error) {
-	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(strings.TrimRight(baseURL, "/")+"/api/v4"))
+	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(strings.TrimRight(baseURL, "/")+"/api/v4"), gitlab.WithoutRetries(), gitlab.WithHTTPClient(upstreamHTTPClient("gitlab")))
 	if err != nil {
 		return nil, err
 	}

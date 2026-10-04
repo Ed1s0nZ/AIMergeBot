@@ -23,7 +23,7 @@ func migrateAuditIdentity(tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
-	for _, c := range []struct{ name, definition string }{{"policy_digest", "TEXT NOT NULL DEFAULT ''"}, {"audit_policy_json", "TEXT NOT NULL DEFAULT 'null'"}, {"retry_parent_id", "INTEGER NOT NULL DEFAULT 0"}, {"retry_attempt", "INTEGER NOT NULL DEFAULT 0"}, {"retry_at", "TEXT NOT NULL DEFAULT ''"}} {
+	for _, c := range []struct{ name, definition string }{{"policy_digest", "TEXT NOT NULL DEFAULT ''"}, {"audit_policy_json", "TEXT NOT NULL DEFAULT 'null'"}, {"retry_parent_id", "INTEGER NOT NULL DEFAULT 0"}, {"retry_attempt", "INTEGER NOT NULL DEFAULT 0"}, {"retry_at", "TEXT NOT NULL DEFAULT ''"}, {"retry_info_json", "TEXT NOT NULL DEFAULT 'null'"}} {
 		if !columns[c.name] {
 			if _, err = tx.Exec(`ALTER TABLE platform_runs ADD COLUMN ` + c.name + ` ` + c.definition); err != nil {
 				return err
