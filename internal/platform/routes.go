@@ -348,7 +348,7 @@ func (h *HTTP) getSettings(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	public := h.Settings.Public()
+	public := h.publicSettings()
 	public["project_config_sync"] = status
 	c.JSON(200, public)
 }
@@ -367,10 +367,12 @@ func (h *HTTP) saveSettings(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "invalid settings fields"})
 		return
 	}
-	previous := h.Settings.Snapshot()
-	restartRequired := previous.Listen != cfg.Listen || previous.AuditWorkers != cfg.AuditWorkers
 	if err = h.Settings.Save(cfg); err != nil {
 		status := 400
+		if errors.Is(err, ErrTrustedProxies) {
+			c.JSON(status, gin.H{"error": err.Error(), "code": "invalid_trusted_proxies"})
+			return
+		}
 		if errors.Is(err, ErrSettingsConflict) {
 			status = 409
 		}
@@ -378,5 +380,5 @@ func (h *HTTP) saveSettings(c *gin.Context) {
 		return
 	}
 	h.Store.Event(c.Request.Context(), currentUser(c).ID, "settings.saved", "config.yaml")
-	c.JSON(200, gin.H{"settings": h.Settings.Public(), "restart_required": restartRequired, "message": "saved; listen and worker count require restart, model settings apply to new audits"})
+	c.JSON(200, gin.H{"settings": h.publicSettings(), "restart_required": h.settingsRequireRestart(h.Settings.Snapshot()), "message": "saved; listen, worker count and trusted proxies require restart, model settings apply to new audits"})
 }

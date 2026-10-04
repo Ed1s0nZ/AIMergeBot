@@ -45,10 +45,11 @@ type Settings struct {
 	GenerateSequenceDiagrams bool             `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
 	GitAudit                 GitAuditSettings `yaml:"git_audit" json:"git_audit"`
 	legacy.Config            `yaml:",inline"`
-	PublicURL                string `yaml:"public_url" json:"public_url"`
-	WebhookToken             string `yaml:"webhook_token" json:"webhook_token"`
-	AuditWorkers             int    `yaml:"audit_workers" json:"audit_workers"`
-	AuditTimeoutSeconds      int    `yaml:"audit_timeout_seconds" json:"audit_timeout_seconds"`
+	PublicURL                string   `yaml:"public_url" json:"public_url"`
+	TrustedProxies           []string `yaml:"trusted_proxies" json:"trusted_proxies"`
+	WebhookToken             string   `yaml:"webhook_token" json:"webhook_token"`
+	AuditWorkers             int      `yaml:"audit_workers" json:"audit_workers"`
+	AuditTimeoutSeconds      int      `yaml:"audit_timeout_seconds" json:"audit_timeout_seconds"`
 }
 
 type SettingsService struct {
@@ -114,6 +115,7 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 }
 func (s *SettingsService) Snapshot() Settings {
 	cfg := *s.current.Load()
+	cfg.TrustedProxies = append([]string{}, cfg.TrustedProxies...)
 	cfg.WhitelistExtensions = append([]string{}, cfg.WhitelistExtensions...)
 	cfg.Projects = append(cfg.Projects[:0:0], cfg.Projects...)
 	for i := range cfg.Projects {
@@ -129,6 +131,9 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
+	if err := validateTrustedProxies(c.TrustedProxies); err != nil {
+		return err
+	}
 	defaultGitAudit(&c.GitAudit)
 	if c.GitAudit.HistoryDepth < 1 || c.GitAudit.HistoryDepth > 10000 || c.GitAudit.MaxPackMiB < 16 || c.GitAudit.MaxPackMiB > 4096 || c.GitAudit.MaxToolCalls < 10 || c.GitAudit.MaxToolCalls > 200 {
 		return fmt.Errorf("invalid Git audit limits")
@@ -240,6 +245,7 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	if err = os.Rename(tmp, s.path); err != nil {
 		return err
 	}
+	next.TrustedProxies = append([]string{}, next.TrustedProxies...)
 	s.current.Store(&next)
 	return nil
 }
@@ -267,11 +273,13 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 	delete(mapping, "has_api_key")
 	delete(mapping, "has_webhook_token")
 	delete(mapping, "project_config_sync")
+	delete(mapping, "restart_required")
 	encoded, err := yaml.Marshal(mapping)
 	if err != nil {
 		return Settings{}, err
 	}
-	cfg := Settings{GitAudit: s.Snapshot().GitAudit, GenerateSequenceDiagrams: s.Snapshot().GenerateSequenceDiagrams}
+	current := s.Snapshot()
+	cfg := Settings{GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, TrustedProxies: current.TrustedProxies}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {

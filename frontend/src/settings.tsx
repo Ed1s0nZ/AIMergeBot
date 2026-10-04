@@ -12,6 +12,7 @@ import {
 import { api, write, APIError, type Settings } from "./api";
 import { ErrorBox, Empty } from "./components";
 export function SystemSettings() {
+  const [trustedProxyDraft, setTrustedProxyDraft] = useState("");
   const [conflict,setConflict]=useState(false);
   const [section, setSection] = useState("model");
   const [baseline, setBaseline] = useState("");
@@ -25,6 +26,7 @@ export function SystemSettings() {
         setConflict(false);
  setError("");
  setSettings(s);
+        setTrustedProxyDraft((s.trusted_proxies || []).join(", "));
         setBaseline(JSON.stringify(s));
       })
       .catch((e) => setError(e.message));
@@ -76,6 +78,11 @@ export function SystemSettings() {
         </span>
       </div>
       <ErrorBox error={error} />
+      {s.restart_required && (
+        <div className="coverage" role="status">
+          服务配置待重启：监听地址、并发数或可信代理与当前运行配置不同。重启前继续使用原来的服务配置。
+        </div>
+      )}
  {conflict && <button type="button" onClick={load}>重新加载最新设置（放弃当前修改）</button>}
  {s.project_config_sync?.pending && <div className="error" role="status">项目配置尚未同步到 config.yaml，服务会自动重试。数据库中的修改已保留。</div>}
       {saved && (
@@ -129,14 +136,17 @@ export function SystemSettings() {
                 restart_required: boolean;
               }>("/settings", write("PUT", s));
               setSettings(r.settings);
+              setTrustedProxyDraft((r.settings.trusted_proxies || []).join(", "));
               setBaseline(JSON.stringify(r.settings));
               setSaved(
                 r.restart_required
-                  ? "设置已保存。监听地址或并发数已变更，请重启服务使其生效。"
+                  ? "设置已保存。监听地址、并发数或可信代理配置已变更，请重启服务使其生效。"
                   : "设置已保存，新审计将使用更新后的配置。",
               );
             } catch (e) {
-              setError(e instanceof APIError && e.status===409 ? "配置已被其他操作更新，请重新加载后再保存。" : (e as Error).message);
+              setError(e instanceof APIError && e.code === "invalid_trusted_proxies"
+                ? "可信代理最多填写 32 个 IP 或 CIDR，不能使用全网范围、域名或未指定地址。"
+                : e instanceof APIError && e.status===409 ? "配置已被其他操作更新，请重新加载后再保存。" : (e as Error).message);
  setConflict(e instanceof APIError && e.status===409);
             } finally {
               setBusy(false);
@@ -430,6 +440,24 @@ export function SystemSettings() {
                     setSettings({ ...s, listen: e.target.value })
                   }
                 />
+              </label>
+              <label>
+                可信反向代理（IP 或 CIDR，逗号分隔）
+                <input
+                  placeholder="例如 127.0.0.1, 10.0.1.0/24"
+                  aria-describedby="trusted-proxy-help"
+                  value={trustedProxyDraft}
+                  onChange={(e) => {
+                    setTrustedProxyDraft(e.target.value);
+                    setSettings({
+                      ...s,
+                      trusted_proxies: e.target.value.split(",").map((x) => x.trim()).filter(Boolean),
+                    });
+                  }}
+                />
+                <small className="muted" id="trusted-proxy-help">
+                  只填写实际代理地址。留空时忽略转发的客户端 IP；保存后需要重启服务。
+                </small>
               </label>
               <label>
                 排除扩展名（逗号分隔）

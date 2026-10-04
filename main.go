@@ -105,7 +105,7 @@ func run() error {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
-	if err = router.SetTrustedProxies(nil); err != nil {
+	if err = router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		return err
 	}
 	api := &platform.HTTP{Store: store, Runner: runner, Settings: settings}

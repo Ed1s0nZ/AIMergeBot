@@ -36,7 +36,7 @@ export AIM_ADMIN_PASSWORD='请替换为自己的强密码'
 
 打开 [http://localhost:8080](http://localhost:8080)。首次缺少 `config.yaml` 时，程序从 `config.example.yaml` 复制生成权限为 `0600` 的配置文件。已有 `config.yaml` 不覆盖；该文件和数据库不纳入 Git。初始账号创建后可移除引导环境变量，不会每次重置密码。
 
-登录后进入 **系统设置**，填写模型 API 地址、模型名称/API Key、GitLab 实例/Token。模型须支持 OpenAI 兼容 tool calling；保存后写入本地 `config.yaml`，秘密字段留空保留原值。新审计采用保存后的模型/仓库设置；监听地址与 worker 数变化需要重启。直接手改文件需重启加载，不提供双向文件监控覆盖界面修改。
+登录后进入 **系统设置**，填写模型 API 地址、模型名称/API Key、GitLab 实例/Token。模型须支持 OpenAI 兼容 tool calling；保存后写入本地 `config.yaml`，秘密字段留空保留原值。新审计采用保存后的模型/仓库设置；监听地址、worker 数与可信代理变化需要重启，页面刷新后仍会保留待重启提示。直接手改文件需重启加载，不提供双向文件监控覆盖界面修改。
 
 在 **项目** 添加 GitLab 数字 ID 和展示名称，再到 **审计任务** 填写 MR 编号。项目配置（含启用状态）也同步到 `config.yaml`；写文件失败会提示重试保存。项目 ID 是否可访问在发起审计时由 GitLab 验证。所有团队成员可读团队项目、执行审计及复核；只有管理员可以管理项目、用户、设置和查看操作日志。当前为单团队，不提供项目级成员隔离或多租户。
 
@@ -49,7 +49,9 @@ export AIM_ADMIN_PASSWORD='请替换为自己的强密码'
 - 相同项目/MR/head/审计策略重复事件去重；运行中的强制重审不创建副本，终态强制重审创建独立尝试。
 - 评论只对成功、覆盖完整且当前 MR head 仍匹配的结果发送。发送失败记录 `comment.unknown`，避免网络结果不确定时自动重复发送。结果不会因评论失败丢失。
 
-使用 TLS 反向代理时，在系统设置填写公开访问地址 `public_url: https://audit.example.com`，用于写请求 Origin 校验及 Secure Cookie。程序不信任任意 `X-Forwarded-*` 请求头。不要直接把 HTTP 服务开放到公网；生产代理应强制 HTTPS。单实例部署，数据库持久化磁盘应支持 SQLite WAL。
+使用 TLS 反向代理时，在系统设置填写公开访问地址 `public_url: https://audit.example.com`，用于写请求 Origin 校验及 Secure Cookie。在执行策略中填写实际代理的 IP/CIDR（`trusted_proxies`），保存后重启；默认空列表忽略客户端 IP 转发头，拒绝信任所有地址的配置。代理应覆盖转发头，并限制后端只能由代理访问。此配置沿用 [Gin 的可信代理机制](https://gin-gonic.com/en/docs/server-config/trusted-proxies/)。不要直接把 HTTP 服务开放到公网；生产代理应强制 HTTPS。单实例部署，数据库持久化磁盘应支持 SQLite WAL。
+
+登录保护采用五分钟窗口：同一账号与 IP 组合最多10次、同一账号跨 IP 最多30次、同一 IP 合计最多100次。成功登录只清除该账号与 IP 的组合计数，不清除其他账号或 IP 总量计数；限流响应包含 `Retry-After`。内存记录最多8192项，不通过淘汰未过期记录绕过保护，过期后自动恢复。计数仅在当前进程内有效，重启会重置；多实例部署需共享限流设施。
 
 ## 审计状态与可信度
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,12 +19,13 @@ type loginBucket struct {
 	Reset time.Time
 }
 type HTTP struct {
-	Settings      *SettingsService
-	Store         *Store
-	Runner        *Runner
-	WebhookToken  string
-	mu            sync.Mutex
-	loginAttempts map[string]loginBucket
+	Settings        *SettingsService
+	Store           *Store
+	Runner          *Runner
+	WebhookToken    string
+	mu              sync.Mutex
+	loginAttempts   map[loginKey]loginBucket
+	startupSettings *Settings
 }
 
 func (h *HTTP) origin(c *gin.Context) bool {
@@ -98,25 +100,15 @@ func (h *HTTP) login(c *gin.Context) {
 		return
 	}
 	ip := c.ClientIP()
-	h.mu.Lock()
-	if h.loginAttempts == nil {
-		h.loginAttempts = map[string]loginBucket{}
-	}
-	for key, b := range h.loginAttempts {
-		if time.Now().After(b.Reset) {
-			delete(h.loginAttempts, key)
+	reject := func(wait time.Duration) bool {
+		if wait <= 0 {
+			return false
 		}
-	}
-	b := h.loginAttempts[ip]
-	if b.Reset.IsZero() {
-		b.Reset = time.Now().Add(5 * time.Minute)
-	}
-	b.Count++
-	h.loginAttempts[ip] = b
-	blocked := b.Count > 10
-	h.mu.Unlock()
-	if blocked {
+		c.Header("Retry-After", strconv.Itoa(int((wait+time.Second-1)/time.Second)))
 		c.JSON(429, gin.H{"error": "too many login attempts; retry later"})
+		return true
+	}
+	if reject(h.admitLogin(ip, "", false, time.Now())) {
 		return
 	}
 	var req struct {
@@ -125,6 +117,9 @@ func (h *HTTP) login(c *gin.Context) {
 	}
 	if c.ShouldBindJSON(&req) != nil || len(req.Username) > 64 || len(req.Password) > 72 {
 		c.JSON(400, gin.H{"error": "invalid login request"})
+		return
+	}
+	if reject(h.admitLogin(ip, req.Username, true, time.Now())) {
 		return
 	}
 	u, token, err := h.Store.Login(c.Request.Context(), req.Username, req.Password)
@@ -136,14 +131,16 @@ func (h *HTTP) login(c *gin.Context) {
 		}
 		return
 	}
-	h.mu.Lock()
-	delete(h.loginAttempts, ip)
-	h.mu.Unlock()
+	h.loginSucceeded(ip, req.Username)
 	h.cookie(c, token, 86400)
 	c.JSON(200, u)
 }
 
 func (h *HTTP) Register(r *gin.Engine) {
+	if h.Settings != nil {
+		cfg := h.Settings.Snapshot()
+		h.startupSettings = &cfg
+	}
 	r.Use(func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024*1024)
 		if strings.HasPrefix(c.Request.URL.Path, "/api/") {

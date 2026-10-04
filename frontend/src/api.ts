@@ -2,6 +2,7 @@ export class APIError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code: string = "",
   ) {
     super(message);
   }
@@ -19,7 +20,7 @@ export async function api<T>(
     const body = await res.json().catch(() => ({ error: "服务暂时不可用" }));
     if (res.status === 401 && path != "/auth/login")
       window.dispatchEvent(new Event("session-expired"));
-    throw new APIError(res.status, body.error || "请求失败");
+    throw new APIError(res.status, body.error || "请求失败", body.code || "");
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -140,6 +141,8 @@ export type Settings = {
     max_tool_calls: number;
   };
   public_url: string;
+  trusted_proxies?: string[];
+  restart_required?: boolean;
   listen: string;
   gitlab: { url: string; token: string };
   openai: { url: string; model: string; api_key: string };

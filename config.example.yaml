@@ -1,6 +1,7 @@
 # Copy automatically to config.yaml on first start. Configure in System Settings.
 listen: ":8080"
 public_url: "" # Set https://audit.example.com when TLS terminates at a reverse proxy
+trusted_proxies: [] # Explicit proxy IP/CIDR only; empty ignores forwarded client-IP headers. Restart required.
 gitlab:
   token: ""
   url: "https://gitlab.com"
