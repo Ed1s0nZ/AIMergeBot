@@ -29,3 +29,6 @@ Passed go test ./..., go test -race ./internal/platform, go vet ./..., TypeScrip
 
 ## F6 review
 Source snippets and SHA are validated, not call semantics. Uncertainty explicit. Primary audit survives supplemental failure. Export serializes owned React SVG with safe text. History remains readable; re-audit creates diagram. Main/local deployment authorized in prior session.
+
+## F7/F8 integration and deployment
+Fast-forwarded main and pushed 07215e4. Native localhost1234 updated to that build, PID33518, fresh JS assets verified. Existing config bytes preserved; SQLite/config/binary backup made privately before replacement. No active audits during deployment. Temporary fixture server stopped. Existing Docker image has not been rebuilt for this feature.
