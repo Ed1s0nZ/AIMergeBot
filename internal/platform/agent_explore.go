@@ -7,6 +7,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -79,6 +80,13 @@ func (t *auditTools) search(ctx context.Context, a searchArgs) (toolOutput, erro
 		if g, ok := t.repo.(*GitRepository); ok {
 			ref, e := g.ref(t.snap, a.Base)
 			if e != nil {
+				return toolOutput{}, e
+			}
+			sizes, e := g.command(ctx, "ls-tree", "-r", "-l", "-z", ref)
+			if e != nil {
+				return toolOutput{}, e
+			}
+			if e = validateSearchSizes(sizes, a); e != nil {
 				return toolOutput{}, e
 			}
 			flags := []string{"grep", "-I", "-n", "--no-color", "--no-textconv", "--threads=1", "-z"}
@@ -239,4 +247,26 @@ func (t *auditTools) batch(ctx context.Context, a batchArgs) (toolOutput, error)
 		}
 		return toolOutput{Text: b.String()}, nil
 	})
+}
+
+// Git grep reads blobs directly; reject oversized candidate inputs before allocating them.
+func validateSearchSizes(raw string, a searchArgs) error {
+	for _, entry := range strings.Split(raw, "\x00") {
+		header, p, ok := strings.Cut(entry, "\t")
+		if !ok {
+			continue
+		}
+		fields := strings.Fields(header)
+		if len(fields) != 4 || fields[1] != "blob" || !scopeMatch(p, a.Path, a.Extension) {
+			continue
+		}
+		size, e := strconv.ParseInt(fields[3], 10, 64)
+		if e != nil {
+			return fmt.Errorf("invalid Git blob size")
+		}
+		if size > 16*1024*1024 {
+			return fmt.Errorf("search input exceeds 16 MiB per-blob budget: %s; narrow path", p)
+		}
+	}
+	return nil
 }

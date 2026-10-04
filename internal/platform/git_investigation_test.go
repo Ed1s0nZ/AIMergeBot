@@ -346,3 +346,13 @@ func TestGitCommandCancellationBudgetsAndConfigValidation(t *testing.T) {
 		t.Fatal("Git settings not persisted")
 	}
 }
+
+func TestSearchRejectsOversizedBlobBeforeGrep(t *testing.T) {
+	raw := "100644 blob abc 20000000\tassets/large.any\x00100644 blob abc 20\tsrc/small.any\x00"
+	if validateSearchSizes(raw, searchArgs{}) == nil {
+		t.Fatal("oversized search input accepted")
+	}
+	if e := validateSearchSizes(raw, searchArgs{Path: "src"}); e != nil {
+		t.Fatal(e)
+	}
+}

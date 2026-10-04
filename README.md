@@ -107,7 +107,7 @@ Vite 开发代理默认转发到 `localhost:8080`。提交前前端构建更新 
 
 工具：`read_file`、`list_files`、`list_directory`、`read_files`、`search_code`、`get_diff`、`compare_files`、`get_history`、`git_blame`、`search_history`、`record_hypothesis`、`update_investigation`、`submit_finding`。历史搜索采用 `git log -S` 的字符串出现次数变化；不是任意语义变化搜索。原生搜索正则为 Git extended regex，关闭本地 Git 时 API 回退使用 Go regex，两者语法有区别。
 
-工具返回提交 SHA、观察编号、代码证据和分页信息。运行详情展示返回结果、调查假设、证据和反证。证据核验只证明代码位置/片段真实，不证明漏洞可利用；本方案不接语言解析器，不声称准确语义引用，也不执行测试或自动下载子模块/LFS 实体。历史默认浅拉取，边界在返回中明确说明。超预算查询需缩小范围。远端必须支持按提交 SHA 拉取，失败不会偷偷改用最新分支。
+工具返回提交 SHA、观察编号、代码证据和分页信息。运行详情展示返回结果、调查假设、证据和反证。证据核验只证明代码位置/片段真实，不证明漏洞可利用；本方案不接语言解析器，不声称准确语义引用，也不执行测试或自动下载子模块/LFS 实体。历史默认浅拉取，边界在返回中明确说明。搜索单个候选 blob 最大 16 MiB，Git 命令输出最多 8 MiB；超预算查询需缩小范围。远端必须支持按提交 SHA 拉取，失败不会偷偷改用最新分支。
 
 ### 只有 Git，没有 GitLab API
 
