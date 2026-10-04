@@ -42,6 +42,8 @@ type toolOutput struct {
 }
 
 type auditTools struct {
+	stage              string
+	observationPrefix  string
 	pages              map[string]*paginationCoverage
 	progress           func(AuditResult, []ToolTrace) error
 	progressMu         sync.Mutex
@@ -105,11 +107,15 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	} else {
 		out, err = fn()
 	}
-	out.ObservationID = fmt.Sprintf("observation-%d", callID)
+	prefix := t.observationPrefix
+	if prefix == "" {
+		prefix = "observation"
+	}
+	out.ObservationID = fmt.Sprintf("%s-%d", prefix, callID)
 	out.BaseSHA = t.snap.BaseSHA
 	out.HeadSHA = t.snap.HeadSHA
 	raw, _ := json.Marshal(args)
-	trace := ToolTrace{Name: name, Arguments: string(raw), DurationMS: time.Since(start).Milliseconds(), Partial: out.More}
+	trace := ToolTrace{Name: name, Stage: t.stage, Arguments: string(raw), DurationMS: time.Since(start).Milliseconds(), Partial: out.More}
 	if err != nil {
 		trace.Error = err.Error()
 		out.Error = err.Error()

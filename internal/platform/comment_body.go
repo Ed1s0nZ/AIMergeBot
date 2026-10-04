@@ -47,6 +47,10 @@ func renderComment(namespace string, run Run, reviews []Review) (string, error) 
 			label = "待复核"
 		}
 		fmt.Fprintf(&b, "\n\n### %s · %s\n\n位置：%s · 证据状态：%s · 复核：%s\n\n%s\n\n触发条件：%s\n\n建议：%s", commentText(f.Severity), commentText(f.Title), commentText(location), commentText(f.Confidence), label, commentText(f.Description), commentText(f.Trigger), commentText(f.Suggestion))
+		if v := f.Verification; v != nil {
+			verificationLabel := map[string]string{"supported": "独立复核支持", "rejected": "独立复核未支持", "inconclusive": "复核信息不足", "unavailable": "独立复核未完成", "disabled": "独立复核已关闭"}[v.Status]
+			fmt.Fprintf(&b, "\n\n%s：%s（静态复核，非运行复现）", verificationLabel, commentText(v.Reason))
+		}
 		if review.Reason != "" {
 			fmt.Fprintf(&b, "\n\n复核依据：%s", commentText(review.Reason))
 		}

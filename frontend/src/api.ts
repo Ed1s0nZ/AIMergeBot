@@ -95,7 +95,9 @@ export type SequenceDiagram = {
   limitations?: string[];
   mermaid?: string;
 };
+export type FindingVerification = { status: string; reason: string; limitations: string[]; observation_ids: string[]; base_sha: string; head_sha: string };
 export type Finding = {
+ verification?: FindingVerification;
   anchor_type?: "line" | "git_metadata";
   metadata?: GitChangeMetadata;
   investigation_id?: string;
@@ -192,6 +194,7 @@ export type Settings = {
   };
   project_config_sync?: { pending: boolean; generation: number; error: string };
   generate_sequence_diagrams: boolean;
+ verify_findings: boolean;
   git_audit: {
     enabled: boolean;
     history_depth: number;

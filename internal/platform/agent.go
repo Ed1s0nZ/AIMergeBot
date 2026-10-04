@@ -24,6 +24,7 @@ type AgentConfig struct {
 	MaxSteps               int
 	Temperature            float32
 	MaxToolCalls           int
+	VerifyFindings         bool
 	GenerateDiagrams       bool
 }
 type Auditor interface {
@@ -116,6 +117,14 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		result.CoverageNotes = append(result.CoverageNotes, progressError)
 	}
 	tools.sequenceCheckpoint(result)
+	if cfg.VerifyFindings {
+		e.verifyFindings(ctx, &result, tools, model)
+	} else {
+		for i := range result.Findings {
+			result.Findings[i].Verification = unavailableVerification(snap, "系统设置已关闭独立复核。", "disabled")
+		}
+	}
+	tools.sequenceCheckpoint(result)
 	if cfg.GenerateDiagrams && len(result.Findings) > 0 {
 		graphCB := callbacks.NewHandlerBuilder().OnEndFn(func(c context.Context, _ *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
 			if data, ok := output.(*em.CallbackOutput); ok {
@@ -176,6 +185,7 @@ func ValidateFindings(ctx context.Context, repo Repository, snap Snapshot, scope
 	out := []Finding{}
 	for _, f := range result.Findings {
 		f.SequenceDiagram = nil
+		f.Verification = nil
 		if f.Side == "" {
 			f.Side = "head"
 		}

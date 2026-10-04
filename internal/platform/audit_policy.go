@@ -17,6 +17,7 @@ type AuditPolicy struct {
 	TimeoutSeconds   int              `json:"timeout_seconds"`
 	Git              GitAuditSettings `json:"git"`
 	Excluded         []string         `json:"excluded"`
+	VerifyFindings   bool             `json:"verify_findings"`
 	GenerateDiagrams bool             `json:"generate_diagrams"`
 }
 
@@ -25,7 +26,7 @@ func capturePolicy(s Settings) *AuditPolicy {
 	if model == "" {
 		model = s.OpenAI.Model
 	}
-	return &AuditPolicy{RepositoryURL: strings.TrimRight(s.GitLab.URL, "/"), ModelURL: s.OpenAI.URL, Model: model, Temperature: float32(s.ReAct.Temperature), MaxSteps: s.ReAct.MaxSteps, TimeoutSeconds: s.AuditTimeoutSeconds, Git: s.GitAudit, Excluded: append([]string{}, s.WhitelistExtensions...), GenerateDiagrams: s.GenerateSequenceDiagrams}
+	return &AuditPolicy{RepositoryURL: strings.TrimRight(s.GitLab.URL, "/"), ModelURL: s.OpenAI.URL, Model: model, Temperature: float32(s.ReAct.Temperature), MaxSteps: s.ReAct.MaxSteps, TimeoutSeconds: s.AuditTimeoutSeconds, Git: s.GitAudit, Excluded: append([]string{}, s.WhitelistExtensions...), GenerateDiagrams: s.GenerateSequenceDiagrams, VerifyFindings: s.VerifyFindings}
 }
 func policyDigest(p *AuditPolicy) string {
 	raw, _ := json.Marshal(p)

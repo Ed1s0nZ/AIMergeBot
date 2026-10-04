@@ -235,6 +235,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 			cfg.GitAudit = p.Git
 			cfg.WhitelistExtensions = p.Excluded
 			cfg.GenerateSequenceDiagrams = p.GenerateDiagrams
+			cfg.VerifyFindings = p.VerifyFindings
 		}
 		gitConfig = cfg.GitAudit
 		timeout = time.Duration(cfg.AuditTimeoutSeconds) * time.Second
@@ -249,7 +250,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if model == "" {
 			model = cfg.OpenAI.Model
 		}
-		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams}}
+		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
 	}
 	if original, ok := auditor.(*EinoAuditor); ok {
 		copy := *original

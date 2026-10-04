@@ -17,23 +17,24 @@ type Project struct {
 }
 
 type Finding struct {
-	AnchorType      string             `json:"anchor_type,omitempty"`
-	Metadata        *GitChangeMetadata `json:"metadata,omitempty"`
-	InvestigationID string             `json:"investigation_id,omitempty"`
-	ObservationIDs  []string           `json:"observation_ids,omitempty"`
-	SequenceDiagram *SequenceDiagram   `json:"sequence_diagram,omitempty"`
-	Side            string             `json:"side"`
-	Type            string             `json:"type"`
-	ID              string             `json:"id"`
-	File            string             `json:"file"`
-	Line            int                `json:"line"`
-	Severity        string             `json:"severity"`
-	Title           string             `json:"title"`
-	Description     string             `json:"description"`
-	Evidence        string             `json:"evidence"`
-	Trigger         string             `json:"trigger"`
-	Suggestion      string             `json:"suggestion"`
-	Confidence      string             `json:"confidence"`
+	Verification    *FindingVerification `json:"verification,omitempty"`
+	AnchorType      string               `json:"anchor_type,omitempty"`
+	Metadata        *GitChangeMetadata   `json:"metadata,omitempty"`
+	InvestigationID string               `json:"investigation_id,omitempty"`
+	ObservationIDs  []string             `json:"observation_ids,omitempty"`
+	SequenceDiagram *SequenceDiagram     `json:"sequence_diagram,omitempty"`
+	Side            string               `json:"side"`
+	Type            string               `json:"type"`
+	ID              string               `json:"id"`
+	File            string               `json:"file"`
+	Line            int                  `json:"line"`
+	Severity        string               `json:"severity"`
+	Title           string               `json:"title"`
+	Description     string               `json:"description"`
+	Evidence        string               `json:"evidence"`
+	Trigger         string               `json:"trigger"`
+	Suggestion      string               `json:"suggestion"`
+	Confidence      string               `json:"confidence"`
 }
 
 type Investigation struct {

@@ -424,6 +424,13 @@ export function SystemSettings() {
                 </p>
               </div>
 
+              <div className="settings-option-card">
+                <label className="check">
+                  <input type="checkbox" checked={s.verify_findings} onChange={(e) => setSettings({ ...s, verify_findings: e.target.checked })} />
+                  对发现进行独立复核
+                </label>
+                <p className="muted">在新的上下文中重新读取固定提交并检查反证，额外消耗模型调用。信息不足会记入覆盖说明；原发现保留，不执行仓库代码。</p>
+              </div>
               <GitAuditSettingsFields
                 value={s.git_audit}
                 onChange={(git_audit) => setSettings({ ...s, git_audit })}

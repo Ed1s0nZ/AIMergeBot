@@ -52,6 +52,11 @@ func (e *EinoAuditor) generateSequences(ctx context.Context, result *AuditResult
 	}
 	for _, i := range sequenceOrder(result.Findings) {
 		f := &result.Findings[i]
+		if f.Verification != nil && f.Verification.Status == "rejected" {
+			f.SequenceDiagram = unavailableSequence("独立复核未支持该发现，请人工复核原始证据。")
+			tools.sequenceCheckpoint(*result)
+			continue
+		}
 		if phase.Err() != nil {
 			f.SequenceDiagram = unavailableSequence("时序图生成预算已用尽，审计发现已保留")
 			continue

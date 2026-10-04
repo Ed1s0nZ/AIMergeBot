@@ -50,3 +50,6 @@ audit_quotas:
   daily_global: 1000
   daily_project: 200
   daily_user: 100
+
+# 在独立上下文中重新读取来源并检查反证；不执行仓库代码
+verify_findings: true

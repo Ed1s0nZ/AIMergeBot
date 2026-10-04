@@ -1,3 +1,4 @@
+import { VerificationEvidence } from "./finding-verification";
 import {
   GitMetadataEvidence,
   GitMetadataChanges,
@@ -70,6 +71,7 @@ function FindingCard({
         <dt>修复建议</dt>
         <dd>{finding.suggestion}</dd>
       </dl>
+      <VerificationEvidence verification={finding.verification} />
       <FindingSequence
         diagram={finding.sequence_diagram}
         findingId={finding.id}
@@ -368,7 +370,7 @@ export function RunDetail({ id }: { id: number }) {
             >
               <summary>
                 {t.name}
-                {t.stage === "diagram" ? " · 时序图生成" : ""}{" "}
+                {t.stage === "diagram" ? " · 时序图生成" : t.stage === "verification" ? " · 独立复核" : ""}{" "}
                 <span className="muted">
                   {t.duration_ms}ms {t.error ? "· 失败" : ""}
                 </span>

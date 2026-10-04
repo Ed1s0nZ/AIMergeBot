@@ -37,6 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True)
     parser.add_argument("--metadata-preview", action="store_true", help="Also verify a metadata-only finding and note-only diagram")
+    parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
     parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
     parser.add_argument("--ui-preview", action="store_true", help="Keep fixture online after proof until SIGTERM for browser inspection")
     parser.add_argument("--app-port", type=int, default=19234)
@@ -44,6 +45,8 @@ def main():
     args = parser.parse_args()
     if args.comment_preview and not args.metadata_preview:
         parser.error("--comment-preview requires --metadata-preview")
+    if args.verification_preview and not args.metadata_preview:
+        parser.error("--verification-preview requires --metadata-preview")
     def stop_fixture(*unused):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, stop_fixture)
@@ -141,7 +144,21 @@ def main():
                 calls[iid] += 1
                 number = calls[iid]
             if iid == 92:
-                if number == 1:
+                independent = any(str(m.get("content", "")).startswith("Independently review") for m in request["messages"] if m.get("role") == "system")
+                if independent:
+                    observations = []
+                    for m in request["messages"]:
+                        if m.get("role") == "tool":
+                            output = json.loads(m["content"])
+                            if output.get("observation_id"):
+                                observations.append(output["observation_id"])
+                    if not observations:
+                        message = {"role": "assistant", "content": None, "tool_calls": [{"id": "fixture_verify_metadata", "type": "function", "function": {"name": "get_change_metadata", "arguments": json.dumps({"path": "entry.any"})}}]}
+                        finish = "tool_calls"
+                    else:
+                        message = {"role": "assistant", "content": json.dumps({"status": "supported", "reason": "固定提交的独立读取确认执行位变化，仅支持条件性风险描述。", "limitations": ["合成模型响应，未验证真实模型准确率或部署可达性。"], "observation_ids": observations}, ensure_ascii=False)}
+                        finish = "stop"
+                elif number == 1:
                     message = {"role": "assistant", "content": None, "tool_calls": [{"id": "fixture_metadata", "type": "function", "function": {"name": "get_change_metadata", "arguments": json.dumps({"path": "entry.any"})}}]}
                     finish = "tool_calls"
                 elif number == 2:
@@ -180,7 +197,7 @@ def main():
 
     upstream = ThreadingHTTPServer(("127.0.0.1", args.upstream_port), Fixture)
     threading.Thread(target=upstream.serve_forever, daemon=True).start()
-    config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "generate_sequence_diagrams": args.metadata_preview}
+    config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "verify_findings": args.verification_preview, "generate_sequence_diagrams": args.metadata_preview}
     (root / "config.yaml").write_text(json.dumps(config))  # JSON is valid YAML.
     env = dict(os.environ, AIM_ADMIN_USERNAME="recovery-fixture-admin", AIM_ADMIN_PASSWORD="recovery-fixture-password")
     processes, logs = [], []
@@ -257,7 +274,13 @@ def main():
             finding = audited["result"]["findings"][0]
             assert finding["anchor_type"] == "git_metadata" and finding["line"] == 0 and finding["metadata"]["head"]["mode"] == "100755"
             assert finding["sequence_diagram"]["status"] == "partial" and finding["sequence_diagram"]["steps"][0]["evidence"][0]["metadata"] == finding["metadata"]
-            assert calls[92] == 3
+            assert calls[92] == (5 if args.verification_preview else 3)
+            if args.verification_preview:
+                verification = finding["verification"]
+                assert verification["status"] == "supported" and verification["observation_ids"]
+                assert all(v.startswith("verify-") for v in verification["observation_ids"])
+                assert any(t.get("stage") == "verification" and t.get("observation_id") in verification["observation_ids"] for t in audited["trace"])
+                proof.update(independent_verification="supported", fresh_verification_observations=verification["observation_ids"])
             proof.update(metadata_run=metadata_run, metadata_finding_verified=True, metadata_note_diagram="partial", preview_url=base_url+f"/#/runs/{metadata_run}")
         if args.comment_preview:
             wait_for(lambda: api(f"/runs/{metadata_run}")["comment_sync"]["state"] == "sent")
