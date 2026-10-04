@@ -10,7 +10,7 @@
 | 固定身份与有效配置、base/head/fork、去重 | AuditPolicy、identity migration、enqueue；当前policyv9 | 已实现；旧策略需重新提交，最终迁移检查待执行 |
 | 删除保护、源码锚点、调查/反证/观察来源 | ValidateFindings、canonical registry、observation links；伪造/错误锚点/删除BASE测试 | 已实现；源码支持不等于语义或利用性证明 |
 | 故障/取消保留发现与检查点 | frozen supplemental result、worker fences、恢复脚本真实SIGKILL | 已验证分阶段原生进程，不以单元测试替代崩溃证据 |
-| 有界重试、Retry-After、租约/所有权、不能重复执行 | retry store/transport/worker instance；429/5xx/租约失效/迟到写测试与native proof | 已实现；永久模型错误脱敏正在最终回归 |
+| 有界重试、Retry-After、租约/所有权、不能重复执行 | retry store/transport/worker instance；429/5xx/租约失效/迟到写测试与native proof | 已实现；永久模型错误脱敏已通过实际Eino回归及完整Go/race检查 |
 | 权限与fork来源、并发/排队/每日配额、代理登录限流 | project_access、quotas、login_throttle、trusted_proxies；API与浏览器证明 | 已实现；支持单实例SQLite部署，非分布式限流 |
 | 文件策略排除与覆盖不足区分、分页连续性 | BuildDiff、excluded fields、paging coverage；全排除skipped测试 | 已实现；预算省略不能作已审计/安全结论 |
 | 元数据、symlink/gitlink/LFS/binary边界 | typed Git metadata、canonical anchor、API budgets；real Git fixtures | 已实现；不读取外部子模块/LFS内容 |
@@ -28,3 +28,5 @@
 最终交付步骤：完整工作区/远程分支核对；有效模型整套评测与人工判定（保留失败轮次）；最终Go/race/vet/frontend与迁移验证；记录实际范围、质量限制及CHANGELOG；一致备份DB与配置，合并并推送main确认SHA；构建同一main产物，正常停止旧服务后替换1234；确认健康、登录、设置脱敏/配置同步、任务详情历史/证据、权限与原数据，保留可回退旧二进制及备份。无需发布外部版本或发送真实MR评论。
 
 各项具体测试名称、输出耗时、native证明路径、截图与剩余事项见implementation.md。临时目录证据是本机记录；最终报告需明确哪些被提交、哪些只在本机，不把不存在的发布或部署记录列为完成。
+
+2026-10-05迁移实查：以SQLite只读连接获取当前部署数据库的一致副本，仅对副本调用当前OpenStore两次，不启动Agent/网络服务。证据目录 /var/folders/y0/q03mg01d2vv5twh26pdhkzbw0000gn/T/aimangebot-migration-acceptance.r8vds6in，副本与proof权限0600、目录0700。账号1/项目1、任务0/复核0/事件0迁移前后相同；integrity_check=ok、foreign_key_check=0。当前生产数据为空任务集，空集哈希不证明非空历史结果保留；非空历史JSON/trace、复核基线、重复迁移与回滚由既有migration测试覆盖。此副本用于迁移验收，不替代最终部署前的新鲜备份。
