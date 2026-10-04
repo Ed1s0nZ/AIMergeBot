@@ -11,6 +11,9 @@ import {
   LogOut,
   ArrowUpRight,
   ChevronRight,
+  UserRound,
+  LockKeyhole,
+  GitBranch,
 } from "lucide-react";
 import { api, write, type User } from "./api";
 import { ErrorBox } from "./components";
@@ -27,6 +30,7 @@ import "./style.css";
 import "./responsive.css";
 import "./workspace.css";
 import "./workspace-responsive.css";
+import "./login.css";
 
 function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const [username, setUsername] = useState(""),
@@ -35,6 +39,15 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
     [busy, setBusy] = useState(false);
   return (
     <main className="login">
+      <div className="login-art" aria-hidden="true">
+        <div className="login-orbit orbit-one" />
+        <div className="login-orbit orbit-two" />
+        <div className="branch-art">
+          <GitBranch strokeWidth={0.7} />
+        </div>
+        <span className="art-node node-one" />
+        <span className="art-node node-two" />
+      </div>
       <section className="login-form">
         <div className="form-wrap">
           <a className="login-brand" href="#/">
@@ -44,7 +57,9 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             AIMergeBot
           </a>
           <span className="eyebrow">团队代码安全工作台</span>
-          <h2>登录工作台</h2>
+          <h1>
+            登录工作台<span className="login-heading-dot">.</span>
+          </h1>
           <p className="muted">使用管理员为你创建的团队账号。</p>
           <form
             onSubmit={async (e) => {
@@ -67,22 +82,30 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           >
             <label>
               账号
-              <input
-                autoComplete="username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+              <span className="login-input">
+                <UserRound size={17} />
+                <input
+                  placeholder="输入你的团队账号"
+                  autoComplete="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </span>
             </label>
             <label>
               密码
-              <input
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <span className="login-input">
+                <LockKeyhole size={17} />
+                <input
+                  placeholder="输入密码"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </span>
             </label>
             <ErrorBox error={error} />
             <button disabled={busy} className="primary full">
@@ -93,7 +116,11 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <p className="footnote">账号不可用？请联系团队管理员。</p>
           <div className="login-assurance">
             <ShieldCheck size={15} />
-            <span>提交快照 · 证据审计 · 人工复核</span>
+            <span>提交快照</span>
+            <i />
+            <span>证据审计</span>
+            <i />
+            <span>人工复核</span>
           </div>
         </div>
       </section>
