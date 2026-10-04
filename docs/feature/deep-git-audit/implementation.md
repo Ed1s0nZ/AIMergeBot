@@ -12,3 +12,14 @@ Optional sandbox execution, vulnerability databases and language-specific parser
 
 ## Maintainability gate
 Inspected agent (363 lines, tool handlers + orchestration + validation), repository (160), runner (180), settings (292). Medium coupling. Extract tools into dedicated modules and add a separate Git source adapter; preserve existing Repository interface and fixture compatibility. Tests cover fixed refs, removed-line evidence, Eino callbacks, settings and queue lifecycle. No broad legacy refactor.
+
+## F2 design
+GitLab remains metadata/comment transport. Per-run bare Git workspace fetches immutable commits with bounded history (default 200); forks fetch target base and source head separately. Read-only Git plumbing avoids checkout, hooks, submodules, LFS smudge and textconv. HTTPS origins must match configured GitLab; token passed only through subprocess environment, never URL or config. Standalone local repository adapter uses the same interface for tests and consumers. Tool command arguments are structured, refs fixed to snapshot or reachable history, paths literal, no shell. Output, fetch pack size, time, file size and calls have budgets. Workspace cleaned on success/error/cancellation. Shallow history explicitly marked limited.
+
+Advanced tools expose cursor-based text pages rather than silently skipping files. Search uses Git grep over commit trees, binary files skipped. Regex is Git extended regex, not a promise of semantic resolution. Tool outputs include base/head SHA and retained observations, with errors and truncation. Investigation ledger is per-run, bounded and stored as trace output; hypothesis states investigating/supported/rejected, with evidence and counterevidence supplied by Agent. submit_finding reuses strict changed-line/snapshot evidence validation; final result remains validated even when Agent does not use submission tool. Neither a matching snippet nor model confidence establishes exploitability.
+
+Settings add git_audit (enabled, history_depth, max_pack_mib, max_tool_calls). Defaults preserve existing configs while enabling native Git; settings JSON/YAML retain existing generic persistence. Docker runtime must include Git. Model max steps remains separately configurable.
+
+Flow: queued run → capture config → obtain GitLab diff snapshot → prepare bare repository → native diff → Eino investigation → validate findings → persist result/observations → delete workspace → existing optional comment. No fallback that silently masks native-Git failure.
+
+Official references: [Git grep](https://git-scm.com/docs/git-grep), [Git log](https://git-scm.com/docs/git-log), [Git config](https://git-scm.com/docs/git-config).
