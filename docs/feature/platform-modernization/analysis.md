@@ -59,3 +59,11 @@ Eino 本身不提供漏洞真实性保证。需要分别验证模型 tool callin
 - 主模块与 internal 输出 `[no test files]`；可编译不代表审计行为正确。
 - `git diff --check`：通过；本轮仅文档变更。
 - F0 文档提交 a1263bb，功能分支已推送 origin。需求为 Pending Confirmation，F1 尚未完成。
+
+## 补充检查（2026-10-04）
+
+- `go list -m -json` 查询 Eino 最新模块为 `github.com/cloudwego/eino v0.9.21`，OpenAI 扩展为 `github.com/cloudwego/eino-ext/components/model/openai v0.1.13`；两者声明 GoVersion 1.18。项目 Go 1.21 在声明层面满足最低要求，但尚未完成依赖组合构建、模型能力及运行兼容验证。此次查询未修改 go.mod/go.sum。
+- `executeGitLabDependencyAnalysis`（internal/gitlab_mcp.go:1027）没有查询漏洞数据库，却将每个解析出的依赖标记为 medium；不能作为已知漏洞证据。Go 解析只处理单行 `require module version`，漏掉常见 require 块，Node 仅处理 dependencies，Python 仅识别 `==`。后续验收应区分依赖清单、待核查建议和有来源的漏洞发现。
+- `StartPollingWithDynamicConfig` 的 ListProjectMergeRequests 未遍历分页；项目 MR 超过默认页大小时可能漏扫。空 diff 后直接 continue，已设置的 processing 不会在该路径退出。
+- `cmd/test_tools/main.go:48` 除具体类型断言错误之外，还尝试访问 internal 包未导出方法 buildSimplifiedPrompt；仅删除断言不能使示例编译通过。
+- 用户已明确授权最终将完成并验证的变更合入并推送 main；这不等于已确认需求草案中的登录、权限和新增产品范围。当前保持功能分支，最终主分支提交需在实现和验证后执行。
