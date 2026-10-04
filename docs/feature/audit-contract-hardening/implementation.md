@@ -1,0 +1,9 @@
+# Audit contract hardening
+
+F0 workflow gate: clean main8347389; P10 correctness and product hardening. User authorizes best-practice implementation following evidence-led analysis. Existing API and tests sufficient for incremental additive contracts. Implementation allowed; preserve language-independent Git investigation and existing data. main/local1234 deployment authorized. No unrelated changes.
+
+F1 scope: all previously identified gaps remain in scope: audit identity and captured configuration; retry and recovery; canonical findings and durable progress; investigation/observation evidence; contiguous pagination; coverage taxonomy; Git metadata findings; configuration revision/sync; permissions/quotas; proxy throttling; light list queries; diagram scheduling/evidence; external review synchronization. Also preceding priorities (independent verification, real evaluation, large PR grouping, stable finding lifecycle) remain tracked. No claim of completion until each has tests and runtime proof.
+
+F2 contract: identity includes repository, project/MR, base/head and effective policy/config digest. Immutable per-run public audit configuration is persisted; secrets remain configuration-owned. Successful identical runs may be reused, failed/cancelled/incomplete can be retried with bounded automatic retry semantics. Active duplicates are prevented. Coverage separates deliberate exclusions from missing evidence; excluded-only changes become skipped rather than false clean. Future changes use additive versioned JSON and explicit permission migrations.
+
+F3 plan: start with identity/retry regression tests and scope-status taxonomy; then canonical findings/checkpoints/evidence validation, paging, metadata, config/permissions and scale/UX. Each slice must record authoritative tests and remaining work. Do not reinterpret this plan as completion of only the first slice.
