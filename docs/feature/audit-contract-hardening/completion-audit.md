@@ -30,3 +30,5 @@
 各项具体测试名称、输出耗时、native证明路径、截图与剩余事项见implementation.md。临时目录证据是本机记录；最终报告需明确哪些被提交、哪些只在本机，不把不存在的发布或部署记录列为完成。
 
 2026-10-05迁移实查：以SQLite只读连接获取当前部署数据库的一致副本，仅对副本调用当前OpenStore两次，不启动Agent/网络服务。证据目录 /var/folders/y0/q03mg01d2vv5twh26pdhkzbw0000gn/T/aimangebot-migration-acceptance.r8vds6in，副本与proof权限0600、目录0700。账号1/项目1、任务0/复核0/事件0迁移前后相同；integrity_check=ok、foreign_key_check=0。当前生产数据为空任务集，空集哈希不证明非空历史结果保留；非空历史JSON/trace、复核基线、重复迁移与回滚由既有migration测试覆盖。此副本用于迁移验收，不替代最终部署前的新鲜备份。
+
+最终连接阻塞复查：当前工作区干净，远端开发分支56556468e344028201e9f4682b659c78a066e110与本地一致，远端main仍834738964e990889efb700d48a4205582c40d7ed。1234根页面HTTP200，验收端口19234/19235均已不可达。以当前config.yaml只读执行go run ./cmd/audit-eval -config config.yaml -probe，仍HTTP401/provider_code=invalid_api_key；未输出或持久化密钥、原始响应正文。连续阶段中已完成错误脱敏、数据副本迁移、当前设置UI和发布状态检查；有效质量评测仍需用户更新配置。不能用重复合成验证替代真实质量结果，不能把main合并/部署写成已完成。剩余最终质量判定、交付报告、main与1234发布按原范围保留，待配置恢复。
