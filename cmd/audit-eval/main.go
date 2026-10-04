@@ -1,0 +1,257 @@
+package main
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	modelopenai "github.com/meguminnnnnnnnn/go-openai"
+	"net"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"time"
+
+	"pr_agent/internal/evaluation"
+	"pr_agent/internal/platform"
+)
+
+type metadata struct {
+	OnlyCase       string  `json:"only_case,omitempty"`
+	CorpusDigest   string  `json:"corpus_digest"`
+	CodeRevision   string  `json:"code_revision"`
+	Model          string  `json:"model"`
+	EndpointDigest string  `json:"endpoint_digest"`
+	Policy         string  `json:"policy"`
+	MaxSteps       int     `json:"max_steps"`
+	MaxToolCalls   int     `json:"max_tool_calls"`
+	Temperature    float32 `json:"temperature"`
+	TimeoutSeconds int     `json:"timeout_seconds"`
+	Verify         bool    `json:"verify_findings"`
+	Diagrams       bool    `json:"generate_diagrams"`
+}
+type receipt struct {
+	ErrorClass            string               `json:"error_class,omitempty"`
+	HTTPStatus            int                  `json:"http_status,omitempty"`
+	ID                    string               `json:"id"`
+	BaseSHA               string               `json:"base_sha"`
+	HeadSHA               string               `json:"head_sha"`
+	Status                string               `json:"status"`
+	ElapsedMS             int64                `json:"elapsed_ms"`
+	Result                platform.AuditResult `json:"result"`
+	Trace                 []platform.ToolTrace `json:"trace"`
+	ExpectedAnchorMatched bool                 `json:"expected_anchor_matched_preliminary_only"`
+	PromptTokens          int                  `json:"prompt_tokens"`
+	CompletionTokens      int                  `json:"completion_tokens"`
+	UsageComplete         bool                 `json:"usage_complete"`
+}
+
+func save(path string, v any) error {
+	raw, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+	temp := path + ".tmp"
+	if err = os.WriteFile(temp, append(raw, '\n'), 0600); err != nil {
+		return err
+	}
+	return os.Rename(temp, path)
+}
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "evaluation stopped:", err)
+		os.Exit(1)
+	}
+}
+func run() error {
+	config := flag.String("config", "config.yaml", "Existing configuration (read only)")
+	corpusPath := flag.String("corpus", "evaluation/corpus-v1.json", "Ground truth corpus outside audited repositories")
+	output := flag.String("output", "", "New isolated result directory")
+	probe := flag.Bool("probe", false, "Safe minimal configured-provider connection check")
+	onlyCase := flag.String("case", "", "Optional one-case diagnostic cohort")
+	resume := flag.Bool("resume", false, "Resume identical evaluation, retaining all completed receipts")
+	timeout := flag.Int("timeout", 240, "Per-case seconds, maximum240")
+	flag.Parse()
+	if (!*probe && *output == "") || *timeout < 1 || *timeout > 240 {
+		return fmt.Errorf("output and bounded timeout required")
+	}
+	if _, err := os.Stat(*config); err != nil {
+		return fmt.Errorf("existing config required")
+	}
+	settings, err := platform.OpenSettings(*config, *config)
+	if err != nil {
+		return fmt.Errorf("cannot load configuration")
+	}
+	cfg := settings.Snapshot()
+	model := cfg.ReAct.Model
+	if model == "" {
+		model = cfg.OpenAI.Model
+	}
+	if cfg.OpenAI.APIKey == "" || model == "" {
+		return fmt.Errorf("configured real model required")
+	}
+	if *probe {
+		return probeModel(context.Background(), cfg.OpenAI.URL, cfg.OpenAI.APIKey, model)
+	}
+	corpus, digest, err := evaluation.LoadCorpus(*corpusPath)
+	if err != nil {
+		return err
+	}
+	if *onlyCase != "" {
+		found := false
+		for _, c := range corpus.Cases {
+			if c.ID == *onlyCase {
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("unknown diagnostic case")
+		}
+	}
+	endpoint := sha256.Sum256([]byte(cfg.OpenAI.URL))
+	revision := "unknown"
+	if raw, e := exec.Command("git", "rev-parse", "HEAD").Output(); e == nil {
+		revision = strings.TrimSpace(string(raw))
+	}
+	steps := cfg.ReAct.MaxSteps
+	if steps > 16 {
+		steps = 16
+	}
+	if steps < 2 {
+		steps = 16
+	}
+	calls := cfg.GitAudit.MaxToolCalls
+	if calls <= 0 || calls > 80 {
+		calls = 80
+	}
+	meta := metadata{*onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
+	if *resume {
+		raw, e := os.ReadFile(filepath.Join(*output, "metadata.json"))
+		if e != nil {
+			return e
+		}
+		var old metadata
+		if e = json.Unmarshal(raw, &old); e != nil || old != meta {
+			return fmt.Errorf("resume metadata mismatch")
+		}
+	} else {
+		if err = os.Mkdir(*output, 0700); err != nil {
+			return err
+		}
+		if err = save(filepath.Join(*output, "metadata.json"), meta); err != nil {
+			return err
+		}
+		if err = save(filepath.Join(*output, "ground-truth.json"), corpus); err != nil {
+			return err
+		}
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	for i, c := range corpus.Cases {
+		if *onlyCase != "" && c.ID != *onlyCase {
+			continue
+		}
+		if ctx.Err() != nil {
+			return fmt.Errorf("interrupted; partial evidence retained")
+		}
+		caseDir := filepath.Join(*output, c.ID)
+		receiptPath := filepath.Join(caseDir, "receipt.json")
+		if *resume {
+			if _, e := os.Stat(receiptPath); e == nil {
+				fmt.Printf("%s retained\n", c.ID)
+				continue
+			}
+		}
+		if err = os.Mkdir(caseDir, 0700); err != nil {
+			return fmt.Errorf("unfinished case directory requires inspection: %s", c.ID)
+		}
+		base, head, e := evaluation.BuildRepository(ctx, filepath.Join(caseDir, "repository"), c)
+		if e != nil {
+			return e
+		}
+		repo := &platform.GitRepository{Directory: filepath.Join(caseDir, "repository")}
+		snap := platform.Snapshot{ProjectID: 1, SourceProjectID: 1, MRIID: i + 1, BaseSHA: base, HeadSHA: head, Title: c.ID}
+		caseCtx, cancel := context.WithTimeout(ctx, time.Duration(*timeout)*time.Second)
+		changes, notes, e := repo.Changes(caseCtx, snap)
+		if e != nil {
+			cancel()
+			return fmt.Errorf("pinned fixture diff failed")
+		}
+		scope := platform.BuildDiff(changes, nil, 96*1024)
+		scope.Notes = append(scope.Notes, notes...)
+		auditor := &platform.EinoAuditor{Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
+			return save(filepath.Join(caseDir, "checkpoint.json"), map[string]any{"result": result, "trace": trace})
+		}}}
+		fmt.Printf("%s started\n", c.ID)
+		started := time.Now()
+		result, trace, auditErr := auditor.Audit(caseCtx, snap, scope)
+		status := "completed"
+		if auditErr != nil {
+			status = "model_or_agent_failed"
+		}
+		if caseCtx.Err() != nil {
+			status = "deadline_or_interruption"
+		} else if auditErr == nil && len(result.CoverageNotes) > 0 {
+			status = "incomplete"
+		}
+		cancel()
+		record := receipt{ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
+		for _, f := range result.Findings {
+			if f.File == c.ExpectedAnchor.File && f.Side == c.ExpectedAnchor.Side && f.Line == c.ExpectedAnchor.Line {
+				record.ExpectedAnchorMatched = true
+			}
+		}
+		for _, tr := range trace {
+			if tr.Name == "model" {
+				record.PromptTokens += tr.PromptTokens
+				record.CompletionTokens += tr.CompletionTokens
+				if !tr.UsageReported {
+					record.UsageComplete = false
+				}
+			}
+		}
+		if auditErr != nil {
+			record.ErrorClass, record.HTTPStatus = classifyError(auditErr)
+			record.UsageComplete = false
+		}
+		if err = save(receiptPath, record); err != nil {
+			return err
+		}
+		fmt.Printf("%s %s findings=%d elapsed_ms=%d tokens=%d\n", c.ID, status, len(result.Findings), record.ElapsedMS, record.PromptTokens+record.CompletionTokens)
+		if record.ErrorClass != "" {
+			fmt.Printf("%s error_class=%s http_status=%d\n", c.ID, record.ErrorClass, record.HTTPStatus)
+		}
+	}
+	return nil
+}
+
+func classifyError(err error) (string, int) {
+	var api *modelopenai.APIError
+	var request *modelopenai.RequestError
+	var network net.Error
+	if errors.As(err, &api) {
+		return "model_api_error", api.HTTPStatusCode
+	}
+	if errors.As(err, &request) {
+		return "model_request_error", request.HTTPStatusCode
+	}
+	if errors.Is(err, context.Canceled) {
+		return "canceled", 0
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "deadline", 0
+	}
+	if errors.As(err, &network) {
+		if network.Timeout() {
+			return "network_timeout", 0
+		}
+		return "network_error", 0
+	}
+	return "agent_or_provider_error", 0
+}
