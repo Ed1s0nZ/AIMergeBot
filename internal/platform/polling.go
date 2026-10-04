@@ -15,6 +15,9 @@ func (r *Runner) Poll(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		if r.Settings != nil {
+			if err := r.Store.SyncProjectConfig(ctx, r.Settings); err != nil && ctx.Err() == nil {
+				log.Printf("project configuration synchronization pending; will retry")
+			}
 			cfg := r.Settings.Snapshot()
 			if cfg.EnablePolling {
 				projects, err := r.Store.Projects(ctx)

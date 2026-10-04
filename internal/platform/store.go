@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type Store struct{ DB *sql.DB }
+type Store struct {
+	DB            *sql.DB
+	projectSyncMu sync.Mutex
+}
 
 func OpenStore(path string) (*Store, error) {
 	dsn := "file:" + url.PathEscape(path) + "?_busy_timeout=5000&_foreign_keys=on&_journal_mode=WAL"
@@ -37,6 +41,8 @@ func (s *Store) migrate() error {
 	}
 	defer tx.Rollback()
 	statements := []string{
+		`CREATE TABLE IF NOT EXISTS platform_project_sync (id INTEGER PRIMARY KEY CHECK(id=1),generation INTEGER NOT NULL DEFAULT 0,dirty INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL)`,
+		`INSERT OR IGNORE INTO platform_project_sync(id,updated_at) VALUES(1,'')`,
 		`CREATE TABLE IF NOT EXISTS platform_legacy_imports (legacy_id INTEGER PRIMARY KEY,run_id INTEGER NOT NULL REFERENCES platform_runs(id))`,
 		`CREATE TABLE IF NOT EXISTS platform_poll_seen (project_id INTEGER NOT NULL,mr_iid INTEGER NOT NULL,head_sha TEXT NOT NULL,PRIMARY KEY(project_id,mr_iid))`,
 		`CREATE TABLE IF NOT EXISTS platform_comments (run_id INTEGER PRIMARY KEY,status TEXT NOT NULL,updated_at TEXT NOT NULL)`,
@@ -124,8 +130,19 @@ func (s *Store) SaveProject(ctx context.Context, p Project) error {
 	if p.ID <= 0 || len(p.Name) == 0 || len(p.Name) > 200 {
 		return fmt.Errorf("invalid project")
 	}
-	_, err := s.DB.ExecContext(ctx, `INSERT INTO platform_projects(id,name,enabled) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,enabled=excluded.enabled`, p.ID, p.Name, p.Enabled)
-	return err
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_projects(id,name,enabled) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,enabled=excluded.enabled`, p.ID, p.Name, p.Enabled)
+	if err != nil {
+		return err
+	}
+	if err = markProjectSync(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *Store) Run(ctx context.Context, id int64) (Run, error) { return s.readRun(ctx, id, true) }

@@ -163,6 +163,8 @@ func TestSearchCursorAndInvestigationLifecycle(t *testing.T) {
 	if o.Error == "" {
 		t.Fatal("rejection without counterevidence accepted")
 	}
+	source, _ := tools.file(context.Background(), readArgs{Path: "guard.any", Base: true})
+	item.CounterObservationIDs = []string{source.ObservationID}
 	item.Counterevidence = []string{"caller applies guard before invoking"}
 	o, _ = tools.update(context.Background(), item)
 	if o.Error != "" || tools.investigations()[0].Status != "rejected" {
@@ -268,7 +270,7 @@ func TestStandaloneGitUsesEinoWithoutPlatformAPI(t *testing.T) {
 		call++
 		names := []string{"list_directory", "search_code", "get_diff", "record_hypothesis", "update_investigation", "submit_finding"}
 		finding := Finding{Side: "base", File: "guard.any", Line: 1, Severity: "high", Type: "authorization", Title: "guard removed", Description: "potential unauthorized access", Evidence: "authorize(user)", Trigger: "untrusted caller reaches operation", Suggestion: "restore guard", Confidence: "candidate"}
-		args := []any{directoryArgs{Depth: 1}, searchArgs{Query: "authorize", Base: true}, gitArgs{Path: "guard.any"}, Investigation{ID: "guard", Claim: "guard removed", Evidence: []string{"base guard.any:1 authorize(user)"}}, Investigation{ID: "guard", Claim: "guard removed", Status: "supported", Evidence: []string{"base guard.any:1 authorize(user)"}, Counterevidence: []string{"No runtime verification performed"}}, finding}
+		args := []any{directoryArgs{Depth: 1}, searchArgs{Query: "authorize", Base: true}, gitArgs{Path: "guard.any"}, Investigation{ID: "guard", Claim: "guard removed", Evidence: []string{"base guard.any:1 authorize(user)"}, ObservationIDs: []string{"observation-2"}}, Investigation{ID: "guard", Claim: "guard removed", Status: "supported", Evidence: []string{"base guard.any:1 authorize(user)"}, ObservationIDs: []string{"observation-2"}, Counterevidence: []string{"No runtime verification performed"}}, finding}
 		var msg map[string]any
 		finish := "stop"
 		if call <= len(names) {

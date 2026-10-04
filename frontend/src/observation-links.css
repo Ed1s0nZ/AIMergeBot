@@ -1,0 +1,3 @@
+
+.observation-links { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.observation-links button { padding:5px 8px; font-size:11px; color:#365dc4; background:#edf2fc; border:1px solid #dce5fa; border-radius:6px; }

@@ -34,6 +34,12 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 		}
 		t.mu.Lock()
 		defer t.mu.Unlock()
+		if err := t.validateObservationIDs(a.ObservationIDs); err != nil {
+			return toolOutput{}, err
+		}
+		if err := t.validateObservationIDs(a.CounterObservationIDs); err != nil {
+			return toolOutput{}, err
+		}
 		if t.ledger == nil {
 			t.ledger = map[string]Investigation{}
 		}
@@ -55,8 +61,8 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 			if a.Status != "investigating" && a.Status != "supported" && a.Status != "rejected" {
 				return toolOutput{}, fmt.Errorf("invalid investigation status")
 			}
-			if a.Status == "supported" && len(a.Evidence) == 0 || a.Status == "rejected" && len(a.Counterevidence) == 0 {
-				return toolOutput{}, fmt.Errorf("resolved hypothesis needs evidence or counterevidence")
+			if a.Status == "supported" && (len(a.Evidence) == 0 || len(a.ObservationIDs) == 0) || a.Status == "rejected" && (len(a.Counterevidence) == 0 || len(a.CounterObservationIDs) == 0) {
+				return toolOutput{}, fmt.Errorf("resolved hypothesis needs evidence/counterevidence and successful source observation IDs")
 			}
 		}
 		t.ledger[a.ID] = a
@@ -114,10 +120,10 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("search_history", "Search changes in occurrence count of literal query in reachable history, optionally path; bounded history, limit/cursor.", t.historySearch)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("record_hypothesis", "Record concise factual claim, evidence, counterevidence and next_steps; not private reasoning. Returns generated id.", t.record)); e != nil {
+	if e := add(utils.InferTool("record_hypothesis", "Record concise factual claim, evidence, counterevidence, observation_ids, counter_observation_ids and next_steps; not private reasoning. Returns generated id.", t.record)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence or counterevidence. Does not prove exploitability.", t.update)); e != nil {
+	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids or counterevidence/counter_observation_ids linking successful source observations. Does not prove exploitability.", t.update)); e != nil {
 		return nil, e
 	}
 	if e := add(utils.InferTool("submit_finding", "Validate proposed finding against changed base/head lines and exact snapshot evidence; matching evidence does not establish runtime verification.", t.submit)); e != nil {

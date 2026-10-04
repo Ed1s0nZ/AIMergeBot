@@ -74,10 +74,7 @@ func (h *HTTP) saveProject(c *gin.Context) {
 		return
 	}
 	if h.Settings != nil {
-		projects, err := h.Store.Projects(c.Request.Context())
-		if err == nil {
-			err = h.Settings.SyncProjects(projects)
-		}
+		err := h.Store.SyncProjectConfig(c.Request.Context(), h.Settings)
 		if err != nil {
 			c.JSON(500, gin.H{"error": "project saved, but config.yaml synchronization failed; retry saving"})
 			return
@@ -346,7 +343,14 @@ func (h *HTTP) getSettings(c *gin.Context) {
 		c.JSON(503, gin.H{"error": "settings unavailable"})
 		return
 	}
-	c.JSON(200, h.Settings.Public())
+	status, err := h.Store.ProjectSyncStatus(c.Request.Context())
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	public := h.Settings.Public()
+	public["project_config_sync"] = status
+	c.JSON(200, public)
 }
 func (h *HTTP) saveSettings(c *gin.Context) {
 	if h.Settings == nil {
@@ -366,7 +370,11 @@ func (h *HTTP) saveSettings(c *gin.Context) {
 	previous := h.Settings.Snapshot()
 	restartRequired := previous.Listen != cfg.Listen || previous.AuditWorkers != cfg.AuditWorkers
 	if err = h.Settings.Save(cfg); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		status := 400
+		if errors.Is(err, ErrSettingsConflict) {
+			status = 409
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	h.Store.Event(c.Request.Context(), currentUser(c).ID, "settings.saved", "config.yaml")

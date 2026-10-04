@@ -16,6 +16,8 @@ type Project struct {
 }
 
 type Finding struct {
+	InvestigationID string           `json:"investigation_id,omitempty"`
+	ObservationIDs  []string         `json:"observation_ids,omitempty"`
 	SequenceDiagram *SequenceDiagram `json:"sequence_diagram,omitempty"`
 	Side            string           `json:"side"`
 	Type            string           `json:"type"`
@@ -32,12 +34,14 @@ type Finding struct {
 }
 
 type Investigation struct {
-	ID              string   `json:"id"`
-	Claim           string   `json:"claim"`
-	Status          string   `json:"status"`
-	Evidence        []string `json:"evidence"`
-	Counterevidence []string `json:"counterevidence"`
-	NextSteps       []string `json:"next_steps"`
+	ObservationIDs        []string `json:"observation_ids,omitempty"`
+	CounterObservationIDs []string `json:"counter_observation_ids,omitempty"`
+	ID                    string   `json:"id"`
+	Claim                 string   `json:"claim"`
+	Status                string   `json:"status"`
+	Evidence              []string `json:"evidence"`
+	Counterevidence       []string `json:"counterevidence"`
+	NextSteps             []string `json:"next_steps"`
 }
 type AuditResult struct {
 	ExcludedFiles  []string        `json:"excluded_files,omitempty"`

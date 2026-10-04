@@ -67,7 +67,14 @@ func run() error {
 	if err = store.ImportLegacy(ctx); err != nil {
 		return err
 	}
+	importProjects, syncErr := store.RestorePendingProjects(ctx, settings)
+	if syncErr != nil {
+		log.Printf("project config synchronization pending; database changes retained")
+	}
 	cfg := settings.Snapshot()
+	if !importProjects {
+		cfg.Projects = nil
+	}
 	projects, err := store.Projects(ctx)
 	if err != nil {
 		return err

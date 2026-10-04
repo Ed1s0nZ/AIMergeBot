@@ -60,6 +60,8 @@ export type SequenceDiagram = {
   mermaid?: string;
 };
 export type Finding = {
+ investigation_id?: string;
+ observation_ids?: string[];
   sequence_diagram?: SequenceDiagram;
   side: string;
   type: string;
@@ -97,6 +99,8 @@ export type Run = {
       status: string;
       evidence: string[];
       counterevidence: string[];
+      observation_ids?: string[];
+      counter_observation_ids?: string[];
       next_steps: string[];
     }[];
   };
@@ -122,6 +126,8 @@ export type Review = {
   updated_at: string;
 };
 export type Settings = {
+ config_revision: number;
+ project_config_sync?: {pending:boolean;generation:number;error:string};
   generate_sequence_diagrams: boolean;
   git_audit: {
     enabled: boolean;

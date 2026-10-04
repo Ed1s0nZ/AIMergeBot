@@ -1,3 +1,4 @@
+import { ObservationLinks } from "./observation-links";
 import { FindingSequence } from "./finding-sequence";
 import { ToolObservation } from "./tool-observation";
 import { useEffect, useState } from "react";
@@ -35,6 +36,8 @@ function FindingCard({
         {finding.type && ` · ${finding.type}`}
       </div>
       <p>{finding.description}</p>
+ {finding.investigation_id && <p className="muted">关联调查：{finding.investigation_id}</p>}
+ <ObservationLinks ids={finding.observation_ids} />
       <pre>{finding.evidence}</pre>
       <dl>
         <dt>触发条件</dt>
@@ -241,7 +244,9 @@ export function RunDetail({ id }: { id: number }) {
               </summary>
               <p className="muted">这里记录代码调查结果，不代表已运行复现。</p>
               <p>证据：{item.evidence?.join("；") || "尚未记录"}</p>
-              <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>
+              <ObservationLinks ids={item.observation_ids} />
+ <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>
+ <ObservationLinks ids={item.counter_observation_ids} />
               <p>待查：{item.next_steps?.join("；") || "无"}</p>
             </details>
           ))}
@@ -251,7 +256,7 @@ export function RunDetail({ id }: { id: number }) {
         <h2>工具调用</h2>
         {r.trace?.length ? (
           r.trace.map((t, i) => (
-            <details key={i}>
+            <details key={i} id={t.observation_id ? `trace-${t.observation_id}` : undefined}>
               <summary>
                 {t.name}
                 {t.stage === "diagram" ? " · 时序图生成" : ""}{" "}

@@ -8,6 +8,9 @@ import (
 
 // acceptFinding is the single entry point for both tool submissions and final proposals.
 func (t *auditTools) acceptFinding(ctx context.Context, f Finding) (Finding, error) {
+	if err := t.validateFindingLinks(f); err != nil {
+		return Finding{}, err
+	}
 	result := AuditResult{Findings: []Finding{f}}
 	if err := ValidateFindings(ctx, t.repo, t.snap, t.scope, &result); err != nil {
 		return Finding{}, err

@@ -9,9 +9,10 @@ import {
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
-import { api, write, type Settings } from "./api";
+import { api, write, APIError, type Settings } from "./api";
 import { ErrorBox, Empty } from "./components";
 export function SystemSettings() {
+  const [conflict,setConflict]=useState(false);
   const [section, setSection] = useState("model");
   const [baseline, setBaseline] = useState("");
   const [settings, setSettings] = useState<Settings | null>(null),
@@ -21,7 +22,9 @@ export function SystemSettings() {
   const load = () =>
     api<Settings>("/settings")
       .then((s) => {
-        setSettings(s);
+        setConflict(false);
+ setError("");
+ setSettings(s);
         setBaseline(JSON.stringify(s));
       })
       .catch((e) => setError(e.message));
@@ -73,6 +76,8 @@ export function SystemSettings() {
         </span>
       </div>
       <ErrorBox error={error} />
+ {conflict && <button type="button" onClick={load}>重新加载最新设置（放弃当前修改）</button>}
+ {s.project_config_sync?.pending && <div className="error" role="status">项目配置尚未同步到 config.yaml，服务会自动重试。数据库中的修改已保留。</div>}
       {saved && (
         <div className="success" role="status">
           {saved}
@@ -131,7 +136,8 @@ export function SystemSettings() {
                   : "设置已保存，新审计将使用更新后的配置。",
               );
             } catch (e) {
-              setError((e as Error).message);
+              setError(e instanceof APIError && e.status===409 ? "配置已被其他操作更新，请重新加载后再保存。" : (e as Error).message);
+ setConflict(e instanceof APIError && e.status===409);
             } finally {
               setBusy(false);
             }

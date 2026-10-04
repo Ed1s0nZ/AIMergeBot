@@ -95,6 +95,7 @@ func TestSettingsPersistenceAndRedaction(t *testing.T) {
 	if public["openai"].(map[string]interface{})["api_key"] != "" {
 		t.Fatal("secret exposed")
 	}
+	cfg = svc.Snapshot()
 	cfg.OpenAI.APIKey = ""
 	cfg.GitLab.Token = ""
 	if err = svc.Save(cfg); err != nil {

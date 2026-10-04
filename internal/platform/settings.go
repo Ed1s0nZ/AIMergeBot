@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -37,7 +38,10 @@ func defaultGitAudit(c *GitAuditSettings) {
 	}
 }
 
+var ErrSettingsConflict = errors.New("settings changed; reload current configuration before saving")
+
 type Settings struct {
+	Revision                 uint64           `yaml:"config_revision" json:"config_revision"`
 	GenerateSequenceDiagrams bool             `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
 	GitAudit                 GitAuditSettings `yaml:"git_audit" json:"git_audit"`
 	legacy.Config            `yaml:",inline"`
@@ -84,6 +88,9 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 	cfg := Settings{GitAudit: GitAuditSettings{Enabled: true}, GenerateSequenceDiagrams: true}
 	if err = yaml.Unmarshal(raw, &cfg); err != nil {
 		return nil, err
+	}
+	if cfg.Revision == 0 {
+		cfg.Revision = 1
 	}
 	defaultGitAudit(&cfg.GitAudit)
 	if cfg.Listen == "" {
@@ -178,6 +185,9 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	old := s.Snapshot()
+	if !replaceProjects && next.Revision != old.Revision {
+		return ErrSettingsConflict
+	}
 	defaultGitAudit(&next.GitAudit)
 	if next.GitLab.Token == "" {
 		next.GitLab.Token = old.GitLab.Token
@@ -190,6 +200,11 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	}
 	if replaceProjects {
 		projects := next.Projects
+		a, _ := json.Marshal(projects)
+		b, _ := json.Marshal(old.Projects)
+		if string(a) == string(b) {
+			return nil
+		}
 		next = old
 		next.Projects = projects
 	} else {
@@ -198,6 +213,7 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	if err := validateSettings(next); err != nil {
 		return err
 	}
+	next.Revision = old.Revision + 1
 	raw, err := yaml.Marshal(next)
 	if err != nil {
 		return err
@@ -250,6 +266,7 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 	delete(mapping, "has_gitlab_token")
 	delete(mapping, "has_api_key")
 	delete(mapping, "has_webhook_token")
+	delete(mapping, "project_config_sync")
 	encoded, err := yaml.Marshal(mapping)
 	if err != nil {
 		return Settings{}, err
