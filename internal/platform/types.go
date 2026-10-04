@@ -64,7 +64,11 @@ type Snapshot struct {
 }
 
 type Run struct {
-	ID int64 `json:"id"`
+	RetryChildID  int64  `json:"retry_child_id,omitempty"`
+	RetryParentID int64  `json:"retry_parent_id,omitempty"`
+	RetryAttempt  int    `json:"retry_attempt"`
+	RetryAt       string `json:"retry_at,omitempty"`
+	ID            int64  `json:"id"`
 	Snapshot
 	Status        string      `json:"status"`
 	Error         string      `json:"error"`

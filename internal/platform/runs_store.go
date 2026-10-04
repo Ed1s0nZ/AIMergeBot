@@ -59,7 +59,7 @@ func (s *Store) Claim(ctx context.Context) (int64, error) {
 	}
 	defer tx.Rollback()
 	var id int64
-	if err = tx.QueryRowContext(ctx, `SELECT id FROM platform_runs WHERE status='pending' ORDER BY id LIMIT 1`).Scan(&id); err != nil {
+	if err = tx.QueryRowContext(ctx, `SELECT id FROM platform_runs WHERE status='pending' AND (retry_at='' OR julianday(retry_at)<=julianday('now')) ORDER BY id LIMIT 1`).Scan(&id); err != nil {
 		return 0, err
 	}
 	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='running',started_at=? WHERE id=? AND status='pending'`, now(), id)
@@ -135,8 +135,34 @@ func (s *Store) Cancel(ctx context.Context, id, actor int64) error {
 }
 
 func (s *Store) Recover(ctx context.Context) error {
-	_, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET status='failed',error='interrupted by service restart; retry available',finished_at=? WHERE status='running'`, now())
-	return err
+	rows, err := s.DB.QueryContext(ctx, `SELECT id FROM platform_runs WHERE status='running'`)
+	if err != nil {
+		return err
+	}
+	ids := []int64{}
+	for rows.Next() {
+		var id int64
+		if err = rows.Scan(&id); err != nil {
+			rows.Close()
+			return err
+		}
+		ids = append(ids, id)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		run, err := s.Run(ctx, id)
+		if err != nil {
+			return err
+		}
+		if _, err = s.FailAndRetry(ctx, id, "interrupted by service restart; checkpoint retained", run.Result, run.Trace, retryDelay(run.RetryAttempt)); err != nil && !errors.Is(err, ErrConflict) {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) Reviews(ctx context.Context, id int64) ([]Review, error) {

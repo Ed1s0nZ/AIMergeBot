@@ -186,6 +186,8 @@ export function RunDetail({ id }: { id: number }) {
           <code>{r.base_sha || "旧数据未记录"}</code>
         </div>
       </section>
+      {r.retry_child_id && <p className="muted">已创建自动重试记录 · <a href={`#/runs/${r.retry_child_id}`}>查看并管理重试任务</a></p>}
+      {r.retry_parent_id && <p className="muted">自动重试第 {r.retry_attempt} 次 · <a href={`#/runs/${r.retry_parent_id}`}>查看前次记录</a>{r.status === "pending" && r.retry_at ? ` · 最早执行时间 ${date(r.retry_at)}` : ""}</p>}
       {r.error && <ErrorBox error={r.error} />}
       <section className="panel summary">
         <h2>审计摘要</h2>

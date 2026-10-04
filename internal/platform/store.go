@@ -159,7 +159,7 @@ func (s *Store) readRun(ctx context.Context, id int64, includeTrace bool) (Run, 
 	if !includeTrace {
 		traceColumn = "'[]'"
 	}
-	err := s.DB.QueryRowContext(ctx, `SELECT id,project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,error,result_json,`+traceColumn+`,created_at,started_at,finished_at,requested_by,policy_version,audit_policy_json FROM platform_runs WHERE id=?`, id).Scan(&r.ID, &r.ProjectID, &r.MRIID, &r.SourceProjectID, &r.DiffVersionID, &r.BaseSHA, &r.HeadSHA, &r.Title, &r.URL, &r.Status, &r.Error, &result, &trace, &created, &started, &finished, &r.RequestedBy, &r.PolicyVersion, &policy)
+	err := s.DB.QueryRowContext(ctx, `SELECT id,project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,error,result_json,`+traceColumn+`,created_at,started_at,finished_at,requested_by,policy_version,audit_policy_json,retry_parent_id,retry_attempt,retry_at,COALESCE((SELECT child.id FROM platform_runs child WHERE child.retry_parent_id=platform_runs.id ORDER BY child.id DESC LIMIT 1),0) FROM platform_runs WHERE id=?`, id).Scan(&r.ID, &r.ProjectID, &r.MRIID, &r.SourceProjectID, &r.DiffVersionID, &r.BaseSHA, &r.HeadSHA, &r.Title, &r.URL, &r.Status, &r.Error, &result, &trace, &created, &started, &finished, &r.RequestedBy, &r.PolicyVersion, &policy, &r.RetryParentID, &r.RetryAttempt, &r.RetryAt, &r.RetryChildID)
 	if err != nil {
 		return r, err
 	}

@@ -199,6 +199,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		}
 		local, cleanup, e := PrepareGitLab(ctx, remote, run.Snapshot, gitConfig)
 		if e != nil {
+			if r.failTransient(id, e, AuditResult{}, nil) {
+				return
+			}
 			r.finish(id, "failed", "cannot prepare pinned Git repository: "+e.Error(), AuditResult{}, nil)
 			return
 		}
@@ -212,6 +215,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}
 	changes, notes, err := repo.Changes(ctx, run.Snapshot)
 	if err != nil {
+		if r.failTransient(id, err, AuditResult{}, nil) {
+			return
+		}
 		r.finish(id, "failed", "cannot obtain pinned diff: "+err.Error(), AuditResult{}, nil)
 		return
 	}
@@ -238,6 +244,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}
 	if err == nil && len(result.CoverageNotes) > 0 {
 		status = "incomplete"
+	}
+	if status == "failed" && ctx.Err() == nil && r.failTransient(id, err, result, trace) {
+		return
 	}
 	r.finish(id, status, message, result, trace)
 	if status == "succeeded" {

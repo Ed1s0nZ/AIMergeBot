@@ -77,6 +77,10 @@ export type Finding = {
   confidence: string;
 };
 export type Run = {
+ retry_child_id?:number;
+ retry_parent_id?:number;
+ retry_attempt?:number;
+ retry_at?:string;
   id: number;
   project_id: number;
   source_project_id: number;
