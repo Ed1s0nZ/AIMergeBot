@@ -20,3 +20,12 @@ Existing SQLite result JSON is additive, no table migration. Policy key incremen
 
 ## F3 implementation plan
 Add sequence contract/validator/Mermaid serializer, separate Eino generation pass and trace stage. Wire enabled setting through runner/dynamic/standalone; build React SVG diagram component and evidence/source/export states. Add model fixture tests for clean/no-call, valid/partial graph, malformed model data, invented references and BASE handling; backend/race/type/build tests and real-browser SVG evidence/export/mobile checks. Update docs/changelog. Merge main and native deploy with private config/database preserved; rollback previous binary/result schema remains compatible. No new Mermaid runtime dependency required.
+
+## F4 implementation
+Implemented separate bounded Eino graph generation, strict pinned-source validation, additive result JSON, config toggle and React SVG/evidence/export component. No language adapters or model-authored SVG execution.
+
+## F5 verification
+Passed go test ./..., go test -race ./internal/platform, go vet ./..., TypeScript/Vite build and git diff --check. Fixture model tests cover valid/invalid/HTTP failure/clean/disabled, invented references, BASE-only notes, primary diagram stripping, strict schema and settings persistence. Browser verified diagram, risk anchor and selected inferred/evidence states with deterministic fixture. SVG download event automation timed out, so downloaded-file verification remains unconfirmed; export implementation was inspected. Screenshot is a model fixture, not a live vulnerability.
+
+## F6 review
+Source snippets and SHA are validated, not call semantics. Uncertainty explicit. Primary audit survives supplemental failure. Export serializes owned React SVG with safe text. History remains readable; re-audit creates diagram. Main/local deployment authorized in prior session.

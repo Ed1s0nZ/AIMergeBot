@@ -34,3 +34,6 @@ git_audit:
   history_depth: 200
   max_pack_mib: 256
   max_tool_calls: 80
+
+# Generate an evidence-linked sequence diagram after validated findings (extra model calls).
+generate_sequence_diagrams: true

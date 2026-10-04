@@ -127,7 +127,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if model == "" {
 			model = cfg.OpenAI.Model
 		}
-		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls}}
+		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams}}
 	}
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()

@@ -35,7 +35,32 @@ export type User = {
   disabled: boolean;
 };
 export type Project = { id: number; name: string; enabled: boolean };
+export type SequenceReference = {
+  side: "head" | "base";
+  file: string;
+  line: number;
+  snippet: string;
+  sha: string;
+};
+export type SequenceStep = {
+  from: string;
+  to: string;
+  label: string;
+  kind: "call" | "return" | "note";
+  certainty: "cited" | "inferred";
+  risk: boolean;
+  evidence: SequenceReference[];
+};
+export type SequenceDiagram = {
+  status: "ready" | "partial" | "unavailable";
+  reason?: string;
+  participants?: { id: string; label: string }[];
+  steps?: SequenceStep[];
+  limitations?: string[];
+  mermaid?: string;
+};
 export type Finding = {
+  sequence_diagram?: SequenceDiagram;
   side: string;
   type: string;
   id: string;
@@ -76,6 +101,7 @@ export type Run = {
   };
   trace: {
     name: string;
+    stage?: string;
     output?: string;
     observation_id?: string;
     partial?: boolean;
@@ -95,6 +121,7 @@ export type Review = {
   updated_at: string;
 };
 export type Settings = {
+  generate_sequence_diagrams: boolean;
   git_audit: {
     enabled: boolean;
     history_depth: number;

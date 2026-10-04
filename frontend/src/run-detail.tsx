@@ -1,3 +1,4 @@
+import { FindingSequence } from "./finding-sequence";
 import { ToolObservation } from "./tool-observation";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
@@ -41,6 +42,10 @@ function FindingCard({
         <dt>修复建议</dt>
         <dd>{finding.suggestion}</dd>
       </dl>
+      <FindingSequence
+        diagram={finding.sequence_diagram}
+        findingId={finding.id}
+      />
       <form
         className="review-form"
         onSubmit={async (e) => {
@@ -247,7 +252,8 @@ export function RunDetail({ id }: { id: number }) {
           r.trace.map((t, i) => (
             <details key={i}>
               <summary>
-                {t.name}{" "}
+                {t.name}
+                {t.stage === "diagram" ? " · 时序图生成" : ""}{" "}
                 <span className="muted">
                   {t.duration_ms}ms {t.error ? "· 失败" : ""}
                 </span>

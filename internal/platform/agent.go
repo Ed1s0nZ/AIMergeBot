@@ -23,6 +23,7 @@ type AgentConfig struct {
 	MaxSteps               int
 	Temperature            float32
 	MaxToolCalls           int
+	GenerateDiagrams       bool
 }
 type Auditor interface {
 	Audit(context.Context, Snapshot, DiffScope) (AuditResult, []ToolTrace, error)
@@ -104,6 +105,27 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err = ValidateFindings(ctx, e.Repository, snap, scope, &result); err != nil {
 		return AuditResult{Findings: []Finding{}, Summary: "Model findings failed evidence validation", CoverageNotes: append(result.CoverageNotes, err.Error())}, tools.trace, err
 	}
+	if cfg.GenerateDiagrams && len(result.Findings) > 0 {
+		graphCB := callbacks.NewHandlerBuilder().OnEndFn(func(c context.Context, _ *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
+			if data, ok := output.(*em.CallbackOutput); ok {
+				trace := ToolTrace{Name: "model", Stage: "diagram", Arguments: cfg.Model}
+				if data.TokenUsage != nil {
+					trace.PromptTokens = data.TokenUsage.PromptTokens
+					trace.CompletionTokens = data.TokenUsage.CompletionTokens
+					trace.UsageReported = true
+				}
+				tools.mu.Lock()
+				tools.trace = append(tools.trace, trace)
+				tools.mu.Unlock()
+			}
+			return c
+		}).Build()
+		e.generateSequences(ctx, &result, tools, registered, model, graphCB)
+	} else {
+		for i := range result.Findings {
+			result.Findings[i].SequenceDiagram = unavailableSequence("系统设置已关闭时序图生成")
+		}
+	}
 	return result, tools.trace, nil
 }
 
@@ -135,6 +157,7 @@ func ValidateFindings(ctx context.Context, repo Repository, snap Snapshot, scope
 	texts := map[string]string{}
 	out := []Finding{}
 	for _, f := range result.Findings {
+		f.SequenceDiagram = nil
 		if f.Side == "" {
 			f.Side = "head"
 		}

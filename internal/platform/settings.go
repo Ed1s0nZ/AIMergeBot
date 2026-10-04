@@ -38,12 +38,13 @@ func defaultGitAudit(c *GitAuditSettings) {
 }
 
 type Settings struct {
-	GitAudit            GitAuditSettings `yaml:"git_audit" json:"git_audit"`
-	legacy.Config       `yaml:",inline"`
-	PublicURL           string `yaml:"public_url" json:"public_url"`
-	WebhookToken        string `yaml:"webhook_token" json:"webhook_token"`
-	AuditWorkers        int    `yaml:"audit_workers" json:"audit_workers"`
-	AuditTimeoutSeconds int    `yaml:"audit_timeout_seconds" json:"audit_timeout_seconds"`
+	GenerateSequenceDiagrams bool             `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
+	GitAudit                 GitAuditSettings `yaml:"git_audit" json:"git_audit"`
+	legacy.Config            `yaml:",inline"`
+	PublicURL                string `yaml:"public_url" json:"public_url"`
+	WebhookToken             string `yaml:"webhook_token" json:"webhook_token"`
+	AuditWorkers             int    `yaml:"audit_workers" json:"audit_workers"`
+	AuditTimeoutSeconds      int    `yaml:"audit_timeout_seconds" json:"audit_timeout_seconds"`
 }
 
 type SettingsService struct {
@@ -80,7 +81,7 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg := Settings{GitAudit: GitAuditSettings{Enabled: true}}
+	cfg := Settings{GitAudit: GitAuditSettings{Enabled: true}, GenerateSequenceDiagrams: true}
 	if err = yaml.Unmarshal(raw, &cfg); err != nil {
 		return nil, err
 	}
@@ -253,7 +254,7 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 	if err != nil {
 		return Settings{}, err
 	}
-	cfg := Settings{GitAudit: s.Snapshot().GitAudit}
+	cfg := Settings{GitAudit: s.Snapshot().GitAudit, GenerateSequenceDiagrams: s.Snapshot().GenerateSequenceDiagrams}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {
@@ -313,6 +314,6 @@ func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope)
 	if model == "" {
 		model = cfg.OpenAI.Model
 	}
-	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls}}
+	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams}}
 	return a.Audit(ctx, s, scope)
 }

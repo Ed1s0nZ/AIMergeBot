@@ -1,0 +1,138 @@
+.finding-sequence {
+  margin: 24px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.sequence-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #f8faff;
+  border-bottom: 1px solid var(--border);
+}
+.sequence-heading h4 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.sequence-heading p {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #7c899b;
+  line-height: 1.6;
+}
+.sequence-scroll {
+  overflow: auto;
+  max-height: 760px;
+  background: white;
+  padding: 8px 0;
+}
+.sequence-scroll svg {
+  display: block;
+}
+.sequence-step {
+  cursor: pointer;
+}
+.sequence-step:focus-visible {
+  outline: none;
+}
+.sequence-step:focus-visible > rect {
+  stroke: #2967df;
+  stroke-width: 2;
+}
+.sequence-step-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+.sequence-step-list button[aria-pressed="true"] {
+  background: #eef3ff;
+  border-color: #91ace4;
+}
+.sequence-step-list button.risk {
+  color: #bc3942;
+}
+.sequence-evidence {
+  margin: 0 20px 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.sequence-evidence code {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.sequence-evidence p {
+  line-height: 1.6;
+}
+.sequence-evidence pre,
+.sequence-source pre {
+  overflow: auto;
+  max-height: 320px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sequence-limit {
+  margin: 16px 20px;
+  font-size: 12px;
+  color: #886225;
+  background: #fffbef;
+  padding: 12px;
+  border-radius: 8px;
+  line-height: 1.7;
+}
+.sequence-evidence .sequence-limit {
+  margin: 10px 0;
+}
+.sequence-source {
+  margin: 16px 20px;
+  font-size: 12px;
+}
+.sequence-source summary {
+  cursor: pointer;
+  color: #53698b;
+}
+.sequence-disclaimer {
+  margin: 16px 20px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.sequence-empty {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 20px 0;
+  padding: 12px;
+  background: #f8faff;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: #7c899b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+@media (max-width: 640px) {
+  .sequence-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+  .sequence-evidence {
+    margin: 0 12px 12px;
+    padding: 12px;
+  }
+  .sequence-step-list {
+    padding: 12px;
+  }
+  .sequence-scroll {
+    max-height: 580px;
+  }
+}

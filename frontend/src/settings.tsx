@@ -347,6 +347,23 @@ export function SystemSettings() {
               <p>控制并发与任务预算。排除文件会记录在覆盖说明中。</p>
             </div>
             <div className="fields">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={s.generate_sequence_diagrams}
+                  onChange={(e) =>
+                    setSettings({
+                      ...s,
+                      generate_sequence_diagrams: e.target.checked,
+                    })
+                  }
+                />
+                发现问题后生成时序图
+              </label>
+              <p className="muted">
+                额外调用当前模型生成链路，增加耗时和 token
+                用量。生成失败会保留审计发现。
+              </p>
               <GitAuditSettingsFields
                 value={s.git_audit}
                 onChange={(git_audit) => setSettings({ ...s, git_audit })}

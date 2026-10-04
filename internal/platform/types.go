@@ -16,18 +16,19 @@ type Project struct {
 }
 
 type Finding struct {
-	Side        string `json:"side"`
-	Type        string `json:"type"`
-	ID          string `json:"id"`
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Severity    string `json:"severity"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Evidence    string `json:"evidence"`
-	Trigger     string `json:"trigger"`
-	Suggestion  string `json:"suggestion"`
-	Confidence  string `json:"confidence"`
+	SequenceDiagram *SequenceDiagram `json:"sequence_diagram,omitempty"`
+	Side            string           `json:"side"`
+	Type            string           `json:"type"`
+	ID              string           `json:"id"`
+	File            string           `json:"file"`
+	Line            int              `json:"line"`
+	Severity        string           `json:"severity"`
+	Title           string           `json:"title"`
+	Description     string           `json:"description"`
+	Evidence        string           `json:"evidence"`
+	Trigger         string           `json:"trigger"`
+	Suggestion      string           `json:"suggestion"`
+	Confidence      string           `json:"confidence"`
 }
 
 type Investigation struct {
@@ -71,6 +72,7 @@ type Run struct {
 }
 
 type ToolTrace struct {
+	Stage            string `json:"stage,omitempty"`
 	Output           string `json:"output,omitempty"`
 	ObservationID    string `json:"observation_id,omitempty"`
 	PromptTokens     int    `json:"prompt_tokens,omitempty"`

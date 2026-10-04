@@ -54,3 +54,9 @@
 ### 升级注意
 
 旧无认证业务API已替换为 /api/v1，原HTML和MCP/ReAct说明只作参考。config.yaml停止跟踪；升级前备份数据库与配置。首次引导使用 AIM_ADMIN_USERNAME/AIM_ADMIN_PASSWORD。自动轮询、Webhook、评论默认关闭。listen/worker设置变更需要重启；真实模型需支持OpenAI兼容工具调用。本版本为单团队/单实例GitLab工作台，真实模型精度及生产吞吐未作保证。参见 README 与 docs/feature/platform-modernization/verification.md。
+
+## 2026-10-05
+
+- 为新审计发现添加问题时序图、风险高亮、代码证据选择、Mermaid 源码和 SVG 导出。
+- 固定提交引用校验，明确推测与删除前证据；生成失败保留发现。
+- 系统设置支持开关并同步配置文件，兼容历史结果。

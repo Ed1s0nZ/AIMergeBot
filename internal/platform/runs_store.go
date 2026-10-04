@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-const PolicyVersion = "eino-git-investigation-v2"
+const PolicyVersion = "eino-sequence-v3"
 
 var ErrConflict = errors.New("operation conflicts with current state")
 

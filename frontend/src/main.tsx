@@ -30,6 +30,7 @@ import {
 import { SystemSettings } from "./settings";
 import "./style.css";
 import "./responsive.css";
+import "./sequence.css";
 import "./workspace.css";
 import "./workspace-responsive.css";
 import "./login.css";
