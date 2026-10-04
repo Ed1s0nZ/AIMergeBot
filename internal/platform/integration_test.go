@@ -90,8 +90,8 @@ func TestEinoUsesToolsAndValidatesEvidence(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Error(err)
 		}
-		if len(req.Tools) != 3 {
-			t.Errorf("expected bounded read tools, got %d", len(req.Tools))
+		if len(req.Tools) != 13 {
+			t.Errorf("expected language-independent investigation tools, got %d", len(req.Tools))
 		}
 		w.Header().Set("Content-Type", "application/json")
 		n := calls.Add(1)

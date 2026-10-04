@@ -30,10 +30,19 @@ type Finding struct {
 	Confidence  string `json:"confidence"`
 }
 
+type Investigation struct {
+	ID              string   `json:"id"`
+	Claim           string   `json:"claim"`
+	Status          string   `json:"status"`
+	Evidence        []string `json:"evidence"`
+	Counterevidence []string `json:"counterevidence"`
+	NextSteps       []string `json:"next_steps"`
+}
 type AuditResult struct {
-	Findings      []Finding `json:"findings"`
-	Summary       string    `json:"summary"`
-	CoverageNotes []string  `json:"coverage_notes"`
+	Investigations []Investigation `json:"investigations,omitempty"`
+	Findings       []Finding       `json:"findings"`
+	Summary        string          `json:"summary"`
+	CoverageNotes  []string        `json:"coverage_notes"`
 }
 
 type Snapshot struct {
@@ -62,6 +71,8 @@ type Run struct {
 }
 
 type ToolTrace struct {
+	Output           string `json:"output,omitempty"`
+	ObservationID    string `json:"observation_id,omitempty"`
 	PromptTokens     int    `json:"prompt_tokens,omitempty"`
 	CompletionTokens int    `json:"completion_tokens,omitempty"`
 	UsageReported    bool   `json:"usage_reported,omitempty"`

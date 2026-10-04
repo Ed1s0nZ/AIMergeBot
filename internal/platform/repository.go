@@ -27,14 +27,17 @@ type Repository interface {
 	ListFiles(context.Context, Snapshot, int) ([]string, bool, error)
 }
 
-type GitLabRepository struct{ Client *gitlab.Client }
+type GitLabRepository struct {
+	Client *gitlab.Client
+	Token  string
+}
 
 func NewGitLabRepository(token, baseURL string) (*GitLabRepository, error) {
 	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(strings.TrimRight(baseURL, "/")+"/api/v4"))
 	if err != nil {
 		return nil, err
 	}
-	return &GitLabRepository{Client: client}, nil
+	return &GitLabRepository{Client: client, Token: token}, nil
 }
 
 func (g *GitLabRepository) Snapshot(ctx context.Context, pid, iid int) (Snapshot, error) {

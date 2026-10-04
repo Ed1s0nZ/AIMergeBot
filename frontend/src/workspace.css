@@ -697,3 +697,27 @@ footer {
 .event-target-scalar {
   font-size: 11px;
 }
+
+.settings-section fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.settings-section fieldset legend {
+  padding: 0 8px;
+  font-weight: 650;
+}
+.settings-section fieldset > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-section fieldset > .check {
+  flex-direction: row;
+  align-items: center;
+}
+.settings-section fieldset .field-row {
+  margin: 18px 0;
+}

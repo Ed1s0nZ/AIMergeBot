@@ -61,9 +61,24 @@ export type Run = {
   status: string;
   error: string;
   created_at: string;
-  result: { findings: Finding[]; summary: string; coverage_notes: string[] };
+  result: {
+    findings: Finding[];
+    summary: string;
+    coverage_notes: string[];
+    investigations?: {
+      id: string;
+      claim: string;
+      status: string;
+      evidence: string[];
+      counterevidence: string[];
+      next_steps: string[];
+    }[];
+  };
   trace: {
     name: string;
+    output?: string;
+    observation_id?: string;
+    partial?: boolean;
     arguments: string;
     duration_ms: number;
     prompt_tokens?: number;
@@ -80,6 +95,12 @@ export type Review = {
   updated_at: string;
 };
 export type Settings = {
+  git_audit: {
+    enabled: boolean;
+    history_depth: number;
+    max_pack_mib: number;
+    max_tool_calls: number;
+  };
   public_url: string;
   listen: string;
   gitlab: { url: string; token: string };

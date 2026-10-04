@@ -1,3 +1,4 @@
+import { ToolObservation } from "./tool-observation";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { api, write, type Run, type Review, type Finding } from "./api";
@@ -215,6 +216,31 @@ export function RunDetail({ id }: { id: number }) {
             : "当前没有可展示的发现，请查看任务状态与覆盖说明。"}
         </Empty>
       )}
+      {r.result.investigations?.length ? (
+        <section className="panel trace">
+          <h2>调查记录</h2>
+          {r.result.investigations.map((item) => (
+            <details key={item.id}>
+              <summary>
+                {item.claim}{" "}
+                <span className="muted">
+                  {(
+                    {
+                      investigating: "待确认",
+                      supported: "有证据支持",
+                      rejected: "已排除",
+                    } as Record<string, string>
+                  )[item.status] || item.status}
+                </span>
+              </summary>
+              <p className="muted">这里记录代码调查结果，不代表已运行复现。</p>
+              <p>证据：{item.evidence?.join("；") || "尚未记录"}</p>
+              <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>
+              <p>待查：{item.next_steps?.join("；") || "无"}</p>
+            </details>
+          ))}
+        </section>
+      ) : null}
       <section className="panel trace">
         <h2>工具调用</h2>
         {r.trace?.length ? (
@@ -227,6 +253,15 @@ export function RunDetail({ id }: { id: number }) {
                 </span>
               </summary>
               <pre>{t.arguments}</pre>
+              {t.output && (
+                <>
+                  <p className="muted">
+                    返回证据 · {t.observation_id}
+                    {t.partial ? " · 有后续分页" : ""}
+                  </p>
+                  <ToolObservation output={t.output} />
+                </>
+              )}
               {t.name === "model" && (
                 <p className="muted">
                   {t.usage_reported

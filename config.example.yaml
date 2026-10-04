@@ -27,3 +27,10 @@ mcp:
   enabled: true
   mode: simplified
   verbose_logging: false
+
+# Language-independent, read-only Git investigation. No repository code execution.
+git_audit:
+  enabled: true
+  history_depth: 200
+  max_pack_mib: 256
+  max_tool_calls: 80

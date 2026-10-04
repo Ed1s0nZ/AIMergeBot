@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +18,32 @@ import (
 )
 
 func main() {
+	location := flag.String("audit-repo", "", "Audit a local Git repository or HTTP(S) clone URL and emit JSON; no GitLab API required")
+	base := flag.String("base", "", "Base ref (remote mode: full SHA)")
+	head := flag.String("head", "", "Head ref (remote mode: full SHA)")
+	flag.Parse()
+	if *location != "" {
+		cfg, e := platform.OpenSettings("config.yaml", "config.example.yaml")
+		if e != nil {
+			log.Fatal(e)
+		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		result, e := platform.AuditGit(ctx, *location, *base, *head, os.Getenv("AIM_GIT_TOKEN"), cfg.Snapshot())
+		if e != nil && result.Status == "" {
+			result.Status = "failed"
+			result.Error = e.Error()
+			result.Result = platform.AuditResult{Findings: []platform.Finding{}, Summary: "Audit failed before investigation", CoverageNotes: []string{}}
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
+			log.Fatal(err)
+		}
+		if e != nil {
+			fmt.Fprintln(os.Stderr, "Git audit failed:", e)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}

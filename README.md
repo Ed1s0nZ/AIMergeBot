@@ -8,7 +8,7 @@
 - 项目管理、手动审计、GitLab Webhook、分页轮询与提交级去重。
 - 有界 worker、任务超时/取消、服务重启中断标记、独立重审记录。
 - 固定 diff 版本 ID 和 base/head SHA；支持 fork MR、文件重命名、真实 diff 新增/删除行定位。
-- Eino 标准 tool calling：`read_file`、`list_files`、`search_code`，有缓存与输出预算。
+- Eino 语言无关的 13 个调查工具：文件、目录树、正则搜索、差异、历史、blame、调查记录和证据核验。
 - 严格结果校验、提交代码证据匹配、候选标记、覆盖不足说明、工具与模型调用/token 记录。
 - 项目/状态/等级/类型/复核过滤，发现复核及操作日志。
 - 管理员系统设置：模型、GitLab、Webhook、审计策略保存到工作目录 `config.yaml`。
@@ -57,8 +57,8 @@ export AIM_ADMIN_PASSWORD='请替换为自己的强密码'
 
 - `succeeded` 表示流程和已请求的证据校验完成，不保证代码不存在漏洞。
 - 模型 JSON 无效、文件/行/证据不匹配会失败，不通过关键词兜底制造问题。
-- GitLab diff 状态/数量受限或 collapsed/too_large、被排除或预算外文件、工具失败/部分输出、任务超时标记 `incomplete`，显示覆盖原因。
-- 文件读取最大 256 KiB；单次工具最多 200 行/16 KiB，目录最多 20 页，工具最多 40 次、每任务文件缓存最多 4 MiB，diff 最多 96 KiB。搜索按页最多读 20 文件；返回 `more` 为覆盖受限。
+- 原 GitLab API 模式的 diff 状态/数量受限或 collapsed/too_large，以及被排除或预算外文件、未完成的工具分页、工具失败、未解决假设、任务超时标记 `incomplete`，显示覆盖原因。
+- 文件读取最大 256 KiB；单次工具最多 200 行/16 KiB，每任务缓存 16 MiB，初始 diff 最多 96 KiB。默认 80 次工具调用、200 层提交历史、256 MiB 仓库预算。搜索覆盖固定提交的整个文本代码树，支持路径、扩展名、大小写、正则及 `next_cursor` 续查。完成分页后不再把此前分页标为覆盖不足。原 GitLab API 模式受 20 页文件目录限制。
 - 发现定位此次 diff 的 head 新增行或 base 删除行；删除防护逻辑也可报告风险，详情明确标识 HEAD/BASE，并验证对应提交的证据。候选 `candidate` 与证据支持 `supported` 都需要人工判断可利用性。
 - 依赖清单和关键词不被默认判为漏洞；当前没有 CVE 数据库集成。
 - 模型 token 数依赖兼容接口返回 usage；未返回时不能当作零成本。工具详情里 `model` 条目记录返回的 token 数。
@@ -100,3 +100,27 @@ npm run dev
 Vite 开发代理默认转发到 `localhost:8080`。提交前前端构建更新 `web/dist`，确保 Go 嵌入最新 UI。模块版本和前端依赖均有锁文件。
 
 验证包含：会话/权限/跨站写入拒绝、提交去重/重审/并发、取消/超时/恢复、fork refs、diff 行号与证据、旧数据导入、Eino 实际工具调用、旧/新结果逻辑对比，以及本地浏览器登录/设置保存/复核/移动布局。详见 [验证记录](docs/feature/platform-modernization/verification.md)。固定模型响应测试证明流程行为，不证明真实模型准确率；真实私有 GitLab、模型精度和生产吞吐仍需部署样例验证。
+
+## 语言无关的 Git 深度调查
+
+默认启用本地 bare Git 仓库。GitLab 只提供 MR 元数据、clone 地址及可选评论；代码读取、目录、差异、搜索和历史针对固定 base/head 的 Git 对象，不 checkout、不执行仓库代码。fork 的 base/head 分别拉取。服务端需要 Git，Docker 镜像已包含它。系统设置「执行策略」可修改 `git_audit` 开关、历史深度、仓库预算和工具次数，并保存到 `config.yaml`。
+
+工具：`read_file`、`list_files`、`list_directory`、`read_files`、`search_code`、`get_diff`、`compare_files`、`get_history`、`git_blame`、`search_history`、`record_hypothesis`、`update_investigation`、`submit_finding`。历史搜索采用 `git log -S` 的字符串出现次数变化；不是任意语义变化搜索。原生搜索正则为 Git extended regex，关闭本地 Git 时 API 回退使用 Go regex，两者语法有区别。
+
+工具返回提交 SHA、观察编号、代码证据和分页信息。运行详情展示返回结果、调查假设、证据和反证。证据核验只证明代码位置/片段真实，不证明漏洞可利用；本方案不接语言解析器，不声称准确语义引用，也不执行测试或自动下载子模块/LFS 实体。历史默认浅拉取，边界在返回中明确说明。超预算查询需缩小范围。远端必须支持按提交 SHA 拉取，失败不会偷偷改用最新分支。
+
+### 只有 Git，没有 GitLab API
+
+命令行入口复用同一套 Eino Agent，可以审计本地仓库（ref 会解析为固定 SHA）：
+
+```sh
+./aimangebot -audit-repo /path/to/repository -base main -head feature > audit.json
+```
+
+也可直接使用 HTTP(S) clone URL，远端模式要求完整的 base/head SHA：
+
+```sh
+./aimangebot -audit-repo https://git.example.com/team/repo.git -base FULL_BASE_SHA -head FULL_HEAD_SHA > audit.json
+```
+
+私有 HTTP(S) 仓库可通过进程环境变量 `AIM_GIT_TOKEN` 提供访问 token；不会写入 URL、Git 配置或报告。模型仍读取当前目录 `config.yaml`。命令行审计不调用 GitLab API、不发评论，也不写入工作台任务数据库；工作台的 MR 提交入口仍使用 GitLab。SSH-only 仓库可先通过已有 SSH 权限克隆，再审计本地路径。

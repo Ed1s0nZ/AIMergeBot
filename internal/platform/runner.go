@@ -109,10 +109,12 @@ func (r *Runner) execute(parent context.Context, id int64) {
 			log.Printf("audit run %d recovered a worker failure", id)
 		}
 	}()
+	var gitConfig GitAuditSettings
 	timeout := r.Timeout
 	repo, auditor, excluded := r.Repository, r.Auditor, r.Excluded
 	if r.Settings != nil {
 		cfg := r.Settings.Snapshot()
+		gitConfig = cfg.GitAudit
 		timeout = time.Duration(cfg.AuditTimeoutSeconds) * time.Second
 		excluded = cfg.WhitelistExtensions
 		pinned, err := NewGitLabRepository(cfg.GitLab.Token, cfg.GitLab.URL)
@@ -125,7 +127,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if model == "" {
 			model = cfg.OpenAI.Model
 		}
-		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature)}}
+		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls}}
 	}
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
@@ -140,6 +142,29 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}
 	if run.Status != "running" {
 		return
+	}
+	if run.PolicyVersion != PolicyVersion {
+		r.finish(id, "failed", "audit policy changed; submit a new audit", AuditResult{}, nil)
+		return
+	}
+	if gitConfig.Enabled {
+		remote, ok := repo.(*GitLabRepository)
+		if !ok {
+			r.finish(id, "failed", "native Git preparation requires GitLab repository metadata", AuditResult{}, nil)
+			return
+		}
+		local, cleanup, e := PrepareGitLab(ctx, remote, run.Snapshot, gitConfig)
+		if e != nil {
+			r.finish(id, "failed", "cannot prepare pinned Git repository: "+e.Error(), AuditResult{}, nil)
+			return
+		}
+		defer cleanup()
+		repo = local
+		if original, ok := auditor.(*EinoAuditor); ok {
+			copy := *original
+			copy.Repository = local
+			auditor = &copy
+		}
 	}
 	changes, notes, err := repo.Changes(ctx, run.Snapshot)
 	if err != nil {

@@ -14,7 +14,7 @@ COPY --from=frontend /src/web/dist ./web/dist
 RUN CGO_ENABLED=1 go test ./... && CGO_ENABLED=1 go build -o /aimangebot .
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/* && useradd -m -u 10001 app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git && rm -rf /var/lib/apt/lists/* && useradd -m -u 10001 app
 WORKDIR /app
 COPY --from=backend /aimangebot /usr/local/bin/aimangebot
 COPY config.example.yaml /app/config.example.yaml

@@ -1,3 +1,4 @@
+import { GitAuditSettingsFields } from "./git-audit-settings";
 import { useEffect, useState } from "react";
 import {
   Save,
@@ -346,6 +347,10 @@ export function SystemSettings() {
               <p>控制并发与任务预算。排除文件会记录在覆盖说明中。</p>
             </div>
             <div className="fields">
+              <GitAuditSettingsFields
+                value={s.git_audit}
+                onChange={(git_audit) => setSettings({ ...s, git_audit })}
+              />
               <div className="field-row">
                 <label>
                   Worker 数

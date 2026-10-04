@@ -18,7 +18,27 @@ import (
 )
 
 // Settings retains the existing config format while introducing explicit platform controls.
+type GitAuditSettings struct {
+	Enabled      bool `yaml:"enabled" json:"enabled"`
+	HistoryDepth int  `yaml:"history_depth" json:"history_depth"`
+	MaxPackMiB   int  `yaml:"max_pack_mib" json:"max_pack_mib"`
+	MaxToolCalls int  `yaml:"max_tool_calls" json:"max_tool_calls"`
+}
+
+func defaultGitAudit(c *GitAuditSettings) {
+	if c.HistoryDepth == 0 {
+		c.HistoryDepth = 200
+	}
+	if c.MaxPackMiB == 0 {
+		c.MaxPackMiB = 256
+	}
+	if c.MaxToolCalls == 0 {
+		c.MaxToolCalls = 80
+	}
+}
+
 type Settings struct {
+	GitAudit            GitAuditSettings `yaml:"git_audit" json:"git_audit"`
 	legacy.Config       `yaml:",inline"`
 	PublicURL           string `yaml:"public_url" json:"public_url"`
 	WebhookToken        string `yaml:"webhook_token" json:"webhook_token"`
@@ -60,10 +80,11 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 	if err != nil {
 		return nil, err
 	}
-	var cfg Settings
+	cfg := Settings{GitAudit: GitAuditSettings{Enabled: true}}
 	if err = yaml.Unmarshal(raw, &cfg); err != nil {
 		return nil, err
 	}
+	defaultGitAudit(&cfg.GitAudit)
 	if cfg.Listen == "" {
 		cfg.Listen = ":8080"
 	}
@@ -100,6 +121,10 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
+	defaultGitAudit(&c.GitAudit)
+	if c.GitAudit.HistoryDepth < 1 || c.GitAudit.HistoryDepth > 10000 || c.GitAudit.MaxPackMiB < 16 || c.GitAudit.MaxPackMiB > 4096 || c.GitAudit.MaxToolCalls < 10 || c.GitAudit.MaxToolCalls > 200 {
+		return fmt.Errorf("invalid Git audit limits")
+	}
 	_, port, err := net.SplitHostPort(c.Listen)
 	if err != nil {
 		return fmt.Errorf("listen must be host:port")
@@ -152,6 +177,7 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	old := s.Snapshot()
+	defaultGitAudit(&next.GitAudit)
 	if next.GitLab.Token == "" {
 		next.GitLab.Token = old.GitLab.Token
 	}
@@ -227,7 +253,7 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 	if err != nil {
 		return Settings{}, err
 	}
-	var cfg Settings
+	cfg := Settings{GitAudit: s.Snapshot().GitAudit}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {
@@ -287,6 +313,6 @@ func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope)
 	if model == "" {
 		model = cfg.OpenAI.Model
 	}
-	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature)}}
+	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls}}
 	return a.Audit(ctx, s, scope)
 }
