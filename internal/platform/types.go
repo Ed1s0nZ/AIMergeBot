@@ -10,9 +10,10 @@ type User struct {
 }
 
 type Project struct {
-	ID      int    `json:"id"`
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
+	AccessRole string `json:"access_role,omitempty"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Enabled    bool   `json:"enabled"`
 }
 
 type Finding struct {

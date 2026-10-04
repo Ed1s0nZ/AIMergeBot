@@ -56,6 +56,11 @@ func (r *Runner) Stop() {
 	r.wg.Wait()
 }
 func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bool) (int64, bool, error) {
+	if actor > 0 {
+		if _, err := requireProjectRole(ctx, r.Store.DB, pid, actor, "operator"); err != nil {
+			return 0, false, err
+		}
+	}
 	var enabled bool
 	if err := r.Store.DB.QueryRowContext(ctx, `SELECT enabled FROM platform_projects WHERE id=?`, pid).Scan(&enabled); err != nil {
 		return 0, false, err
@@ -79,10 +84,19 @@ func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bo
 		return 0, false, err
 	}
 	snap.AuditPolicy = policy
+	if actor > 0 {
+		return r.Store.EnqueueUser(ctx, snap, actor, force)
+	}
 	return r.Store.Enqueue(ctx, snap, actor, force)
 }
 func (r *Runner) Cancel(ctx context.Context, id, actor int64) error {
-	if err := r.Store.Cancel(ctx, id, actor); err != nil {
+	var err error
+	if actor > 0 {
+		err = r.Store.CancelUser(ctx, id, actor)
+	} else {
+		err = r.Store.Cancel(ctx, id, actor)
+	}
+	if err != nil {
 		return err
 	}
 	r.mu.Lock()
@@ -127,6 +141,16 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	if err != nil {
 		r.finish(id, "failed", "unable to load run", AuditResult{}, nil)
 		return
+	}
+	if run.RequestedBy > 0 {
+		if _, err = requireSnapshotRole(parent, r.Store.DB, run.Snapshot, run.RequestedBy, "operator"); err != nil {
+			if errors.Is(err, ErrCredentials) || errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) {
+				r.finish(id, "cancelled", "requesting user's project execution access revoked", run.Result, run.Trace)
+			} else {
+				r.finish(id, "failed", "unable to check project execution access", run.Result, run.Trace)
+			}
+			return
+		}
 	}
 	var gitConfig GitAuditSettings
 	timeout := r.Timeout

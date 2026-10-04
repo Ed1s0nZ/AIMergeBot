@@ -58,6 +58,9 @@ func waitStatus(t *testing.T, s *Store, id int64, status string) {
 func TestRunnerBoundedCancellationAndTimeout(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
+	if err := s.Bootstrap(ctx, "admin", "a-long-password"); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.SaveProject(ctx, Project{ID: 1, Name: "one", Enabled: true}); err != nil {
 		t.Fatal(err)
 	}

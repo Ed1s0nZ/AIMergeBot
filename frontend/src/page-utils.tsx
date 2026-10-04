@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, GitPullRequest } from "lucide-react";
-import { api, type Run } from "./api";
+import { api, APIError, type Run } from "./api";
 import { Badge, Empty, date } from "./components";
 export function useResource<T>(path: string) {
   const [data, setData] = useState<T | null>(null),
@@ -21,8 +21,11 @@ export function useResource<T>(path: string) {
         setError("");
       }
     } catch (e) {
-      if (current === sequence.current && !request.signal.aborted)
+      if (current === sequence.current && !request.signal.aborted) {
+        if (e instanceof APIError && [401, 403, 404].includes(e.status))
+          setData(null);
         setError((e as Error).message);
+      }
     } finally {
       if (current === sequence.current) setLoading(false);
     }

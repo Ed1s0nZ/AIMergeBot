@@ -3,7 +3,15 @@ import { FindingSequence } from "./finding-sequence";
 import { ToolObservation } from "./tool-observation";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
-import { api, write, type Run, type Review, type Finding } from "./api";
+import {
+  api,
+  APIError,
+  write,
+  type Run,
+  type Review,
+  type Finding,
+  type ProjectPermissions,
+} from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
 function FindingCard({
@@ -11,11 +19,13 @@ function FindingCard({
   review,
   runId,
   onSaved,
+  canReview,
 }: {
   finding: Finding;
   review?: Review;
   runId: number;
   onSaved: () => void;
+  canReview: boolean;
 }) {
   const [status, setStatus] = useState(review?.status || "pending"),
     [reason, setReason] = useState(review?.reason || ""),
@@ -36,8 +46,10 @@ function FindingCard({
         {finding.type && ` · ${finding.type}`}
       </div>
       <p>{finding.description}</p>
- {finding.investigation_id && <p className="muted">关联调查：{finding.investigation_id}</p>}
- <ObservationLinks ids={finding.observation_ids} />
+      {finding.investigation_id && (
+        <p className="muted">关联调查：{finding.investigation_id}</p>
+      )}
+      <ObservationLinks ids={finding.observation_ids} />
       <pre>{finding.evidence}</pre>
       <dl>
         <dt>触发条件</dt>
@@ -49,45 +61,51 @@ function FindingCard({
         diagram={finding.sequence_diagram}
         findingId={finding.id}
       />
-      <form
-        className="review-form"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          setError("");
-          try {
-            await api(
-              `/runs/${runId}/findings/${finding.id}/review`,
-              write("PUT", { status, reason }),
-            );
-            onSaved();
-          } catch (e) {
-            setError((e as Error).message);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <select
-          aria-label="复核状态"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
+      {canReview ? (
+        <form
+          className="review-form"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError("");
+            try {
+              await api(
+                `/runs/${runId}/findings/${finding.id}/review`,
+                write("PUT", { status, reason }),
+              );
+              onSaved();
+            } catch (e) {
+              setError((e as Error).message);
+              if (e instanceof APIError && [403, 404].includes(e.status))
+                onSaved();
+            } finally {
+              setBusy(false);
+            }
+          }}
         >
-          {["pending", "accepted", "false_positive", "fixed"].map((s) => (
-            <option key={s} value={s}>
-              {statuses[s] || s}
-            </option>
-          ))}
-        </select>
-        <input
-          aria-label="复核原因"
-          placeholder="记录复核依据…"
-          maxLength={4000}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <button disabled={busy}>保存复核</button>
-      </form>
+          <select
+            aria-label="复核状态"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            {["pending", "accepted", "false_positive", "fixed"].map((s) => (
+              <option key={s} value={s}>
+                {statuses[s] || s}
+              </option>
+            ))}
+          </select>
+          <input
+            aria-label="复核原因"
+            placeholder="记录复核依据…"
+            maxLength={4000}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <button disabled={busy}>保存复核</button>
+        </form>
+      ) : (
+        <p className="muted">当前项目为查看权限，复核需管理员授权。</p>
+      )}
       {review && (
         <small className="muted">
           上次由用户 #{review.actor} 于 {date(review.updated_at)} 更新
@@ -98,7 +116,11 @@ function FindingCard({
   );
 }
 export function RunDetail({ id }: { id: number }) {
-  const resource = useResource<{ run: Run; reviews: Review[] }>("/runs/" + id),
+  const resource = useResource<{
+      run: Run;
+      reviews: Review[];
+      permissions: ProjectPermissions;
+    }>("/runs/" + id),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const r = resource.data?.run;
@@ -128,6 +150,8 @@ export function RunDetail({ id }: { id: number }) {
       }
     } catch (e) {
       setError((e as Error).message);
+      if (e instanceof APIError && [403, 404].includes(e.status))
+        await resource.load();
     } finally {
       setBusy(false);
     }
@@ -152,15 +176,18 @@ export function RunDetail({ id }: { id: number }) {
         sub={`RUN #${id} · 项目 ${r.project_id} · ${date(r.created_at)}`}
         action={
           <div className="actions">
-            <button disabled={busy} onClick={() => action("retry")}>
-              <RefreshCw size={15} />
-              重新审计
-            </button>
-            {["pending", "running"].includes(r.status) && (
-              <button disabled={busy} onClick={() => action("cancel")}>
-                取消任务
+            {resource.data?.permissions.can_submit && (
+              <button disabled={busy} onClick={() => action("retry")}>
+                <RefreshCw size={15} />
+                重新审计
               </button>
             )}
+            {resource.data?.permissions.can_cancel &&
+              ["pending", "running"].includes(r.status) && (
+                <button disabled={busy} onClick={() => action("cancel")}>
+                  取消任务
+                </button>
+              )}
             {safeURL(r.url) && (
               <a
                 className="button"
@@ -177,6 +204,12 @@ export function RunDetail({ id }: { id: number }) {
       <ErrorBox error={error || resource.error} />
       <section className="panel snapshot">
         <Badge value={r.status} />
+        {r.source_project_id !== r.project_id && (
+          <div>
+            <small>FORK 源项目</small>
+            <code>#{r.source_project_id}</code>
+          </div>
+        )}
         <div>
           <small>HEAD SHA</small>
           <code>{r.head_sha || "旧数据未记录"}</code>
@@ -186,13 +219,37 @@ export function RunDetail({ id }: { id: number }) {
           <code>{r.base_sha || "旧数据未记录"}</code>
         </div>
       </section>
-      {r.retry_child_id && <p className="muted">已创建自动重试记录 · <a href={`#/runs/${r.retry_child_id}`}>查看并管理重试任务</a></p>}
-      {r.retry_parent_id && <p className="muted">自动重试第 {r.retry_attempt} 次 · <a href={`#/runs/${r.retry_parent_id}`}>查看前次记录</a>{r.status === "pending" && r.retry_at ? ` · 最早执行时间 ${date(r.retry_at)}` : ""}</p>}
+      {r.retry_child_id && (
+        <p className="muted">
+          已创建自动重试记录 ·{" "}
+          <a href={`#/runs/${r.retry_child_id}`}>查看并管理重试任务</a>
+        </p>
+      )}
+      {r.retry_parent_id && (
+        <p className="muted">
+          自动重试第 {r.retry_attempt} 次 ·{" "}
+          <a href={`#/runs/${r.retry_parent_id}`}>查看前次记录</a>
+          {r.status === "pending" && r.retry_at
+            ? ` · 最早执行时间 ${date(r.retry_at)}`
+            : ""}
+        </p>
+      )}
       {r.error && <ErrorBox error={r.error} />}
       <section className="panel summary">
         <h2>审计摘要</h2>
         <p>{r.result.summary || "等待审计结果。"}</p>
-        {(r.result.excluded_files?.length || 0) > 0 && (<details className="coverage"><summary>按策略排除 {r.result.excluded_files!.length} 个文件</summary><ul>{r.result.excluded_files!.map(file=><li key={file}>{file}</li>)}</ul></details>)}
+        {(r.result.excluded_files?.length || 0) > 0 && (
+          <details className="coverage">
+            <summary>
+              按策略排除 {r.result.excluded_files!.length} 个文件
+            </summary>
+            <ul>
+              {r.result.excluded_files!.map((file) => (
+                <li key={file}>{file}</li>
+              ))}
+            </ul>
+          </details>
+        )}
         {r.result.coverage_notes.length > 0 && (
           <div className="coverage">
             <strong>覆盖与限制</strong>
@@ -218,6 +275,7 @@ export function RunDetail({ id }: { id: number }) {
             runId={id}
             review={resource.data?.reviews.find((x) => x.finding_id === f.id)}
             onSaved={resource.load}
+            canReview={resource.data?.permissions.can_review || false}
           />
         ))
       ) : (
@@ -247,8 +305,8 @@ export function RunDetail({ id }: { id: number }) {
               <p className="muted">这里记录代码调查结果，不代表已运行复现。</p>
               <p>证据：{item.evidence?.join("；") || "尚未记录"}</p>
               <ObservationLinks ids={item.observation_ids} />
- <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>
- <ObservationLinks ids={item.counter_observation_ids} />
+              <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>
+              <ObservationLinks ids={item.counter_observation_ids} />
               <p>待查：{item.next_steps?.join("；") || "无"}</p>
             </details>
           ))}
@@ -258,7 +316,10 @@ export function RunDetail({ id }: { id: number }) {
         <h2>工具调用</h2>
         {r.trace?.length ? (
           r.trace.map((t, i) => (
-            <details key={i} id={t.observation_id ? `trace-${t.observation_id}` : undefined}>
+            <details
+              key={i}
+              id={t.observation_id ? `trace-${t.observation_id}` : undefined}
+            >
               <summary>
                 {t.name}
                 {t.stage === "diagram" ? " · 时序图生成" : ""}{" "}

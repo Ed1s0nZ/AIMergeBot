@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowUpRight, RefreshCw, SlidersHorizontal } from "lucide-react";
-import { api, write, type Project, type Run } from "./api";
+import { api, write, APIError, type Project, type Run } from "./api";
 import { ErrorBox, Empty, statuses } from "./components";
 import { useResource, Heading, RunTable } from "./page-utils";
 export function Runs() {
@@ -27,6 +27,12 @@ export function Runs() {
     "/runs?" + query,
   );
   const projects = useResource<{ items: Project[] }>("/projects");
+  const executableProjects =
+    projects.data?.items.filter(
+      (p) =>
+        p.enabled &&
+        (p.access_role === "admin" || p.access_role === "operator"),
+    ) || [];
   return (
     <>
       <Heading
@@ -39,60 +45,74 @@ export function Runs() {
           </button>
         }
       />
-      <section className="panel submit-panel">
-        <div>
-          <h2>发起代码审计</h2>
-          <p>选择项目与 MR 编号。重复提交自动去重。</p>
-        </div>
-        <form
-          className="inline-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setBusy(true);
-            setError("");
-            try {
-              const r = await api<{ id: number }>(
-                "/runs",
-                write("POST", { project_id: Number(pid), mr_iid: Number(iid) }),
-              );
-              location.hash = "/runs/" + r.id;
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <select
-            required
-            aria-label="审计项目"
-            value={pid}
-            onChange={(e) => setPid(e.target.value)}
+      {executableProjects.length > 0 ? (
+        <section className="panel submit-panel">
+          <div>
+            <h2>发起代码审计</h2>
+            <p>
+              选择项目与 MR 编号。重复提交自动去重；fork MR
+              还需源项目的查看权限。
+            </p>
+          </div>
+          <form
+            className="inline-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setError("");
+              try {
+                const r = await api<{ id: number }>(
+                  "/runs",
+                  write("POST", {
+                    project_id: Number(pid),
+                    mr_iid: Number(iid),
+                  }),
+                );
+                location.hash = "/runs/" + r.id;
+              } catch (e) {
+                setError((e as Error).message);
+                if (e instanceof APIError && [403, 404].includes(e.status))
+                  await projects.load();
+              } finally {
+                setBusy(false);
+              }
+            }}
           >
-            <option value="">选择项目</option>
-            {projects.data?.items
-              .filter((p) => p.enabled)
-              .map((p) => (
+            <select
+              required
+              aria-label="审计项目"
+              value={pid}
+              onChange={(e) => setPid(e.target.value)}
+            >
+              <option value="">选择项目</option>
+              {executableProjects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
-          </select>
-          <input
-            aria-label="MR 编号"
-            type="number"
-            min="1"
-            placeholder="MR 编号"
-            required
-            value={iid}
-            onChange={(e) => setIid(e.target.value)}
-          />
-          <button className="primary" disabled={busy}>
-            {busy ? "提交中…" : "开始审计"}
-            <ArrowUpRight size={16} />
-          </button>
-        </form>
-      </section>
+            </select>
+            <input
+              aria-label="MR 编号"
+              type="number"
+              min="1"
+              placeholder="MR 编号"
+              required
+              value={iid}
+              onChange={(e) => setIid(e.target.value)}
+            />
+            <button className="primary" disabled={busy}>
+              {busy ? "提交中…" : "开始审计"}
+              <ArrowUpRight size={16} />
+            </button>
+          </form>
+        </section>
+      ) : (
+        !projects.loading && (
+          <p className="muted">
+            没有可执行审计的启用项目。查看与复核权限仍可浏览下方记录；需要发起审计时请联系管理员。
+          </p>
+        )
+      )}
       <ErrorBox error={error || resource.error || projects.error} />
       <section className="panel runs-list">
         <div className="list-caption">

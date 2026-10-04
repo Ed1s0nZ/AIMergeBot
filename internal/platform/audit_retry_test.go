@@ -90,6 +90,9 @@ func (a *transientAuditor) Audit(context.Context, Snapshot, DiffScope) (AuditRes
 func TestRunnerSchedulesAndExecutesTransientRetry(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
+	if err := s.Bootstrap(ctx, "admin", "a-long-password"); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.SaveProject(ctx, Project{ID: 1, Name: "retry-fixture", Enabled: true}); err != nil {
 		t.Fatal(err)
 	}

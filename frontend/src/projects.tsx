@@ -3,7 +3,9 @@ import { Plus, FolderGit2 } from "lucide-react";
 import { api, write, type Project } from "./api";
 import { ErrorBox, Empty } from "./components";
 import { useResource, Heading } from "./page-utils";
+import { ProjectMembers, projectRoleNames } from "./project-members";
 export function Projects({ admin }: { admin: boolean }) {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const resource = useResource<{ items: Project[] }>("/projects"),
     [id, setId] = useState(""),
     [name, setName] = useState(""),
@@ -80,10 +82,24 @@ export function Projects({ admin }: { admin: boolean }) {
             <h2>{p.name}</h2>
             <span className="repository-caption">GitLab 仓库</span>
             <p>GitLab #{p.id}</p>
+            {!admin && p.access_role && (
+              <p className="muted">
+                项目权限：{projectRoleNames[p.access_role]}
+              </p>
+            )}
             <span className={"project-status " + (p.enabled ? "enabled" : "")}>
               <i />
               {p.enabled ? "审计已启用" : "审计已停用"}
             </span>
+            {admin && (
+              <button
+                aria-expanded={selectedProject?.id === p.id}
+                aria-controls="project-members-panel"
+                onClick={() => setSelectedProject(p)}
+              >
+                成员权限
+              </button>
+            )}
             {admin && (
               <button
                 disabled={busy}
@@ -108,6 +124,13 @@ export function Projects({ admin }: { admin: boolean }) {
           </article>
         ))}
       </div>
+      {admin && selectedProject && (
+        <ProjectMembers
+          key={selectedProject.id}
+          project={selectedProject}
+          onClose={() => setSelectedProject(null)}
+        />
+      )}
       {resource.loading ? (
         <Empty>加载项目…</Empty>
       ) : (

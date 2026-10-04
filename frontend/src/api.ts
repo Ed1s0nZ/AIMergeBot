@@ -20,7 +20,15 @@ export async function api<T>(
     const body = await res.json().catch(() => ({ error: "服务暂时不可用" }));
     if (res.status === 401 && path != "/auth/login")
       window.dispatchEvent(new Event("session-expired"));
-    throw new APIError(res.status, body.error || "请求失败", body.code || "");
+    const messages: Record<string, string> = {
+      project_permission_required: "当前项目权限不足，请联系管理员。",
+      not_found: "资源不存在或没有访问权限。",
+    };
+    throw new APIError(
+      res.status,
+      messages[body.code] || body.error || "请求失败",
+      body.code || "",
+    );
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -35,7 +43,19 @@ export type User = {
   role: "admin" | "member";
   disabled: boolean;
 };
-export type Project = { id: number; name: string; enabled: boolean };
+export type ProjectRole = "viewer" | "reviewer" | "operator" | "admin";
+export type Project = {
+  id: number;
+  name: string;
+  enabled: boolean;
+  access_role?: ProjectRole;
+};
+export type ProjectPermissions = {
+  role: ProjectRole;
+  can_submit: boolean;
+  can_review: boolean;
+  can_cancel: boolean;
+};
 export type SequenceReference = {
   side: "head" | "base";
   file: string;
@@ -61,8 +81,8 @@ export type SequenceDiagram = {
   mermaid?: string;
 };
 export type Finding = {
- investigation_id?: string;
- observation_ids?: string[];
+  investigation_id?: string;
+  observation_ids?: string[];
   sequence_diagram?: SequenceDiagram;
   side: string;
   type: string;
@@ -78,10 +98,10 @@ export type Finding = {
   confidence: string;
 };
 export type Run = {
- retry_child_id?:number;
- retry_parent_id?:number;
- retry_attempt?:number;
- retry_at?:string;
+  retry_child_id?: number;
+  retry_parent_id?: number;
+  retry_attempt?: number;
+  retry_at?: string;
   id: number;
   project_id: number;
   source_project_id: number;
@@ -131,8 +151,8 @@ export type Review = {
   updated_at: string;
 };
 export type Settings = {
- config_revision: number;
- project_config_sync?: {pending:boolean;generation:number;error:string};
+  config_revision: number;
+  project_config_sync?: { pending: boolean; generation: number; error: string };
   generate_sequence_diagrams: boolean;
   git_audit: {
     enabled: boolean;

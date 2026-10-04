@@ -92,6 +92,9 @@ func (s *Store) migrate() error {
 	if err = migrateAuditIdentity(tx); err != nil {
 		return err
 	}
+	if err = migrateProjectAccess(tx); err != nil {
+		return err
+	}
 	var version int
 	if err = tx.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil {
 		return err

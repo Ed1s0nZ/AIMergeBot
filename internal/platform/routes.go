@@ -16,15 +16,26 @@ import (
 func fail(c *gin.Context, err error) {
 	status := 500
 	message := "operation failed"
+	code := ""
+	if errors.Is(err, ErrCredentials) {
+		status = 401
+		message = "session unavailable"
+	}
+	if errors.Is(err, ErrProjectPermission) {
+		status = 403
+		message = "project permission required"
+		code = "project_permission_required"
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		status = 404
 		message = "not found"
+		code = "not_found"
 	}
 	if errors.Is(err, ErrConflict) || errors.Is(err, ErrLastAdmin) {
 		status = 409
 		message = err.Error()
 	}
-	c.JSON(status, gin.H{"error": message})
+	c.JSON(status, gin.H{"error": message, "code": code})
 }
 func idParam(c *gin.Context) (int64, bool) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -49,7 +60,7 @@ func pagination(c *gin.Context) (int, int) {
 	return page, size
 }
 func (h *HTTP) projects(c *gin.Context) {
-	items, err := h.Store.Projects(c.Request.Context())
+	items, err := h.Store.ProjectsForUser(c.Request.Context(), currentUser(c))
 	if err != nil {
 		fail(c, err)
 		return
@@ -140,8 +151,15 @@ func (h *HTTP) submit(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "positive project_id and mr_iid required"})
 		return
 	}
+	if _, ok := h.requireProject(c, req.ProjectID, "operator"); !ok {
+		return
+	}
 	id, created, err := h.Runner.Submit(c.Request.Context(), req.ProjectID, req.MRIID, currentUser(c).ID, req.Force)
 	if err != nil {
+		if errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrCredentials) {
+			fail(c, err)
+			return
+		}
 		c.JSON(422, gin.H{"error": "cannot enqueue audit; check project and GitLab configuration"})
 		return
 	}
@@ -150,6 +168,10 @@ func (h *HTTP) submit(c *gin.Context) {
 func (h *HTTP) run(c *gin.Context) {
 	id, ok := idParam(c)
 	if !ok {
+		return
+	}
+	role, allowed := h.requireRun(c, id, "viewer")
+	if !allowed {
 		return
 	}
 	r, err := h.Store.Run(c.Request.Context(), id)
@@ -162,11 +184,21 @@ func (h *HTTP) run(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	c.JSON(200, gin.H{"run": r, "reviews": reviews})
+	access := permissions(role)
+	var enabled bool
+	if err = h.Store.DB.QueryRowContext(c.Request.Context(), `SELECT enabled FROM platform_projects WHERE id=?`, r.ProjectID).Scan(&enabled); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		fail(c, err)
+		return
+	}
+	access.CanSubmit = access.CanSubmit && enabled
+	c.JSON(200, gin.H{"run": r, "reviews": reviews, "permissions": access})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)
 	if !ok {
+		return
+	}
+	if _, ok := h.requireRun(c, id, "operator"); !ok {
 		return
 	}
 	if err := h.Runner.Cancel(c.Request.Context(), id, currentUser(c).ID); err != nil {
@@ -180,6 +212,9 @@ func (h *HTTP) review(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if _, ok := h.requireRun(c, id, "reviewer"); !ok {
+		return
+	}
 	var req Review
 	if c.ShouldBindJSON(&req) != nil {
 		c.JSON(400, gin.H{"error": "invalid review"})
@@ -188,7 +223,7 @@ func (h *HTTP) review(c *gin.Context) {
 	req.RunID = id
 	req.FindingID = c.Param("finding_id")
 	req.Actor = currentUser(c).ID
-	if err := h.Store.SaveReview(c.Request.Context(), req); err != nil {
+	if err := h.Store.SaveReviewUser(c.Request.Context(), req); err != nil {
 		fail(c, err)
 		return
 	}
@@ -199,6 +234,12 @@ func (h *HTTP) runs(c *gin.Context) {
 	page, size := pagination(c)
 	where := " WHERE 1=1"
 	args := []any{}
+	if user := currentUser(c); user.Role != "admin" {
+		where += ` AND EXISTS(SELECT 1 FROM platform_project_members m WHERE m.project_id=platform_runs.project_id AND m.user_id=?)`
+		args = append(args, user.ID)
+		where += ` AND (source_project_id=project_id OR EXISTS(SELECT 1 FROM platform_project_members src WHERE src.project_id=platform_runs.source_project_id AND src.user_id=?))`
+		args = append(args, user.ID)
+	}
 	if p := c.Query("project_id"); p != "" {
 		id, err := strconv.Atoi(p)
 		if err != nil || id <= 0 {

@@ -12,8 +12,17 @@ const PolicyVersion = "eino-audit-contract-v4"
 
 var ErrConflict = errors.New("operation conflicts with current state")
 
-// Enqueue serializes lookup and insertion so concurrent delivery cannot create duplicates.
+// Enqueue is a trusted internal/system primitive. User submissions must use
+// EnqueueUser. Lookup and insertion are serialized to prevent duplicate delivery.
 func (s *Store) Enqueue(ctx context.Context, snap Snapshot, actor int64, force bool) (int64, bool, error) {
+	return s.enqueue(ctx, snap, actor, force, false)
+}
+
+func (s *Store) EnqueueUser(ctx context.Context, snap Snapshot, actor int64, force bool) (int64, bool, error) {
+	return s.enqueue(ctx, snap, actor, force, true)
+}
+
+func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, authorize bool) (int64, bool, error) {
 	if snap.ProjectID <= 0 || snap.MRIID <= 0 || snap.SourceProjectID <= 0 || snap.HeadSHA == "" || snap.BaseSHA == "" {
 		return 0, false, fmt.Errorf("invalid snapshot")
 	}
@@ -22,6 +31,11 @@ func (s *Store) Enqueue(ctx context.Context, snap Snapshot, actor int64, force b
 		return 0, false, err
 	}
 	defer tx.Rollback()
+	if authorize {
+		if _, err = requireSnapshotRole(ctx, tx, snap, actor, "operator"); err != nil {
+			return 0, false, err
+		}
+	}
 	var id int64
 	q := `SELECT id FROM platform_runs WHERE project_id=? AND mr_iid=? AND base_sha=? AND head_sha=? AND policy_version=? AND policy_digest=?`
 	if force {
@@ -112,11 +126,28 @@ func (s *Store) Finish(ctx context.Context, id int64, status, message string, re
 }
 
 func (s *Store) Cancel(ctx context.Context, id, actor int64) error {
+	return s.cancelRun(ctx, id, actor, false)
+}
+
+func (s *Store) CancelUser(ctx context.Context, id, actor int64) error {
+	return s.cancelRun(ctx, id, actor, true)
+}
+
+func (s *Store) cancelRun(ctx context.Context, id, actor int64, authorize bool) error {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+	if authorize {
+		var snap Snapshot
+		if err = tx.QueryRowContext(ctx, `SELECT project_id,source_project_id FROM platform_runs WHERE id=?`, id).Scan(&snap.ProjectID, &snap.SourceProjectID); err != nil {
+			return err
+		}
+		if _, err = requireSnapshotRole(ctx, tx, snap, actor, "operator"); err != nil {
+			return err
+		}
+	}
 	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='cancelled',error='cancelled by user',finished_at=? WHERE id=? AND status IN ('pending','running')`, now(), id)
 	if err != nil {
 		return err
@@ -183,6 +214,14 @@ func (s *Store) Reviews(ctx context.Context, id int64) ([]Review, error) {
 }
 
 func (s *Store) SaveReview(ctx context.Context, r Review) error {
+	return s.saveReview(ctx, r, false)
+}
+
+func (s *Store) SaveReviewUser(ctx context.Context, r Review) error {
+	return s.saveReview(ctx, r, true)
+}
+
+func (s *Store) saveReview(ctx context.Context, r Review, authorize bool) error {
 	switch r.Status {
 	case "pending", "accepted", "false_positive", "fixed":
 	default:
@@ -210,6 +249,11 @@ func (s *Store) SaveReview(ctx context.Context, r Review) error {
 		return err
 	}
 	defer tx.Rollback()
+	if authorize {
+		if _, err = requireSnapshotRole(ctx, tx, run.Snapshot, r.Actor, "reviewer"); err != nil {
+			return err
+		}
+	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO platform_reviews(run_id,finding_id,status,reason,actor,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(run_id,finding_id) DO UPDATE SET status=excluded.status,reason=excluded.reason,actor=excluded.actor,updated_at=excluded.updated_at`, r.RunID, r.FindingID, r.Status, r.Reason, r.Actor, now())
 	if err != nil {
 		return err

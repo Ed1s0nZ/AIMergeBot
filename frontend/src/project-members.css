@@ -1,0 +1,31 @@
+.project-members {
+  padding: 24px;
+  margin-top: 24px;
+}
+.project-members .inline-form {
+  margin-top: 20px;
+  align-items: end;
+}
+.project-members .inline-form label {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 160px;
+}
+.project-members .table-wrap {
+  overflow-x: auto;
+}
+.project-members select {
+  min-width: 120px;
+}
+@media (max-width: 640px) {
+  .project-members {
+    padding: 16px;
+  }
+  .project-members .section-heading {
+    align-items: start;
+  }
+  .project-members .actions {
+    flex-wrap: wrap;
+  }
+}
