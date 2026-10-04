@@ -14,6 +14,11 @@ import (
 )
 
 func fail(c *gin.Context, err error) {
+	if errors.Is(err, ErrWorkerLeaseLost) {
+		c.Header("Retry-After", "30")
+		c.JSON(503, gin.H{"error": "audit worker unavailable", "code": "worker_unavailable"})
+		return
+	}
 	var quota *QuotaError
 	if errors.As(err, &quota) {
 		c.Header("Retry-After", "60")
@@ -163,7 +168,7 @@ func (h *HTTP) submit(c *gin.Context) {
 	id, created, err := h.Runner.Submit(c.Request.Context(), req.ProjectID, req.MRIID, currentUser(c).ID, req.Force)
 	if err != nil {
 		var quota *QuotaError
-		if errors.As(err, &quota) || errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrCredentials) {
+		if errors.Is(err, ErrWorkerLeaseLost) || errors.As(err, &quota) || errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrCredentials) {
 			fail(c, err)
 			return
 		}
@@ -386,7 +391,7 @@ func (h *HTTP) webhook(c *gin.Context) {
 	id, created, err := h.Runner.Submit(c.Request.Context(), mr.Project.ID, mr.ObjectAttributes.IID, 0, false)
 	if err != nil {
 		var quota *QuotaError
-		if errors.As(err, &quota) {
+		if errors.Is(err, ErrWorkerLeaseLost) || errors.As(err, &quota) {
 			fail(c, err)
 			return
 		}

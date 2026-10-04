@@ -35,7 +35,7 @@ func TestRevokingOperatorInterruptsRunningAuditAndPreservesCheckpoint(t *testing
 		t.Fatal("audit did not start")
 	}
 	checkpoint := AuditResult{Summary: "investigation checkpoint", Findings: []Finding{{ID: "checkpoint-finding"}}}
-	if err = s.Checkpoint(ctx, id, checkpoint, []ToolTrace{{ObservationID: "obs1", Name: "read_file"}}); err != nil {
+	if err = s.CheckpointOwned(ctx, id, r.owner, checkpoint, []ToolTrace{{ObservationID: "obs1", Name: "read_file"}}); err != nil {
 		t.Fatal(err)
 	}
 	_, token, err := s.Login(ctx, "admin", "admin-long-password")

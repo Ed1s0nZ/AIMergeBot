@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,6 +38,15 @@ func retryableError(err error) bool {
 
 // FailAndRetry atomically records the failed attempt and creates its delayed child.
 func (s *Store) FailAndRetry(ctx context.Context, id int64, message string, result AuditResult, trace []ToolTrace, delay time.Duration) (int64, error) {
+	return s.FailAndRetryOwned(ctx, id, "", message, result, trace, delay)
+}
+func (s *Store) FailAndRetryOwned(ctx context.Context, id int64, owner, message string, result AuditResult, trace []ToolTrace, delay time.Duration) (int64, error) {
+	return s.failAndRetry(ctx, id, owner, message, result, trace, delay, false)
+}
+func (s *Store) recoverAttempt(ctx context.Context, id int64) (int64, error) {
+	return s.failAndRetry(ctx, id, "", "worker lease expired or service interrupted; checkpoint retained", AuditResult{}, nil, 0, true)
+}
+func (s *Store) failAndRetry(ctx context.Context, id int64, owner, message string, result AuditResult, trace []ToolTrace, delay time.Duration, recovery bool) (int64, error) {
 	if result.Findings == nil {
 		result.Findings = []Finding{}
 	}
@@ -59,7 +69,20 @@ func (s *Store) FailAndRetry(ctx context.Context, id int64, message string, resu
 		return 0, err
 	}
 	defer tx.Rollback()
-	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='failed',error=?,result_json=?,trace_json=?,finished_at=? WHERE id=? AND status='running'`, message, string(data), string(tr), now(), id)
+	var res sql.Result
+	if recovery {
+		var attempt int
+		if err = tx.QueryRowContext(ctx, `SELECT retry_attempt FROM platform_runs WHERE id=? AND status='running'`+expiredWorkerSQL, id).Scan(&attempt); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return 0, ErrConflict
+			}
+			return 0, err
+		}
+		delay = retryDelay(attempt)
+		res, err = tx.ExecContext(ctx, `UPDATE platform_runs SET status='failed',error=?,finished_at=? WHERE id=? AND status='running'`+expiredWorkerSQL, message, now(), id)
+	} else {
+		res, err = tx.ExecContext(ctx, `UPDATE platform_runs SET status='failed',error=?,result_json=?,trace_json=?,finished_at=? WHERE id=? AND status='running'`+workerFenceSQL, message, string(data), string(tr), now(), id, owner)
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -69,6 +92,11 @@ func (s *Store) FailAndRetry(ctx context.Context, id int64, message string, resu
 	}
 	if n != 1 {
 		return 0, ErrConflict
+	}
+	if recovery {
+		if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(0,'run.recovered',?,?)`, fmt.Sprint(id), now()); err != nil {
+			return 0, err
+		}
 	}
 	retryAt := ""
 	if delay > 0 {
@@ -101,6 +129,9 @@ func retryDelay(attempt int) time.Duration {
 	return 20 * time.Second
 }
 func (r *Runner) failTransient(id int64, err error, result AuditResult, trace []ToolTrace) bool {
+	if r.workerStopped() {
+		return true
+	}
 	if !retryableError(err) {
 		return false
 	}
@@ -110,6 +141,6 @@ func (r *Runner) failTransient(id int64, err error, result AuditResult, trace []
 	if e != nil {
 		return false
 	}
-	_, e = r.Store.FailAndRetry(ctx, id, err.Error(), result, trace, retryDelay(run.RetryAttempt))
+	_, e = r.Store.FailAndRetryOwned(ctx, id, r.owner, err.Error(), result, trace, retryDelay(run.RetryAttempt))
 	return e == nil || errors.Is(e, ErrConflict)
 }

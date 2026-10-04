@@ -21,6 +21,7 @@ export async function api<T>(
     if (res.status === 401 && path != "/auth/login")
       window.dispatchEvent(new Event("session-expired"));
     const messages: Record<string, string> = {
+      worker_unavailable: "审计服务正在恢复，请稍后重试。",
       project_permission_required: "当前项目权限不足，请联系管理员。",
       not_found: "资源不存在或没有访问权限。",
       audit_quota_exceeded:

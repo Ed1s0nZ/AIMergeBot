@@ -4,30 +4,57 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type Runner struct {
-	Settings   *SettingsService
-	Store      *Store
-	Repository Repository
-	Auditor    Auditor
-	Workers    int
-	Timeout    time.Duration
-	Excluded   []string
-	mu         sync.Mutex
-	active     map[int64]context.CancelFunc
-	wg         sync.WaitGroup
-	cancel     context.CancelFunc
+	Settings    *SettingsService
+	Store       *Store
+	Repository  Repository
+	Auditor     Auditor
+	Workers     int
+	Timeout     time.Duration
+	Excluded    []string
+	mu          sync.Mutex
+	active      map[int64]context.CancelFunc
+	wg          sync.WaitGroup
+	cancel      context.CancelFunc
+	lifecycleMu sync.Mutex
+	owner       string
+	state       atomic.Pointer[workerRunState]
+	failures    chan error
 }
 
 func (r *Runner) Start(parent context.Context) error {
+	r.lifecycleMu.Lock()
+	defer r.lifecycleMu.Unlock()
+	if r.cancel != nil {
+		return fmt.Errorf("runner already started")
+	}
+	owner, err := newWorkerOwner()
+	if err != nil {
+		return err
+	}
+	if err = r.Store.AcquireWorkerInstance(parent, owner); err != nil {
+		return err
+	}
+	r.owner = owner
+
 	if r.Settings != nil {
 		r.Store.BindQuotaSettings(r.Settings)
 	}
 	if err := r.Store.Recover(parent); err != nil {
+		r.releaseLease()
+		r.owner = ""
+		return err
+	}
+	if err = r.Store.RenewWorkerInstance(parent, owner); err != nil {
+		r.releaseLease()
+		r.owner = ""
 		return err
 	}
 	if r.Workers <= 0 {
@@ -41,7 +68,13 @@ func (r *Runner) Start(parent context.Context) error {
 	}
 	ctx, cancel := context.WithCancel(parent)
 	r.cancel = cancel
+	r.failures = make(chan error, 1)
+	r.state.Store(&workerRunState{ctx: ctx, failures: r.failures})
+	r.mu.Lock()
 	r.active = map[int64]context.CancelFunc{}
+	r.mu.Unlock()
+	r.wg.Add(1)
+	go func() { defer r.wg.Done(); r.leaseLoop(ctx) }()
 	for i := 0; i < r.Workers; i++ {
 		r.wg.Add(1)
 		go func() { defer r.wg.Done(); r.loop(ctx) }()
@@ -53,12 +86,22 @@ func (r *Runner) Start(parent context.Context) error {
 	return nil
 }
 func (r *Runner) Stop() {
-	if r.cancel != nil {
-		r.cancel()
+	r.lifecycleMu.Lock()
+	defer r.lifecycleMu.Unlock()
+	if r.cancel == nil {
+		return
 	}
+	r.cancel()
 	r.wg.Wait()
+	r.releaseLease()
+	r.cancel = nil
+	r.owner = ""
+
 }
 func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bool) (int64, bool, error) {
+	if r.workerStopped() {
+		return 0, false, ErrWorkerLeaseLost
+	}
 	if actor > 0 {
 		if _, err := requireProjectRole(ctx, r.Store.DB, pid, actor, "operator"); err != nil {
 			return 0, false, err
@@ -118,7 +161,7 @@ func (r *Runner) loop(ctx context.Context) {
 			return
 		case <-ticker.C:
 		}
-		id, err := r.Store.Claim(ctx)
+		id, err := r.Store.ClaimOwned(ctx, r.owner)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
@@ -132,10 +175,25 @@ func (r *Runner) loop(ctx context.Context) {
 	}
 }
 func (r *Runner) execute(parent context.Context, id int64) {
+	leaseCtx, leaseCancel := context.WithCancel(parent)
+	defer leaseCancel()
+	parent = leaseCtx
+	r.mu.Lock()
+	if r.active == nil {
+		r.active = map[int64]context.CancelFunc{}
+	}
+	r.active[id] = leaseCancel
+	r.mu.Unlock()
+	defer r.releaseAttemptLease(id)
+	if err := r.Store.OwnsRunningRun(parent, id, r.owner); err != nil {
+		return
+	}
 	defer func() {
 		if recover() != nil {
 			failureCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
-			_, _ = r.Store.DB.ExecContext(failureCtx, `UPDATE platform_runs SET status='failed',error='unexpected worker failure; checkpoint retained',finished_at=? WHERE id=? AND status='running'`, now(), id)
+			if !r.workerStopped() {
+				_ = r.Store.FailWorker(failureCtx, id, r.owner, "unexpected worker failure; checkpoint retained")
+			}
 			stop()
 			log.Printf("audit run %d recovered a worker failure", id)
 		}
@@ -196,16 +254,12 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		copy.Config.Progress = func(result AuditResult, trace []ToolTrace) error {
 			checkpointCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
 			defer stop()
-			return r.Store.Checkpoint(checkpointCtx, id, result, trace)
+			return r.Store.CheckpointOwned(checkpointCtx, id, r.owner, result, trace)
 		}
 		auditor = &copy
 	}
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
-	r.mu.Lock()
-	r.active[id] = cancel
-	r.mu.Unlock()
-	defer func() { r.mu.Lock(); delete(r.active, id); r.mu.Unlock() }()
 	run, err = r.Store.Run(ctx, id)
 	if err != nil {
 		r.finish(id, "failed", "unable to load run", AuditResult{}, nil)
@@ -226,6 +280,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		}
 		local, cleanup, e := PrepareGitLab(ctx, remote, run.Snapshot, gitConfig)
 		if e != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if r.failTransient(id, e, AuditResult{}, nil) {
 				return
 			}
@@ -242,6 +299,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}
 	changes, notes, err := repo.Changes(ctx, run.Snapshot)
 	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return
+		}
 		if r.failTransient(id, err, AuditResult{}, nil) {
 			return
 		}
@@ -267,7 +327,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		status, message = "incomplete", "task timeout exceeded"
 	}
 	if errors.Is(ctx.Err(), context.Canceled) {
-		status, message = "failed", "service interrupted task"
+		// User cancellations already changed durable state. Service interruption
+		// leaves checkpoints running until its leases expire for bounded recovery.
+		return
 	}
 	if err == nil && len(result.CoverageNotes) > 0 {
 		status = "incomplete"
@@ -275,15 +337,22 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	if status == "failed" && ctx.Err() == nil && r.failTransient(id, err, result, trace) {
 		return
 	}
-	r.finish(id, status, message, result, trace)
-	if status == "succeeded" {
+	persisted := r.finish(id, status, message, result, trace)
+	if status == "succeeded" && persisted {
 		r.comment(ctx, id)
 	}
 }
-func (r *Runner) finish(id int64, status, message string, result AuditResult, trace []ToolTrace) {
+func (r *Runner) finish(id int64, status, message string, result AuditResult, trace []ToolTrace) bool {
+	if r.workerStopped() {
+		return false
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := r.Store.Finish(ctx, id, status, message, result, trace); err != nil && !errors.Is(err, ErrConflict) {
-		log.Printf("audit run %d persistence failed: %v", id, err)
+	if err := r.Store.FinishOwned(ctx, id, r.owner, status, message, result, trace); err != nil {
+		if !errors.Is(err, ErrConflict) {
+			log.Printf("audit run %d persistence failed: %v", id, err)
+		}
+		return false
 	}
+	return true
 }

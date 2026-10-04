@@ -69,18 +69,29 @@ func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, 
 	return id, true, tx.Commit()
 }
 
-func (s *Store) Claim(ctx context.Context) (int64, error) {
+func (s *Store) Claim(ctx context.Context) (int64, error) { return s.claimRun(ctx, "") }
+func (s *Store) ClaimOwned(ctx context.Context, owner string) (int64, error) {
+	if owner == "" {
+		return 0, ErrWorkerLeaseLost
+	}
+	return s.claimRun(ctx, owner)
+}
+func (s *Store) claimRun(ctx context.Context, owner string) (int64, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
+	until, err := currentWorkerLease(ctx, tx, owner)
+	if err != nil {
+		return 0, err
+	}
 	var id int64
 	predicate, args := quotaClaimPredicate(s.auditQuotas())
 	if err = tx.QueryRowContext(ctx, `SELECT r.id FROM platform_runs r WHERE r.status='pending' AND (r.retry_at='' OR julianday(r.retry_at)<=julianday('now'))`+predicate+` ORDER BY r.id LIMIT 1`, args...).Scan(&id); err != nil {
 		return 0, err
 	}
-	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='running',started_at=? WHERE id=? AND status='pending'`, now(), id)
+	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='running',started_at=?,worker_owner=?,worker_lease_until=? WHERE id=? AND status='pending'`, now(), owner, until, id)
 	if err != nil {
 		return 0, err
 	}
@@ -95,6 +106,9 @@ func (s *Store) Claim(ctx context.Context) (int64, error) {
 }
 
 func (s *Store) Finish(ctx context.Context, id int64, status, message string, result AuditResult, trace []ToolTrace) error {
+	return s.FinishOwned(ctx, id, "", status, message, result, trace)
+}
+func (s *Store) FinishOwned(ctx context.Context, id int64, owner, status, message string, result AuditResult, trace []ToolTrace) error {
 	if status != "succeeded" && status != "failed" && status != "incomplete" && status != "cancelled" && status != "skipped" {
 		return fmt.Errorf("invalid terminal state")
 	}
@@ -115,7 +129,7 @@ func (s *Store) Finish(ctx context.Context, id int64, status, message string, re
 	if err != nil {
 		return err
 	}
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET status=?,error=?,result_json=?,trace_json=?,finished_at=? WHERE id=? AND status='running'`, status, message, string(data), string(tr), now(), id)
+	res, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET status=?,error=?,result_json=?,trace_json=?,finished_at=? WHERE id=? AND status='running'`+workerFenceSQL, status, message, string(data), string(tr), now(), id, owner)
 	if err != nil {
 		return err
 	}
@@ -169,8 +183,10 @@ func (s *Store) cancelRun(ctx context.Context, id, actor int64, authorize bool) 
 	return tx.Commit()
 }
 
+// Recover touches only orphaned/expired attempts; recovery itself rechecks the
+// same predicate transactionally, preserving checkpoints without reserializing.
 func (s *Store) Recover(ctx context.Context) error {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id FROM platform_runs WHERE status='running'`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT id FROM platform_runs WHERE status='running'`+expiredWorkerSQL+` ORDER BY id LIMIT 200`)
 	if err != nil {
 		return err
 	}
@@ -189,11 +205,7 @@ func (s *Store) Recover(ctx context.Context) error {
 		return err
 	}
 	for _, id := range ids {
-		run, err := s.Run(ctx, id)
-		if err != nil {
-			return err
-		}
-		if _, err = s.FailAndRetry(ctx, id, "interrupted by service restart; checkpoint retained", run.Result, run.Trace, retryDelay(run.RetryAttempt)); err != nil && !errors.Is(err, ErrConflict) {
+		if _, err = s.recoverAttempt(ctx, id); err != nil && !errors.Is(err, ErrConflict) {
 			return err
 		}
 	}

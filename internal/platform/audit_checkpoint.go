@@ -8,6 +8,9 @@ import (
 )
 
 func (s *Store) Checkpoint(ctx context.Context, id int64, result AuditResult, trace []ToolTrace) error {
+	return s.CheckpointOwned(ctx, id, "", result, trace)
+}
+func (s *Store) CheckpointOwned(ctx context.Context, id int64, owner string, result AuditResult, trace []ToolTrace) error {
 	if result.Findings == nil {
 		result.Findings = []Finding{}
 	}
@@ -25,7 +28,7 @@ func (s *Store) Checkpoint(ctx context.Context, id int64, result AuditResult, tr
 	if err != nil {
 		return err
 	}
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET result_json=?,trace_json=? WHERE id=? AND status='running'`, string(data), string(tr), id)
+	res, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET result_json=?,trace_json=? WHERE id=? AND status='running'`+workerFenceSQL, string(data), string(tr), id, owner)
 	if err != nil {
 		return err
 	}

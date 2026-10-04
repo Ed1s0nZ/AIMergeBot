@@ -117,6 +117,8 @@ func run() error {
 	var serveErr error
 	select {
 	case <-ctx.Done():
+	case serveErr = <-runner.Failures():
+		stop()
 	case serveErr = <-serveErrors:
 		stop()
 		if serveErr == http.ErrServerClosed {

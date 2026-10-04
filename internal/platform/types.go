@@ -65,11 +65,13 @@ type Snapshot struct {
 }
 
 type Run struct {
-	RetryChildID  int64  `json:"retry_child_id,omitempty"`
-	RetryParentID int64  `json:"retry_parent_id,omitempty"`
-	RetryAttempt  int    `json:"retry_attempt"`
-	RetryAt       string `json:"retry_at,omitempty"`
-	ID            int64  `json:"id"`
+	WorkerOwner      string `json:"-"`
+	WorkerLeaseUntil string `json:"worker_lease_until,omitempty"`
+	RetryChildID     int64  `json:"retry_child_id,omitempty"`
+	RetryParentID    int64  `json:"retry_parent_id,omitempty"`
+	RetryAttempt     int    `json:"retry_attempt"`
+	RetryAt          string `json:"retry_at,omitempty"`
+	ID               int64  `json:"id"`
 	Snapshot
 	Status        string      `json:"status"`
 	Error         string      `json:"error"`

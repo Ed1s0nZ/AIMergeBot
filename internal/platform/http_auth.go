@@ -152,6 +152,10 @@ func (h *HTTP) Register(r *gin.Engine) {
 		c.Next()
 	})
 	r.GET("/healthz", func(c *gin.Context) {
+		if h.Runner != nil && h.Runner.workerStopped() {
+			c.JSON(503, gin.H{"status": "worker_unavailable"})
+			return
+		}
 		if h.Store.DB.PingContext(c.Request.Context()) != nil {
 			c.JSON(503, gin.H{"status": "unavailable"})
 			return
