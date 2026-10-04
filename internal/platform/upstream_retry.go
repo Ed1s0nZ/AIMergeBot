@@ -87,15 +87,28 @@ func (t upstreamTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		return response, err
 	}
 	status := response.StatusCode
-	if status != http.StatusTooManyRequests && (status < 500 || status > 599) {
+	permanentModel := t.source == "model" && status >= 400 && status <= 499 && status != http.StatusTooManyRequests
+	if !permanentModel && status != http.StatusTooManyRequests && (status < 500 || status > 599) {
 		return response, nil
 	}
 	until, headerState := parseRetryAfter(response.Header.Get("Retry-After"), time.Now())
 	// Close immediately rather than buffering an unbounded error body or blocking on a drain.
 	response.Body.Close()
 	kind := "upstream_server"
+	if permanentModel {
+		kind = "upstream_client"
+		until = ""
+		headerState = "absent"
+	}
 	if status == http.StatusTooManyRequests {
 		kind = "rate_limit"
 	}
 	return nil, &upstreamError{info: RetryInfo{Kind: kind, Source: t.source, HTTPStatus: status, HeaderState: headerState, RetryAfterUntil: until}}
+}
+
+// UpstreamFailureInfo exposes normalized metadata only; no response text,
+// headers, endpoint URLs or credentials can escape through this API.
+func UpstreamFailureInfo(err error) *RetryInfo {
+	info, _ := retryFailure(err)
+	return info
 }

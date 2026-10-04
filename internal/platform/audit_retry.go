@@ -26,7 +26,7 @@ func retryFailure(err error) (*RetryInfo, bool) {
 	var upstream *upstreamError
 	if errors.As(err, &upstream) {
 		info := upstream.info
-		return &info, true
+		return &info, info.Kind == "temporary_network" || info.HTTPStatus == 429 || (info.HTTPStatus >= 500 && info.HTTPStatus <= 599)
 	}
 	info := &RetryInfo{Source: "unknown"}
 	var api *modelopenai.APIError

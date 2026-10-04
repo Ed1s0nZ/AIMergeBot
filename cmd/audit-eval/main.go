@@ -232,6 +232,9 @@ func run() error {
 }
 
 func classifyError(err error) (string, int) {
+	if info := platform.UpstreamFailureInfo(err); info != nil {
+		return info.Source + "_" + info.Kind, info.HTTPStatus
+	}
 	var api *modelopenai.APIError
 	var request *modelopenai.RequestError
 	var network net.Error

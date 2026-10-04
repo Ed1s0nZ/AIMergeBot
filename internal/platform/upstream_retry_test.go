@@ -114,17 +114,24 @@ func (b *retryResponseBody) Close() error             { b.closed = true; return 
 
 func TestRetryTransportClosesErrorsAndPreservesOtherResponses(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://fixture.invalid/", nil)
-	for _, status := range []int{200, 401, 403, 404, 429, 503} {
-		body := &retryResponseBody{}
-		response := &http.Response{StatusCode: status, Header: http.Header{}, Body: body}
-		transport := upstreamTransport{source: "model", base: retryTransportFunc(func(*http.Request) (*http.Response, error) { return response, nil })}
-		got, err := transport.RoundTrip(req)
-		if status == 429 || status == 503 {
-			if got != nil || !retryableError(err) || !body.closed || body.read {
-				t.Fatal("error body leaked/drained or error untyped", status, err, body)
+	for _, source := range []string{"model", "gitlab"} {
+		for _, status := range []int{200, 401, 403, 404, 422, 429, 503} {
+			body := &retryResponseBody{}
+			response := &http.Response{StatusCode: status, Header: http.Header{}, Body: body}
+			transport := upstreamTransport{source: source, base: retryTransportFunc(func(*http.Request) (*http.Response, error) { return response, nil })}
+			got, err := transport.RoundTrip(req)
+			if status == 429 || status == 503 {
+				if got != nil || !retryableError(err) || !body.closed || body.read {
+					t.Fatal("retry error body leaked or drained", source, status, err)
+				}
+			} else if source == "model" && status >= 400 && status < 500 {
+				info := UpstreamFailureInfo(err)
+				if got != nil || err == nil || retryableError(err) || !body.closed || body.read || info == nil || info.HTTPStatus != status {
+					t.Fatal("permanent model body leaked or retry enabled", status, err)
+				}
+			} else if got != response || err != nil || body.closed || body.read {
+				t.Fatal("SDK response changed", source, status, err)
 			}
-		} else if got != response || err != nil || body.closed || body.read {
-			t.Fatal("SDK response changed", status, err)
 		}
 	}
 }
