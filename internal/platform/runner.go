@@ -321,7 +321,15 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		r.finish(id, status, "", AuditResult{Summary: "No auditable textual changes in configured scope", CoverageNotes: scope.Notes, ExcludedFiles: scope.Excluded}, nil)
 		return
 	}
-	result, trace, err := auditor.Audit(ctx, run.Snapshot, scope)
+	var result AuditResult
+	var trace []ToolTrace
+	plan := PlanAuditGroups(changes, excluded)
+	if grouped, ok := auditor.(*EinoAuditor); ok && len(plan.Groups) > 1 {
+		plan.Notes = append(plan.Notes, notes...)
+		result, trace, err = grouped.AuditGroups(ctx, run.Snapshot, plan)
+	} else {
+		result, trace, err = auditor.Audit(ctx, run.Snapshot, scope)
+	}
 	status, message := "succeeded", ""
 	if err != nil {
 		status, message = "failed", err.Error()

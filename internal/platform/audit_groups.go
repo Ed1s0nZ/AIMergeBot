@@ -51,7 +51,9 @@ func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 		if len(selected) == 0 {
 			return
 		}
-		plan.Groups = append(plan.Groups, AuditGroup{ID: fmt.Sprintf("group-%d", len(plan.Groups)+1), Files: append([]string{}, files...), Scope: BuildDiff(selected, nil, auditGroupBytes)})
+		scope := BuildDiff(selected, nil, auditGroupBytes)
+		scope.Notes = nil // Input gaps are collected once in plan.Notes.
+		plan.Groups = append(plan.Groups, AuditGroup{ID: fmt.Sprintf("group-%d", len(plan.Groups)+1), Files: append([]string{}, files...), Scope: scope})
 		selected = nil
 		files = nil
 		groupBytes = 0

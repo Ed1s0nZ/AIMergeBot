@@ -285,6 +285,14 @@ export function RunDetail({ id }: { id: number }) {
       <section className="panel summary">
         <h2>审计摘要</h2>
         <p>{r.result.summary || "等待审计结果。"}</p>
+        {(r.result.audit_groups?.length || 0) > 0 && <details className="coverage">
+          <summary>分组审计 · {r.result.audit_groups!.filter(g => g.status === "completed").length}/{r.result.audit_groups!.length} 组完成</summary>
+          <p>按文件分配输入和预算；每组仍可检索整个固定提交的仓库。目录分组不代表调用关系。</p>
+          {r.result.audit_groups!.map(g => <details key={g.id}>
+            <summary>{g.id} · {{running:"审计中",completed:"已完成",failed:"失败",unprocessed:"未处理"}[g.status] || "未知状态"} · {g.files.length} 个文件</summary>
+            <ul>{g.files.map(file => <li key={file}>{file}</li>)}</ul>
+          </details>)}
+        </details>}
         <GitMetadataChanges changes={r.result.metadata_changes} />
         {(r.result.excluded_files?.length || 0) > 0 && (
           <details className="coverage">
@@ -370,7 +378,7 @@ export function RunDetail({ id }: { id: number }) {
             >
               <summary>
                 {t.name}
-                {t.stage === "diagram" ? " · 时序图生成" : t.stage === "verification" ? " · 独立复核" : ""}{" "}
+                {t.stage === "diagram" ? " · 时序图生成" : t.stage === "verification" ? " · 独立复核" : t.stage === "synthesis" ? " · 跨组汇总" : ""}{" "}
                 <span className="muted">
                   {t.duration_ms}ms {t.error ? "· 失败" : ""}
                 </span>

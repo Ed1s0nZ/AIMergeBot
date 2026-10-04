@@ -12,6 +12,7 @@ import (
 	eo "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/callbacks"
 	em "github.com/cloudwego/eino/components/model"
+	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
 	ea "github.com/cloudwego/eino/flow/agent"
 	"github.com/cloudwego/eino/flow/agent/react"
@@ -19,6 +20,9 @@ import (
 )
 
 type AgentConfig struct {
+	PrimaryOnly            bool
+	ObservationPrefix      string
+	Manifest               string
 	Progress               func(AuditResult, []ToolTrace) error
 	APIKey, BaseURL, Model string
 	MaxSteps               int
@@ -51,7 +55,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err != nil {
 		return AuditResult{}, nil, err
 	}
-	tools := &auditTools{repo: e.Repository, snap: snap, cache: map[string]string{}, trace: []ToolTrace{}}
+	tools := &auditTools{repo: e.Repository, snap: snap, cache: map[string]string{}, trace: []ToolTrace{}, observationPrefix: cfg.ObservationPrefix}
 	tools.progress = cfg.Progress
 	tools.scope = scope
 	tools.maxCalls = cfg.MaxToolCalls
@@ -80,7 +84,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		}
 		return c
 	}).Build()
-	msg, err := agent.Generate(ctx, []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nUntrusted diff:\n" + scope.Text}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
+	msg, err := agent.Generate(ctx, []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
 	if err != nil {
 		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Audit interrupted; validated submissions retained", CoverageNotes: []string{"Primary model generation failed"}}, tools.trace, err
 	}
@@ -91,6 +95,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err != nil {
 		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Invalid model response; validated submissions retained", CoverageNotes: []string{"Invalid final model response"}}, tools.trace, err
 	}
+	result.AuditGroups = nil // Group completion is server-owned, never model supplied.
 	result.MetadataChanges = scope.metadataChanges()
 	result.ExcludedFiles = append([]string{}, scope.Excluded...)
 	result.CoverageNotes = append(result.CoverageNotes, scope.Notes...)
@@ -117,14 +122,24 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		result.CoverageNotes = append(result.CoverageNotes, progressError)
 	}
 	tools.sequenceCheckpoint(result)
+	if cfg.PrimaryOnly {
+		return result, tools.trace, nil
+	}
+	e.supplement(ctx, snap, &result, tools, registered, model, progressError)
+
+	return result, tools.trace, nil
+}
+
+func (e *EinoAuditor) supplement(ctx context.Context, snap Snapshot, result *AuditResult, tools *auditTools, registered []tool.BaseTool, model em.ToolCallingChatModel, progressError string) {
+	cfg := e.Config
 	if cfg.VerifyFindings {
-		e.verifyFindings(ctx, &result, tools, model)
+		e.verifyFindings(ctx, result, tools, model)
 	} else {
 		for i := range result.Findings {
 			result.Findings[i].Verification = unavailableVerification(snap, "系统设置已关闭独立复核。", "disabled")
 		}
 	}
-	tools.sequenceCheckpoint(result)
+	tools.sequenceCheckpoint(*result)
 	if cfg.GenerateDiagrams && len(result.Findings) > 0 {
 		graphCB := callbacks.NewHandlerBuilder().OnEndFn(func(c context.Context, _ *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
 			if data, ok := output.(*em.CallbackOutput); ok {
@@ -140,20 +155,19 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 			}
 			return c
 		}).Build()
-		e.generateSequences(ctx, &result, tools, registered, model, graphCB)
+		e.generateSequences(ctx, result, tools, registered, model, graphCB)
 	} else {
 		for i := range result.Findings {
 			result.Findings[i].SequenceDiagram = unavailableSequence("系统设置已关闭时序图生成")
 		}
 	}
-	tools.sequenceCheckpoint(result)
+	tools.sequenceCheckpoint(*result)
 	tools.mu.Lock()
 	finalProgressError := tools.progressError
 	tools.mu.Unlock()
 	if finalProgressError != "" && finalProgressError != progressError {
 		result.CoverageNotes = append(result.CoverageNotes, finalProgressError)
 	}
-	return result, tools.trace, nil
 }
 
 func ParseResult(raw string) (AuditResult, error) {

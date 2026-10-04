@@ -143,6 +143,7 @@ export type Run = {
   error: string;
   created_at: string;
   result: {
+    audit_groups?: { id: string; files: string[]; status: "running" | "completed" | "failed" | "unprocessed" }[];
     metadata_changes?: GitChangeMetadata[];
     findings: Finding[];
     summary: string;

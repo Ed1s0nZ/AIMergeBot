@@ -48,12 +48,13 @@ type Investigation struct {
 	NextSteps             []string `json:"next_steps"`
 }
 type AuditResult struct {
-	MetadataChanges []GitChangeMetadata `json:"metadata_changes,omitempty"`
-	ExcludedFiles   []string            `json:"excluded_files,omitempty"`
-	Investigations  []Investigation     `json:"investigations,omitempty"`
-	Findings        []Finding           `json:"findings"`
-	Summary         string              `json:"summary"`
-	CoverageNotes   []string            `json:"coverage_notes"`
+	AuditGroups     []AuditGroupProgress `json:"audit_groups,omitempty"`
+	MetadataChanges []GitChangeMetadata  `json:"metadata_changes,omitempty"`
+	ExcludedFiles   []string             `json:"excluded_files,omitempty"`
+	Investigations  []Investigation      `json:"investigations,omitempty"`
+	Findings        []Finding            `json:"findings"`
+	Summary         string               `json:"summary"`
+	CoverageNotes   []string             `json:"coverage_notes"`
 }
 
 type Snapshot struct {

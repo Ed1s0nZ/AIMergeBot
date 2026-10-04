@@ -78,3 +78,10 @@ func TestAuditGroupPlannerGroupCapAndMetadata(t *testing.T) {
 		t.Fatal("metadata-only entry lost during grouping")
 	}
 }
+
+func TestAuditGroupPlannerRecordsInputGapsOnce(t *testing.T) {
+	plan := PlanAuditGroups([]Change{{NewPath: "file.any", Diff: "@@ -1 +1 @@\n+new", Notes: []string{"source metadata unavailable"}}}, nil)
+	if len(plan.Notes) != 1 || len(plan.Groups) != 1 || len(plan.Groups[0].Scope.Notes) != 0 {
+		t.Fatal("input gap duplicated in group scopes", plan)
+	}
+}

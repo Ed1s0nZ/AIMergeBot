@@ -36,6 +36,7 @@ def wait_for(check, timeout=15):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True)
+    parser.add_argument("--group-preview", action="store_true", help="Verify actual grouped25-file audit and synthesis")
     parser.add_argument("--metadata-preview", action="store_true", help="Also verify a metadata-only finding and note-only diagram")
     parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
     parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
@@ -55,7 +56,7 @@ def main():
     if args.app_port in (1234, 8080) or args.upstream_port in (1234, 8080) or args.app_port == args.upstream_port:
         raise ValueError("choose distinct temporary ports, not production1234/8080")
     root = Path(tempfile.mkdtemp(prefix="aimangebot-recovery-smoke."))
-    calls = {90: 0, 91: 0, 92: 0}
+    calls = {90: 0, 91: 0, 92: 0, 93: 0}
     lock = threading.Lock()
     comments = {}
     comment_creates, comment_updates = {}, {}
@@ -88,7 +89,7 @@ def main():
             if path == "/api/v4/user":
                 self.send_json({"id": 7})
                 return
-            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)/discussions(?:/synthetic-(90|91|92))?", path)
+            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)/discussions(?:/synthetic-(90|91|92|93))?", path)
             if match_comment:
                 iid = int(match_comment.group(1))
                 with lock:
@@ -102,12 +103,14 @@ def main():
             if path == "/api/v4/projects/1/repository/tree":
                 object_id = hashlib.sha1(b"blob 7\x00change\n").hexdigest()
                 head = "ref=" + head_sha in self.path
-                self.send_json([{"path": "a.any", "mode": "100644", "type": "blob", "id": object_id}, {"path": "entry.any", "mode": "100755" if head else "100644", "type": "blob", "id": metadata_object}])
+                if not head:
+                    object_id = hashlib.sha1(b"blob 4\x00old\n").hexdigest()
+                self.send_json([{"path": f"f{i:02d}.any", "mode": "100644", "type": "blob", "id": object_id} for i in range(24)] + [{"path": "a.any", "mode": "100644", "type": "blob", "id": object_id}, {"path": "entry.any", "mode": "100755" if head else "100644", "type": "blob", "id": metadata_object}])
                 return
             if "/repository/files/" in path:
                 self.send_json({"file_path": "a.any", "encoding": "base64", "content": base64.b64encode(b"change\n").decode(), "size": 7})
                 return
-            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)(/versions(?:/1)?)?", path)
+            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)(/versions(?:/1)?)?", path)
             if not match:
                 self.send_json({"message": "fixture endpoint unavailable"}, 404)
                 return
@@ -119,13 +122,15 @@ def main():
                 diffs = [{"old_path": "a.any", "new_path": "a.any", "new_file": True, "diff": "@@ -0,0 +1 @@\n+change"}]
                 if match.group(1) == "92":
                     diffs = [{"old_path": "entry.any", "new_path": "entry.any", "diff": ""}]
-                version.update(state="collected", real_size="1", diffs=diffs)
+                if match.group(1) == "93":
+                    diffs = [{"old_path": p, "new_path": p, "diff": "@@ -1 +1 @@\n-old\n+change"} for p in ["a.any"] + [f"f{i:02d}.any" for i in range(24)]]
+                version.update(state="collected", real_size=str(len(diffs)), diffs=diffs)
                 self.send_json(version)
             else:
                 self.send_json({"iid": int(match.group(1)), "source_project_id": 1, "title": "合成验证：重试与恢复", "web_url": "", "diff_refs": {"base_sha": base_sha, "head_sha": head_sha}})
 
         def do_POST(self):
-            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)/discussions", self.path)
+            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)/discussions", self.path)
             if match_comment:
                 iid = int(match_comment.group(1))
                 request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
@@ -139,10 +144,25 @@ def main():
                 return
             request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
             content = " ".join(str(message.get("content", "")) for message in request["messages"] if message.get("role") == "user")
-            iid = 90 if '"mr_iid":90' in content else 92 if '"mr_iid":92' in content else 91
+            iid = 90 if '"mr_iid":90' in content else 92 if '"mr_iid":92' in content else 93 if '"mr_iid":93' in content else 91
             with lock:
                 calls[iid] += 1
                 number = calls[iid]
+            if iid == 93:
+                synthesis = any(str(m.get("content", "")).startswith("Summarize a grouped") for m in request["messages"] if m.get("role") == "system")
+                finish = "stop"
+                if synthesis:
+                    message = {"role": "assistant", "content": json.dumps({"summary": "合成跨组汇总：25个文件分为2组；保留候选，不代表模型准确率或运行复现。", "coverage_notes": []}, ensure_ascii=False)}
+                elif number == 1:
+                    finish = "tool_calls"
+                    message = {"role": "assistant", "content": None, "tool_calls": [{"id": "fixture_group_read", "type": "function", "function": {"name": "read_file", "arguments": json.dumps({"path": "a.any", "start": 1, "end": 1})}}]}
+                else:
+                    findings = []
+                    if number == 2:
+                        findings = [{"side": "head", "file": "a.any", "line": 1, "severity": "medium", "type": "synthetic grouping", "title": "合成分组候选", "description": "仅验证分组合并与证据保留。", "evidence": "change", "trigger": "合成测试条件，不代表真实漏洞", "suggestion": "人工核验", "confidence": "candidate", "observation_ids": ["group-1-observation-1"]}]
+                    message = {"role": "assistant", "content": json.dumps({"findings": findings, "summary": "合成分组结果", "coverage_notes": []}, ensure_ascii=False)}
+                self.send_json({"id": "fixture-group", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
+                return
             if iid == 92:
                 independent = any(str(m.get("content", "")).startswith("Independently review") for m in request["messages"] if m.get("role") == "system")
                 if independent:
@@ -184,7 +204,7 @@ def main():
             self.send_json({"id": "fixture-completion", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
 
         def do_PUT(self):
-            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)/discussions/synthetic-(90|91|92)/notes/(90|91|92)", self.path)
+            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)/discussions/synthetic-(90|91|92|93)/notes/(90|91|92|93)", self.path)
             if not match or len(set(match.groups())) != 1:
                 self.send_json({"message": "fixture endpoint unavailable"}, 404)
                 return
@@ -282,6 +302,17 @@ def main():
                 assert any(t.get("stage") == "verification" and t.get("observation_id") in verification["observation_ids"] for t in audited["trace"])
                 proof.update(independent_verification="supported", fresh_verification_observations=verification["observation_ids"])
             proof.update(metadata_run=metadata_run, metadata_finding_verified=True, metadata_note_diagram="partial", preview_url=base_url+f"/#/runs/{metadata_run}")
+        if args.group_preview:
+            group_run = api("/runs", {"project_id": 1, "mr_iid": 93})["id"]
+            wait_for(lambda: row(group_run)[0] == "succeeded", timeout=15)
+            grouped = api(f"/runs/{group_run}")["run"]
+            groups = grouped["result"]["audit_groups"]
+            assert len(groups) == 2 and all(g["status"] == "completed" for g in groups)
+            assert sum(len(g["files"]) for g in groups) == 25
+            assert len(grouped["result"]["findings"]) == 1 and grouped["result"]["findings"][0]["confidence"] == "candidate"
+            assert any(t.get("observation_id") == "group-1-observation-1" for t in grouped["trace"])
+            assert any(t.get("stage") == "synthesis" for t in grouped["trace"]) and calls[93] == 4
+            proof.update(group_run=group_run, completed_groups=2, grouped_files=25, grouped_finding_retained=True, preview_url=base_url+f"/#/runs/{group_run}")
         if args.comment_preview:
             wait_for(lambda: api(f"/runs/{metadata_run}")["comment_sync"]["state"] == "sent")
             api(f"/runs/{metadata_run}/findings/{finding['id']}/review", {"status": "false_positive", "reason": "合成同步验证：未运行复现，仅验证评论更新。"}, method="PUT")
