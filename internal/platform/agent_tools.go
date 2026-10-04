@@ -29,15 +29,16 @@ type searchArgs struct {
 	Base       bool   `json:"base"`
 }
 type toolOutput struct {
-	ObservationID string   `json:"observation_id"`
-	BaseSHA       string   `json:"base_sha"`
-	HeadSHA       string   `json:"head_sha"`
-	NextCursor    int      `json:"next_cursor,omitempty"`
-	Remaining     bool     `json:"remaining,omitempty"`
-	Text          string   `json:"text"`
-	Files         []string `json:"files,omitempty"`
-	More          bool     `json:"more,omitempty"`
-	Error         string   `json:"error,omitempty"`
+	Metadata      *GitChangeMetadata `json:"metadata,omitempty"`
+	ObservationID string             `json:"observation_id"`
+	BaseSHA       string             `json:"base_sha"`
+	HeadSHA       string             `json:"head_sha"`
+	NextCursor    int                `json:"next_cursor,omitempty"`
+	Remaining     bool               `json:"remaining,omitempty"`
+	Text          string             `json:"text"`
+	Files         []string           `json:"files,omitempty"`
+	More          bool               `json:"more,omitempty"`
+	Error         string             `json:"error,omitempty"`
 }
 
 type auditTools struct {

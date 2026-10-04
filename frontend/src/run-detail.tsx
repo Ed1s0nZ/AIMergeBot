@@ -1,3 +1,7 @@
+import {
+  GitMetadataEvidence,
+  GitMetadataChanges,
+} from "./git-metadata-evidence";
 import { RetryExplanation } from "./retry-explanation";
 import { ObservationLinks } from "./observation-links";
 import { FindingSequence } from "./finding-sequence";
@@ -43,7 +47,10 @@ function FindingCard({
       </div>
       <div className="mono file-location">
         {finding.side === "base" ? "BASE · " : "HEAD · "}
-        {finding.file}:{finding.line}
+        {finding.file}
+        {finding.anchor_type === "git_metadata"
+          ? " · Git 元数据"
+          : `:${finding.line}`}
         {finding.type && ` · ${finding.type}`}
       </div>
       <p>{finding.description}</p>
@@ -51,7 +58,11 @@ function FindingCard({
         <p className="muted">关联调查：{finding.investigation_id}</p>
       )}
       <ObservationLinks ids={finding.observation_ids} />
-      <pre>{finding.evidence}</pre>
+      {finding.anchor_type === "git_metadata" && finding.metadata ? (
+        <GitMetadataEvidence metadata={finding.metadata} />
+      ) : (
+        <pre>{finding.evidence}</pre>
+      )}
       <dl>
         <dt>触发条件</dt>
         <dd>{finding.trigger}</dd>
@@ -262,6 +273,7 @@ export function RunDetail({ id }: { id: number }) {
       <section className="panel summary">
         <h2>审计摘要</h2>
         <p>{r.result.summary || "等待审计结果。"}</p>
+        <GitMetadataChanges changes={r.result.metadata_changes} />
         {(r.result.excluded_files?.length || 0) > 0 && (
           <details className="coverage">
             <summary>

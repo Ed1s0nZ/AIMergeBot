@@ -1,3 +1,4 @@
+import { GitMetadataEvidence } from "./git-metadata-evidence";
 import { useId, useRef, useState } from "react";
 import { Download, GitBranch } from "lucide-react";
 import type { SequenceDiagram } from "./api";
@@ -339,21 +340,28 @@ export function FindingSequence({
           <p className="muted">
             {step.certainty === "inferred"
               ? "关系为推测；附带引用也不能证明这条调用链成立。"
-              : "引用已与固定提交的代码片段核对；不代表调用关系或可利用性已验证。"}
+              : "引用已与固定提交的代码或元数据核对；不代表调用关系或可利用性已验证。"}
           </p>
           {step.evidence?.length ? (
             step.evidence.map((ref, i) => (
               <div key={i}>
                 <code>
-                  {ref.side.toUpperCase()} · {ref.file}:{ref.line} ·{" "}
-                  {ref.sha?.slice(0, 12)}
+                  {ref.side.toUpperCase()} · {ref.file}
+                  {ref.anchor_type === "git_metadata"
+                    ? " · Git 元数据"
+                    : `:${ref.line}`}{" "}
+                  · {ref.sha?.slice(0, 12)}
                 </code>
                 {ref.side === "base" && (
                   <p className="sequence-limit">
                     变更前证据：对应已删除的发现代码或旧版本上下文。
                   </p>
                 )}
-                <pre>{ref.snippet}</pre>
+                {ref.anchor_type === "git_metadata" && ref.metadata ? (
+                  <GitMetadataEvidence metadata={ref.metadata} />
+                ) : (
+                  <pre>{ref.snippet}</pre>
+                )}
               </div>
             ))
           ) : (

@@ -61,7 +61,17 @@ export type ProjectPermissions = {
   can_review: boolean;
   can_cancel: boolean;
 };
+export type GitEntry = { mode: string; type: string; object_id: string };
+export type GitChangeMetadata = {
+  kind: string;
+  old_path: string;
+  new_path: string;
+  base: GitEntry | null;
+  head: GitEntry | null;
+};
 export type SequenceReference = {
+  anchor_type?: "line" | "git_metadata";
+  metadata?: GitChangeMetadata;
   side: "head" | "base";
   file: string;
   line: number;
@@ -86,6 +96,8 @@ export type SequenceDiagram = {
   mermaid?: string;
 };
 export type Finding = {
+  anchor_type?: "line" | "git_metadata";
+  metadata?: GitChangeMetadata;
   investigation_id?: string;
   observation_ids?: string[];
   sequence_diagram?: SequenceDiagram;
@@ -129,6 +141,7 @@ export type Run = {
   error: string;
   created_at: string;
   result: {
+    metadata_changes?: GitChangeMetadata[];
     findings: Finding[];
     summary: string;
     coverage_notes: string[];

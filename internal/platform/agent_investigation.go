@@ -93,6 +93,9 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("read_file", "Read numbered lines at pinned head/base. start/end max 200 lines. remaining is unread file content, more is truncation.", t.file)); e != nil {
 		return nil, e
 	}
+	if e := add(utils.InferTool("get_change_metadata", "Read canonical Git metadata for an included changed path. Use the entire text as metadata finding evidence, anchor_type git_metadata and line 0. File modes/object IDs are facts, not proof of a vulnerability.", t.changeMetadata)); e != nil {
+		return nil, e
+	}
 	if e := add(utils.InferTool("list_files", "List head file names, page size 100.", t.list)); e != nil {
 		return nil, e
 	}
@@ -126,7 +129,7 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids or counterevidence/counter_observation_ids linking successful source observations. Does not prove exploitability.", t.update)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("submit_finding", "Validate proposed finding against changed base/head lines and exact snapshot evidence; matching evidence does not establish runtime verification.", t.submit)); e != nil {
+	if e := add(utils.InferTool("submit_finding", "Validate proposed finding against changed base/head lines or verified Git metadata and exact snapshot evidence; matching evidence does not establish runtime verification.", t.submit)); e != nil {
 		return nil, e
 	}
 	return out, nil

@@ -143,43 +143,25 @@ func (g *GitRepository) Changes(ctx context.Context, s Snapshot) ([]Change, []st
 	if _, e := g.ref(s, true); e != nil {
 		return nil, nil, e
 	}
-	raw, e := g.command(ctx, "diff", "--name-status", "-z", "--find-renames", s.BaseSHA, s.HeadSHA, "--")
+	raw, e := g.command(ctx, "diff", "--raw", "--no-abbrev", "-z", "--find-renames", s.BaseSHA, s.HeadSHA, "--")
 	if e != nil {
 		return nil, nil, e
 	}
-	parts := strings.Split(strings.TrimSuffix(raw, "\x00"), "\x00")
-	out := []Change{}
-	notes := []string{}
-	for i := 0; i < len(parts) && parts[i] != ""; {
-		status := parts[i]
-		i++
-		if i >= len(parts) {
-			return nil, nil, fmt.Errorf("invalid Git diff listing")
-		}
-		old := parts[i]
-		i++
-		p := old
-		renamed := strings.HasPrefix(status, "R") || strings.HasPrefix(status, "C")
-		if renamed {
-			if i >= len(parts) {
-				return nil, nil, fmt.Errorf("invalid rename")
-			}
-			p = parts[i]
-			i++
-		}
-		diff, e := g.command(ctx, "diff", "--no-ext-diff", "--no-textconv", "--unified=3", "--find-renames", s.BaseSHA, s.HeadSHA, "--", old, p)
-		if e != nil {
-			return nil, nil, e
-		}
-		idx := strings.Index(diff, "@@ ")
-		if idx >= 0 {
-			diff = diff[idx:]
-		} else {
-			notes = append(notes, "No textual hunks: "+p)
-			diff = ""
-		}
-		out = append(out, Change{OldPath: old, NewPath: p, Diff: diff, Deleted: status == "D", Renamed: renamed})
+	out, e := parseRawGitChanges(raw)
+	if e != nil {
+		return nil, nil, e
 	}
+	for i := range out {
+		c := &out[i]
+		diff, err := g.command(ctx, "diff", "--no-ext-diff", "--no-textconv", "--unified=3", "--find-renames", s.BaseSHA, s.HeadSHA, "--", c.OldPath, c.NewPath)
+		if err != nil {
+			return nil, nil, err
+		}
+		if idx := strings.Index(diff, "@@ "); idx >= 0 {
+			c.Diff = diff[idx:]
+		}
+	}
+	notes := []string{}
 	return out, notes, nil
 }
 

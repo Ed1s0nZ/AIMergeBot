@@ -47,7 +47,7 @@ func (t *auditTools) checkpoint() {
 	}
 	t.progressMu.Lock()
 	defer t.progressMu.Unlock()
-	result := AuditResult{Findings: t.acceptedFindings(), Investigations: t.investigations(), Summary: "Audit in progress; validated submissions checkpointed", CoverageNotes: []string{"Audit not yet complete"}}
+	result := AuditResult{MetadataChanges: t.scope.metadataChanges(), Findings: t.acceptedFindings(), Investigations: t.investigations(), Summary: "Audit in progress; validated submissions checkpointed", CoverageNotes: []string{"Audit not yet complete"}}
 	t.mu.Lock()
 	trace := append([]ToolTrace{}, t.trace...)
 	t.mu.Unlock()

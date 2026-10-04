@@ -16,11 +16,13 @@ type SequenceParticipant struct {
 	Label string `json:"label"`
 }
 type SequenceReference struct {
-	Side    string `json:"side"`
-	File    string `json:"file"`
-	Line    int    `json:"line"`
-	Snippet string `json:"snippet"`
-	SHA     string `json:"sha,omitempty"`
+	AnchorType string             `json:"anchor_type,omitempty"`
+	Metadata   *GitChangeMetadata `json:"metadata,omitempty"`
+	Side       string             `json:"side"`
+	File       string             `json:"file"`
+	Line       int                `json:"line"`
+	Snippet    string             `json:"snippet"`
+	SHA        string             `json:"sha,omitempty"`
 }
 type SequenceStep struct {
 	From      string              `json:"from"`
@@ -106,11 +108,8 @@ func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Fin
 		}
 		for n := range step.Evidence {
 			ref := &step.Evidence[n]
-			if ref.Side != "head" && ref.Side != "base" || !validPath(ref.File) || ref.Line < 1 || !boundedLabel(ref.Snippet, 500) {
-				return nil, fmt.Errorf("invalid sequence code reference")
-			}
-			if ref.Side == "base" && step.Kind != "note" {
-				return nil, fmt.Errorf("base evidence must annotate before-change code, not a current call")
+			if ref.Side != "head" && ref.Side != "base" || !validPath(ref.File) || !boundedLabel(ref.Snippet, 500) {
+				return nil, fmt.Errorf("invalid sequence reference")
 			}
 			sha := snap.HeadSHA
 			if ref.Side == "base" {
@@ -120,6 +119,24 @@ func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Fin
 				return nil, fmt.Errorf("sequence citation SHA mismatch")
 			}
 			ref.SHA = sha
+			if ref.AnchorType == "git_metadata" {
+				if f.AnchorType != "git_metadata" || f.Metadata == nil || step.Kind != "note" || ref.Line != 0 || ref.Side != f.Side || ref.File != f.File || ref.Snippet != f.Evidence || ref.Metadata != nil && ref.Metadata.canonical() != f.Metadata.canonical() {
+					return nil, fmt.Errorf("metadata citation must annotate the primary pinned change")
+				}
+				copy := *f.Metadata
+				ref.Metadata = &copy
+				if step.Risk {
+					anchored = true
+				}
+				status = "partial"
+				continue
+			}
+			if ref.Line < 1 || ref.AnchorType != "" && ref.AnchorType != "line" || ref.Metadata != nil {
+				return nil, fmt.Errorf("invalid sequence code anchor")
+			}
+			if ref.Side == "base" && step.Kind != "note" {
+				return nil, fmt.Errorf("base evidence must annotate before-change code, not a current call")
+			}
 			key := ref.Side + ":" + ref.File
 			lines, ok := cache[key]
 			if !ok {

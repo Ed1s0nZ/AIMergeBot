@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -96,6 +97,13 @@ func TestPinnedDiffVersionPaginationAndCoverage(t *testing.T) {
 			}
 		case "/api/v4/projects/1/merge_requests/2/versions/5":
 			fmt.Fprint(w, `{"head_commit_sha":"head","base_commit_sha":"base","state":"collected","real_size":"2","diffs":[{"old_path":"a.go","new_path":"a.go","diff":"@@ -0,0 +1 @@\n+new"},{"old_path":"large.go","new_path":"large.go","too_large":true,"diff":""}]}`)
+		case "/api/v4/projects/1/repository/tree":
+			object := strings.Repeat("a", 40)
+			if r.URL.Query().Get("ref") == "head" {
+				object = strings.Repeat("b", 40)
+			}
+			json.NewEncoder(w).Encode([]map[string]string{{"path": "a.go", "mode": "100644", "type": "blob", "id": object}, {"path": "large.go", "mode": "100644", "type": "blob", "id": object}})
+
 		default:
 			t.Errorf("unbound diff request: %s", r.URL.Path)
 			http.NotFound(w, r)
@@ -111,7 +119,7 @@ func TestPinnedDiffVersionPaginationAndCoverage(t *testing.T) {
 		t.Fatal("diff version pagination failed", err)
 	}
 	changes, notes, err := repo.Changes(context.Background(), s)
-	if err != nil || len(changes) != 2 || len(notes) != 1 {
+	if err != nil || len(changes) != 2 || len(notes) != 0 || len(changes[1].Notes) != 1 {
 		t.Fatal("large diff omitted silently", err, notes)
 	}
 }

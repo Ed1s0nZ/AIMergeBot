@@ -1,0 +1,49 @@
+.git-metadata-evidence {
+  margin: 16px 0;
+  min-width: 0;
+}
+.git-metadata-evidence table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.git-metadata-evidence th,
+.git-metadata-evidence td {
+  padding: 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #e4e9f1;
+  overflow-wrap: anywhere;
+}
+.git-metadata-evidence th:first-child {
+  width: 20%;
+}
+.git-metadata-evidence td code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.git-metadata-evidence thead {
+  background: #f6f8fc;
+  color: #506079;
+}
+.git-metadata-changes {
+  margin: 20px 0;
+}
+.git-metadata-changes summary {
+  cursor: pointer;
+  color: #506079;
+}
+.git-metadata-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .git-metadata-evidence th,
+  .git-metadata-evidence td {
+    padding: 9px 6px;
+    font-size: 12px;
+  }
+}

@@ -17,21 +17,23 @@ type Project struct {
 }
 
 type Finding struct {
-	InvestigationID string           `json:"investigation_id,omitempty"`
-	ObservationIDs  []string         `json:"observation_ids,omitempty"`
-	SequenceDiagram *SequenceDiagram `json:"sequence_diagram,omitempty"`
-	Side            string           `json:"side"`
-	Type            string           `json:"type"`
-	ID              string           `json:"id"`
-	File            string           `json:"file"`
-	Line            int              `json:"line"`
-	Severity        string           `json:"severity"`
-	Title           string           `json:"title"`
-	Description     string           `json:"description"`
-	Evidence        string           `json:"evidence"`
-	Trigger         string           `json:"trigger"`
-	Suggestion      string           `json:"suggestion"`
-	Confidence      string           `json:"confidence"`
+	AnchorType      string             `json:"anchor_type,omitempty"`
+	Metadata        *GitChangeMetadata `json:"metadata,omitempty"`
+	InvestigationID string             `json:"investigation_id,omitempty"`
+	ObservationIDs  []string           `json:"observation_ids,omitempty"`
+	SequenceDiagram *SequenceDiagram   `json:"sequence_diagram,omitempty"`
+	Side            string             `json:"side"`
+	Type            string             `json:"type"`
+	ID              string             `json:"id"`
+	File            string             `json:"file"`
+	Line            int                `json:"line"`
+	Severity        string             `json:"severity"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	Evidence        string             `json:"evidence"`
+	Trigger         string             `json:"trigger"`
+	Suggestion      string             `json:"suggestion"`
+	Confidence      string             `json:"confidence"`
 }
 
 type Investigation struct {
@@ -45,11 +47,12 @@ type Investigation struct {
 	NextSteps             []string `json:"next_steps"`
 }
 type AuditResult struct {
-	ExcludedFiles  []string        `json:"excluded_files,omitempty"`
-	Investigations []Investigation `json:"investigations,omitempty"`
-	Findings       []Finding       `json:"findings"`
-	Summary        string          `json:"summary"`
-	CoverageNotes  []string        `json:"coverage_notes"`
+	MetadataChanges []GitChangeMetadata `json:"metadata_changes,omitempty"`
+	ExcludedFiles   []string            `json:"excluded_files,omitempty"`
+	Investigations  []Investigation     `json:"investigations,omitempty"`
+	Findings        []Finding           `json:"findings"`
+	Summary         string              `json:"summary"`
+	CoverageNotes   []string            `json:"coverage_notes"`
 }
 
 type Snapshot struct {

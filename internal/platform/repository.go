@@ -13,11 +13,14 @@ import (
 )
 
 type Change struct {
-	OldPath string `json:"old_path"`
-	NewPath string `json:"new_path"`
-	Diff    string `json:"diff"`
-	Deleted bool   `json:"deleted"`
-	Renamed bool   `json:"renamed"`
+	Notes    []string           `json:"notes,omitempty"`
+	Metadata *GitChangeMetadata `json:"metadata,omitempty"`
+	Added    bool               `json:"added"`
+	OldPath  string             `json:"old_path"`
+	NewPath  string             `json:"new_path"`
+	Diff     string             `json:"diff"`
+	Deleted  bool               `json:"deleted"`
+	Renamed  bool               `json:"renamed"`
 }
 
 type Repository interface {
@@ -82,6 +85,7 @@ func (g *GitLabRepository) Changes(ctx context.Context, s Snapshot) ([]Change, [
 			OldPath   string `json:"old_path"`
 			NewPath   string `json:"new_path"`
 			Diff      string `json:"diff"`
+			Added     bool   `json:"new_file"`
 			Deleted   bool   `json:"deleted_file"`
 			Renamed   bool   `json:"renamed_file"`
 			Collapsed bool   `json:"collapsed"`
@@ -108,10 +112,15 @@ func (g *GitLabRepository) Changes(ctx context.Context, s Snapshot) ([]Change, [
 	}
 	out := []Change{}
 	for _, c := range version.Diffs {
+		fileNotes := []string{}
 		if c.Collapsed || c.TooLarge {
-			notes = append(notes, "GitLab omitted diff content: "+c.NewPath)
+			fileNotes = append(fileNotes, "GitLab omitted diff content: "+c.NewPath)
 		}
-		out = append(out, Change{OldPath: c.OldPath, NewPath: c.NewPath, Diff: c.Diff, Deleted: c.Deleted, Renamed: c.Renamed})
+		out = append(out, Change{Notes: fileNotes, OldPath: c.OldPath, NewPath: c.NewPath, Diff: c.Diff, Added: c.Added, Deleted: c.Deleted, Renamed: c.Renamed})
+	}
+	_, err = g.enrichMetadata(ctx, s, out)
+	if err != nil {
+		return nil, nil, err
 	}
 	return out, notes, nil
 }

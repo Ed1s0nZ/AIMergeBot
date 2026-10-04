@@ -8,7 +8,7 @@ import (
 
 func isSourceTool(name string) bool {
 	switch name {
-	case "read_file", "read_files", "search_code", "get_diff", "compare_files", "get_history", "git_blame", "search_history":
+	case "get_change_metadata", "read_file", "read_files", "search_code", "get_diff", "compare_files", "get_history", "git_blame", "search_history":
 		return true
 	}
 	return false
@@ -72,7 +72,11 @@ func (t *auditTools) validateFindingLinks(f Finding) error {
 			if tr.ObservationID == id {
 				var out toolOutput
 				_ = json.Unmarshal([]byte(tr.Output), &out)
-				if strings.Contains(out.Text, f.Evidence) {
+				if f.AnchorType == "git_metadata" {
+					if tr.Name == "get_change_metadata" && out.Metadata != nil && out.Metadata.canonical() == f.Evidence && out.Text == f.Evidence {
+						matched = true
+					}
+				} else if tr.Name != "get_change_metadata" && strings.Contains(out.Text, f.Evidence) {
 					matched = true
 				}
 			}

@@ -11,6 +11,7 @@ import (
 var hunkPattern = regexp.MustCompile(`^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
 
 type DiffScope struct {
+	Metadata map[string]GitChangeMetadata
 	Excluded []string
 	Removed  map[string]map[int]bool
 	Text     string
@@ -19,7 +20,7 @@ type DiffScope struct {
 }
 
 func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
-	d := DiffScope{Added: map[string]map[int]bool{}, Removed: map[string]map[int]bool{}, Notes: []string{}}
+	d := DiffScope{Metadata: map[string]GitChangeMetadata{}, Added: map[string]map[int]bool{}, Removed: map[string]map[int]bool{}, Notes: []string{}}
 	var out strings.Builder
 	for _, c := range changes {
 		p := c.NewPath
@@ -41,16 +42,35 @@ func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
 			d.Notes = append(d.Notes, "Invalid path omitted")
 			continue
 		}
-		if c.Diff == "" || strings.HasPrefix(c.Diff, "Binary files") {
+		d.Notes = append(d.Notes, c.Notes...)
+		metadata := ""
+		if c.Metadata != nil && c.Metadata.valid() {
+			metadata = "Git metadata: " + c.Metadata.canonical() + "\n"
+		}
+		noText := c.Diff == "" || strings.HasPrefix(c.Diff, "Binary files")
+		metadataOnly := c.Metadata != nil && c.Metadata.valid() && c.Metadata.metadataOnly()
+		if noText && !metadataOnly {
 			d.Notes = append(d.Notes, "No textual diff available: "+p)
+		}
+		if noText && metadata == "" {
 			continue
 		}
-		section := fmt.Sprintf("File: %s (old: %s, deleted: %t, renamed: %t)\n%s\n", p, c.OldPath, c.Deleted, c.Renamed, c.Diff)
+		textual := c.Diff
+		if noText || metadataOnly {
+			textual = ""
+		}
+		section := fmt.Sprintf("File: %s (old: %s, deleted: %t, renamed: %t)\n%s%s\n", p, c.OldPath, c.Deleted, c.Renamed, metadata, textual)
 		if out.Len()+len(section) > maxBytes {
 			d.Notes = append(d.Notes, "Diff budget exceeded; omitted: "+p)
 			continue
 		}
 		out.WriteString(section)
+		if metadata != "" {
+			d.Metadata[p] = *c.Metadata
+		}
+		if textual == "" {
+			continue
+		}
 		lines := map[int]bool{}
 		removed := map[int]bool{}
 		oldPath := c.OldPath
@@ -60,7 +80,7 @@ func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
 		oldLine := 0
 		n := 0
 		inHunk := false
-		for _, line := range strings.Split(c.Diff, "\n") {
+		for _, line := range strings.Split(textual, "\n") {
 			if m := hunkPattern.FindStringSubmatch(line); m != nil {
 				n, _ = strconv.Atoi(m[2])
 				oldLine, _ = strconv.Atoi(m[1])

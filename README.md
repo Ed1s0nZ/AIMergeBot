@@ -8,7 +8,7 @@
 - 项目管理、手动审计、GitLab Webhook、分页轮询与提交级去重。
 - 有界 worker、任务超时/取消、服务重启中断标记、独立重审记录。
 - 固定 diff 版本 ID 和 base/head SHA；支持 fork MR、文件重命名、真实 diff 新增/删除行定位。
-- Eino 语言无关的 13 个调查工具：文件、目录树、正则搜索、差异、历史、blame、调查记录和证据核验。
+- Eino 语言无关的 14 个调查工具：文件、目录树、正则搜索、差异、Git 元数据、历史、blame、调查记录和证据核验。
 - 严格结果校验、提交代码证据匹配、候选标记、覆盖不足说明、工具与模型调用/token 记录。
 - 项目/状态/等级/类型/复核过滤，发现复核及操作日志。
 - 管理员系统设置：模型、GitLab、Webhook、审计策略保存到工作目录 `config.yaml`。
@@ -127,7 +127,7 @@ Vite 开发代理默认转发到 `localhost:8080`。提交前前端构建更新 
 
 默认启用本地 bare Git 仓库。GitLab 只提供 MR 元数据、clone 地址及可选评论；代码读取、目录、差异、搜索和历史针对固定 base/head 的 Git 对象，不 checkout、不执行仓库代码。fork 的 base/head 分别拉取。服务端需要 Git，Docker 镜像已包含它。系统设置「执行策略」可修改 `git_audit` 开关、历史深度、仓库预算和工具次数，并保存到 `config.yaml`。
 
-工具：`read_file`、`list_files`、`list_directory`、`read_files`、`search_code`、`get_diff`、`compare_files`、`get_history`、`git_blame`、`search_history`、`record_hypothesis`、`update_investigation`、`submit_finding`。历史搜索采用 `git log -S` 的字符串出现次数变化；不是任意语义变化搜索。原生搜索正则为 Git extended regex，关闭本地 Git 时 API 回退使用 Go regex，两者语法有区别。
+工具：`read_file`、`list_files`、`list_directory`、`read_files`、`search_code`、`get_diff`、`get_change_metadata`、`compare_files`、`get_history`、`git_blame`、`search_history`、`record_hypothesis`、`update_investigation`、`submit_finding`。历史搜索采用 `git log -S` 的字符串出现次数变化；不是任意语义变化搜索。原生搜索正则为 Git extended regex，关闭本地 Git 时 API 回退使用 Go regex，两者语法有区别。
 
 工具返回提交 SHA、观察编号、代码证据和分页信息。运行详情展示返回结果、调查假设、证据和反证。证据核验只证明代码位置/片段真实，不证明漏洞可利用；本方案不接语言解析器，不声称准确语义引用，也不执行测试或自动下载子模块/LFS 实体。历史默认浅拉取，边界在返回中明确说明。搜索单个候选 blob 最大 16 MiB，Git 命令输出最多 8 MiB；超预算查询需缩小范围。远端必须支持按提交 SHA 拉取，失败不会偷偷改用最新分支。
 
@@ -158,3 +158,7 @@ Vite 开发代理默认转发到 `localhost:8080`。提交前前端构建更新 
 工作台支持单服务实例：数据库中的实例租约有效期30秒，每5秒续约，第二个实例在现有租约有效时拒绝启动。正常停止会释放自己的租约并保留未完成任务的检查点；进程异常退出后，替代实例需等待租约失效，最长约30秒。检查点、结果、自动重试和评论写入均检查归属，旧进程无法覆盖接管后的记录；续约失败会取消本地任务并停止 HTTP 服务。升级时先停止旧版本，再启动新版本，不能混用旧、新二进制操作同一数据库。此机制不保证模型或 GitLab 已接收的请求只执行一次；外部评论的完整同步与歧义处理仍在完善。
 
 可用 `go build -o /tmp/aimangebot-smoke .` 后运行 `python3 scripts/smoke-worker-recovery.py --binary /tmp/aimangebot-smoke` 验证真实二进制的限流排队、心跳、SIGKILL 后等待租约失效和检查点恢复。脚本使用临时目录及本机合成上游，不访问真实 GitLab/模型或执行仓库代码；默认测试端口19234/19235，约需40秒。`--ui-preview` 保留测试服务供页面检查，结束时向脚本发送 SIGTERM。
+
+Git 元数据审计覆盖固定提交中的执行位、重命名、符号链接和 gitlink 变化。`get_change_metadata` 返回经过校验的路径、模式及对象 ID；元数据发现使用独立锚点，页面展示 BASE/HEAD 对照，不制造代码行号。事实变化不等于漏洞，支持状态仍需调查与来源证据。符号链接不跟随，子模块不拉取，二进制内容不能仅靠元数据视为已审计。关闭本地 Git 后，元数据读取受总计40次 API 请求、每目录20页、每页100项的预算限制；缺失信息明确记入覆盖不足。策略版本升级至 v5，旧策略排队任务需重新提交。
+
+上述冒烟脚本增加 `--metadata-preview`，验证纯模式变化经过 Agent、发现校验和注释型时序图；配合 `--ui-preview` 可查看合成界面，不代表真实模型准确率。

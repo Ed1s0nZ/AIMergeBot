@@ -43,7 +43,11 @@ func (r *Runner) comment(parent context.Context, id int64) {
 	b.WriteString(fmt.Sprintf("## AIMergeBot 审计 · Run #%d\n\n提交 `%s`\n\n", id, run.HeadSHA))
 	b.WriteString(run.Result.Summary)
 	for _, f := range run.Result.Findings {
-		b.WriteString(fmt.Sprintf("\n\n### %s · %s\n\n`%s:%d` (%s)\n\n%s\n\n触发条件：%s\n\n建议：%s", f.Severity, f.Title, f.Side+":"+f.File, f.Line, f.Confidence, f.Description, f.Trigger, f.Suggestion))
+		location := fmt.Sprintf("%s:%s:%d", f.Side, f.File, f.Line)
+		if f.AnchorType == "git_metadata" {
+			location = "Git metadata " + f.Side + ":" + f.File
+		}
+		b.WriteString(fmt.Sprintf("\n\n### %s · %s\n\n`%s` (%s)\n\n%s\n\n触发条件：%s\n\n建议：%s", f.Severity, f.Title, location, f.Confidence, f.Description, f.Trigger, f.Suggestion))
 	}
 	b.WriteString("\n\n审计结果需人工复核，不构成代码安全保证。")
 	if !r.Store.commentOwnerValid(ctx, id, r.owner) {
