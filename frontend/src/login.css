@@ -8,7 +8,7 @@
   padding: 0 clamp(28px, 6vw, 96px);
 }
 .login-header {
-  max-width: 1180px;
+  max-width: 1080px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -43,12 +43,13 @@
 }
 .login-layout {
   width: 100%;
-  max-width: 1180px;
+  max-width: 1080px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 410px;
-  gap: clamp(50px, 7vw, 110px);
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: clamp(50px, 6vw, 86px);
+  align-items: start;
+  align-content: center;
   flex: 1;
   padding: 45px 0 65px;
 }
@@ -64,7 +65,8 @@
   font-weight: 650;
   letter-spacing: 1.6px;
   color: #6781a5;
-  margin-bottom: 27px;
+  margin-bottom: 16px;
+  line-height: 16px;
 }
 .login-kicker i {
   width: 6px;
@@ -73,10 +75,10 @@
   background: #4774c9;
 }
 .login-intro h1 {
-  font-size: clamp(35px, 3.5vw, 53px);
+  font-size: clamp(34px, 3vw, 43px);
   line-height: 1.35;
   font-weight: 700;
-  letter-spacing: -1.7px;
+  letter-spacing: -1px;
   margin: 0 0 24px;
 }
 .login-intro h1 > span {
@@ -89,101 +91,40 @@
   margin-bottom: 35px;
 }
 .login-workflow {
-  max-width: 490px;
-  background: #fff;
-  border: 1px solid #e2e7ef;
-  border-radius: 12px;
-  box-shadow: 0 7px 20px #243b5804;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 460px;
+  gap: 20px;
+  padding-top: 25px;
+  border-top: 1px solid #e2e7ef;
 }
-.workflow-top {
-  display: flex;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid #edf0f5;
-  color: #8a98ab;
-  font-size: 10px;
-  letter-spacing: 0.5px;
-}
-.workflow-top > span:first-child {
-  display: flex;
+.login-workflow > div {
+  display: grid;
+  grid-template-columns: 20px 1fr;
   align-items: center;
   gap: 8px;
-  color: #5b7294;
 }
-.workflow-code {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin: 13px 14px 0;
-  padding: 10px;
-  font-size: 11px;
-  color: #677991;
+.login-workflow svg {
+  color: #6a82a7;
 }
-.workflow-code.added {
-  margin-top: 4px;
-  background: #edf5f2;
-  border-radius: 5px;
-  color: #2c7d64;
-}
-.code-number {
-  color: #a9b4c3;
-  font-size: 10px;
-}
-.workflow-code code {
-  font-family: ui-monospace, "PingFang SC", monospace;
-  font-size: 11px;
-}
-.code-mark {
-  margin-left: auto;
-  display: flex;
-  color: #679c8c;
-}
-.workflow-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 23px;
-  margin-top: 13px;
-  border-top: 1px solid #edf0f5;
-}
-.workflow-bottom > span:not(.workflow-arrow) {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #748bad;
-}
-.workflow-bottom strong {
-  color: #4c607d;
-  font-size: 11px;
+.login-workflow strong {
+  font-size: 12px;
   font-weight: 500;
+  color: #51657f;
 }
-.workflow-arrow {
-  color: #bec8d7;
-  font-size: 13px;
-}
-.intro-footnote {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-top: 22px;
-  color: #8b98ac;
+.login-workflow small {
+  grid-column: 2;
   font-size: 10px;
-}
-.intro-footnote i {
-  width: 3px;
-  height: 3px;
-  background: #b9c4d2;
-  border-radius: 50%;
+  color: #93a0b2;
 }
 .login-form {
   display: block;
   width: 100%;
-  background: #fff;
-  padding: 36px 34px 27px;
-  border: 1px solid #e5e9f0;
-  border-radius: 14px;
-  box-shadow: 0 12px 45px #1a335708;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 .login-form .form-wrap {
   width: 100%;
@@ -193,7 +134,8 @@
   display: block;
   color: #8290a4;
   font-size: 11px;
-  margin-bottom: 13px;
+  margin-bottom: 16px;
+  line-height: 16px;
 }
 .login-form h2 {
   font-size: 26px;
@@ -307,7 +249,7 @@
   padding: 11px 13px;
 }
 .login-footer {
-  max-width: 1180px;
+  max-width: 1080px;
   width: 100%;
   margin: 0 auto;
   padding: 21px 0 25px;
@@ -322,20 +264,14 @@
     padding: 0 35px;
   }
   .login-layout {
-    grid-template-columns: minmax(0, 1fr) 365px;
+    grid-template-columns: minmax(0, 1fr) 330px;
     gap: 45px;
   }
   .login-form {
-    padding: 30px 27px 25px;
+    padding: 0;
   }
   .login-intro h1 {
     font-size: 38px;
-  }
-  .workflow-bottom {
-    padding: 19px 13px;
-  }
-  .workflow-bottom > span:not(.workflow-arrow) {
-    gap: 4px;
   }
 }
 @media (max-width: 760px) {
@@ -364,7 +300,8 @@
   }
   .login-kicker {
     font-size: 8px;
-    margin-bottom: 13px;
+    margin-bottom: 16px;
+    line-height: 16px;
   }
   .login-intro h1 {
     font-size: 30px;
@@ -380,12 +317,11 @@
     line-height: 1.8;
     margin: 0;
   }
-  .login-workflow,
-  .intro-footnote {
+  .login-workflow {
     display: none;
   }
   .login-form {
-    padding: 28px 24px 23px;
+    padding: 0;
   }
   .login-form h2 {
     font-size: 24px;

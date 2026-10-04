@@ -13,11 +13,9 @@ import {
   ChevronRight,
   UserRound,
   LockKeyhole,
-  GitBranch,
   Eye,
   EyeOff,
   FileCode2,
-  Check,
 } from "lucide-react";
 import { api, write, APIError, type User } from "./api";
 import { ErrorBox } from "./components";
@@ -70,48 +68,21 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             每一次审计，都有明确的版本和可追溯的证据。
           </p>
           <div className="login-workflow" aria-label="审计流程">
-            <div className="workflow-top">
-              <span>
-                <GitBranch size={15} />
-                MERGE REQUEST
-              </span>
-              <span>固定提交</span>
+            <div>
+              <FileCode2 size={18} />
+              <strong>提交快照</strong>
+              <small>锁定审计版本</small>
             </div>
-            <div className="workflow-code">
-              <span className="code-number">01</span>
-              <code>代码变更</code>
-              <span className="code-mark">+</span>
+            <div>
+              <ScanLine size={18} />
+              <strong>AI 调查</strong>
+              <small>收集代码证据</small>
             </div>
-            <div className="workflow-code added">
-              <span className="code-number">02</span>
-              <code>上下文与证据</code>
-              <span className="code-mark">
-                <Check size={14} />
-              </span>
+            <div>
+              <ShieldCheck size={18} />
+              <strong>人工复核</strong>
+              <small>保留复核依据</small>
             </div>
-            <div className="workflow-bottom">
-              <span>
-                <FileCode2 size={17} />
-                <strong>提交快照</strong>
-              </span>
-              <span className="workflow-arrow">→</span>
-              <span>
-                <ScanLine size={17} />
-                <strong>AI 调查</strong>
-              </span>
-              <span className="workflow-arrow">→</span>
-              <span>
-                <ShieldCheck size={17} />
-                <strong>人工复核</strong>
-              </span>
-            </div>
-          </div>
-          <div className="intro-footnote">
-            <span>版本固定</span>
-            <i />
-            <span>证据校验</span>
-            <i />
-            <span>团队协作</span>
           </div>
         </section>
         <section className="login-form" aria-labelledby="login-title">
