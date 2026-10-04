@@ -19,6 +19,7 @@ import (
 )
 
 type AgentConfig struct {
+	Progress               func(AuditResult, []ToolTrace) error
 	APIKey, BaseURL, Model string
 	MaxSteps               int
 	Temperature            float32
@@ -50,6 +51,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		return AuditResult{}, nil, err
 	}
 	tools := &auditTools{repo: e.Repository, snap: snap, cache: map[string]string{}, trace: []ToolTrace{}}
+	tools.progress = cfg.Progress
 	tools.scope = scope
 	tools.maxCalls = cfg.MaxToolCalls
 	registered, err := tools.register()
@@ -73,20 +75,22 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 			tools.mu.Lock()
 			tools.trace = append(tools.trace, trace)
 			tools.mu.Unlock()
+			tools.checkpoint()
 		}
 		return c
 	}).Build()
 	msg, err := agent.Generate(ctx, []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nUntrusted diff:\n" + scope.Text}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
 	if err != nil {
-		return AuditResult{}, tools.trace, err
+		return AuditResult{Findings: tools.acceptedFindings(), Summary: "Audit interrupted; validated submissions retained", CoverageNotes: []string{"Primary model generation failed"}}, tools.trace, err
 	}
 	if msg == nil || msg.Content == "" {
-		return AuditResult{}, tools.trace, fmt.Errorf("empty model response")
+		return AuditResult{Findings: tools.acceptedFindings(), Summary: "Empty final response; validated submissions retained", CoverageNotes: []string{"Primary model returned no summary"}}, tools.trace, fmt.Errorf("empty model response")
 	}
 	result, err := ParseResult(msg.Content)
 	if err != nil {
-		return AuditResult{Findings: []Finding{}, Summary: "Invalid model response", CoverageNotes: []string{}}, tools.trace, err
+		return AuditResult{Findings: tools.acceptedFindings(), Summary: "Invalid model response; validated submissions retained", CoverageNotes: []string{"Invalid final model response"}}, tools.trace, err
 	}
+	result.ExcludedFiles = append([]string{}, scope.Excluded...)
 	result.CoverageNotes = append(result.CoverageNotes, scope.Notes...)
 	result.Investigations = tools.investigations()
 	for _, item := range result.Investigations {
@@ -102,8 +106,13 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 			result.CoverageNotes = append(result.CoverageNotes, "Tool failed: "+tr.Name)
 		}
 	}
-	if err = ValidateFindings(ctx, e.Repository, snap, scope, &result); err != nil {
-		return AuditResult{Findings: []Finding{}, Summary: "Model findings failed evidence validation", CoverageNotes: append(result.CoverageNotes, err.Error())}, tools.trace, err
+	tools.mergeProposals(ctx, &result)
+	tools.checkpoint()
+	tools.mu.Lock()
+	progressError := tools.progressError
+	tools.mu.Unlock()
+	if progressError != "" {
+		result.CoverageNotes = append(result.CoverageNotes, progressError)
 	}
 	if cfg.GenerateDiagrams && len(result.Findings) > 0 {
 		graphCB := callbacks.NewHandlerBuilder().OnEndFn(func(c context.Context, _ *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {

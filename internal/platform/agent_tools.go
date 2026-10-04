@@ -41,17 +41,22 @@ type toolOutput struct {
 }
 
 type auditTools struct {
-	repo       Repository
-	snap       Snapshot
-	mu         sync.Mutex
-	cache      map[string]string
-	trace      []ToolTrace
-	calls      int
-	cacheBytes int
-	maxCalls   int
-	scope      DiffScope
-	ledger     map[string]Investigation
-	pending    map[string]ToolTrace
+	pages         map[string]*paginationCoverage
+	progress      func(AuditResult, []ToolTrace) error
+	progressMu    sync.Mutex
+	progressError string
+	repo          Repository
+	snap          Snapshot
+	mu            sync.Mutex
+	cache         map[string]string
+	trace         []ToolTrace
+	calls         int
+	cacheBytes    int
+	maxCalls      int
+	scope         DiffScope
+	findings      map[string]Finding
+	ledger        map[string]Investigation
+	pending       map[string]ToolTrace
 }
 
 func (t *auditTools) read(ctx context.Context, p string, base bool) (string, error) {
@@ -115,6 +120,9 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 		t.pending = map[string]ToolTrace{}
 	}
 	key := queryKey(name, args)
+	if complete, tracked := t.paginationComplete(name, key, args, out, err != nil); tracked {
+		trace.Partial = !complete
+	}
 	if trace.Partial || trace.Error != "" {
 		t.pending[key] = trace
 	} else {
@@ -122,6 +130,7 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	}
 	t.trace = append(t.trace, trace)
 	t.mu.Unlock()
+	t.checkpoint()
 	// Tool failures are visible to the model, but retained to mark the run incomplete.
 	return out, nil
 }
@@ -170,8 +179,7 @@ func (t *auditTools) list(ctx context.Context, a listArgs) (toolOutput, error) {
 		bounded := []string{}
 		for _, p := range files {
 			if bytes+len(p) > 16000 {
-				more = true
-				break
+				return toolOutput{Files: bounded, More: true}, fmt.Errorf("file listing byte budget exceeded; use list_directory for bounded exploration")
 			}
 			bounded = append(bounded, p)
 			bytes += len(p)

@@ -11,10 +11,11 @@ import (
 var hunkPattern = regexp.MustCompile(`^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
 
 type DiffScope struct {
-	Removed map[string]map[int]bool
-	Text    string
-	Added   map[string]map[int]bool
-	Notes   []string
+	Excluded []string
+	Removed  map[string]map[int]bool
+	Text     string
+	Added    map[string]map[int]bool
+	Notes    []string
 }
 
 func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
@@ -33,7 +34,7 @@ func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
 			}
 		}
 		if skip {
-			d.Notes = append(d.Notes, "Excluded by extension: "+p)
+			d.Excluded = append(d.Excluded, p)
 			continue
 		}
 		if !validPath(p) {

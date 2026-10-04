@@ -133,6 +133,7 @@ export function Runs() {
               "pending",
               "running",
               "succeeded",
+              "skipped",
               "failed",
               "incomplete",
               "cancelled",

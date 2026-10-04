@@ -83,6 +83,9 @@ func (s *Store) migrate() error {
 			return err
 		}
 	}
+	if err = migrateAuditIdentity(tx); err != nil {
+		return err
+	}
 	var version int
 	if err = tx.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil {
 		return err
@@ -125,12 +128,25 @@ func (s *Store) SaveProject(ctx context.Context, p Project) error {
 	return err
 }
 
-func (s *Store) Run(ctx context.Context, id int64) (Run, error) {
+func (s *Store) Run(ctx context.Context, id int64) (Run, error) { return s.readRun(ctx, id, true) }
+
+// RunSummary avoids loading potentially large tool traces for list responses.
+func (s *Store) RunSummary(ctx context.Context, id int64) (Run, error) {
+	return s.readRun(ctx, id, false)
+}
+func (s *Store) readRun(ctx context.Context, id int64, includeTrace bool) (Run, error) {
 	var r Run
-	var result, trace, created string
+	var result, trace, created, policy string
 	var started, finished sql.NullString
-	err := s.DB.QueryRowContext(ctx, `SELECT id,project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,error,result_json,trace_json,created_at,started_at,finished_at,requested_by,policy_version FROM platform_runs WHERE id=?`, id).Scan(&r.ID, &r.ProjectID, &r.MRIID, &r.SourceProjectID, &r.DiffVersionID, &r.BaseSHA, &r.HeadSHA, &r.Title, &r.URL, &r.Status, &r.Error, &result, &trace, &created, &started, &finished, &r.RequestedBy, &r.PolicyVersion)
+	traceColumn := "trace_json"
+	if !includeTrace {
+		traceColumn = "'[]'"
+	}
+	err := s.DB.QueryRowContext(ctx, `SELECT id,project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,error,result_json,`+traceColumn+`,created_at,started_at,finished_at,requested_by,policy_version,audit_policy_json FROM platform_runs WHERE id=?`, id).Scan(&r.ID, &r.ProjectID, &r.MRIID, &r.SourceProjectID, &r.DiffVersionID, &r.BaseSHA, &r.HeadSHA, &r.Title, &r.URL, &r.Status, &r.Error, &result, &trace, &created, &started, &finished, &r.RequestedBy, &r.PolicyVersion, &policy)
 	if err != nil {
+		return r, err
+	}
+	if err = json.Unmarshal([]byte(policy), &r.AuditPolicy); err != nil {
 		return r, err
 	}
 	if err = json.Unmarshal([]byte(result), &r.Result); err != nil {

@@ -260,7 +260,7 @@ func (h *HTTP) runs(c *gin.Context) {
 	}
 	items := []Run{}
 	for _, id := range ids {
-		r, err := h.Store.Run(c.Request.Context(), id)
+		r, err := h.Store.RunSummary(c.Request.Context(), id)
 		if err != nil {
 			fail(c, err)
 			return

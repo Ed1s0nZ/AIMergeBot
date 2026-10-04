@@ -187,6 +187,7 @@ export function RunDetail({ id }: { id: number }) {
       <section className="panel summary">
         <h2>审计摘要</h2>
         <p>{r.result.summary || "等待审计结果。"}</p>
+        {(r.result.excluded_files?.length || 0) > 0 && (<details className="coverage"><summary>按策略排除 {r.result.excluded_files!.length} 个文件</summary><ul>{r.result.excluded_files!.map(file=><li key={file}>{file}</li>)}</ul></details>)}
         {r.result.coverage_notes.length > 0 && (
           <div className="coverage">
             <strong>覆盖与限制</strong>

@@ -90,6 +90,7 @@ export type Run = {
     findings: Finding[];
     summary: string;
     coverage_notes: string[];
+    excluded_files?: string[];
     investigations?: {
       id: string;
       claim: string;

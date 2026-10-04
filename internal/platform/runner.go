@@ -63,10 +63,22 @@ func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bo
 	if !enabled {
 		return 0, false, errors.New("project disabled")
 	}
-	snap, err := r.Repository.Snapshot(ctx, pid, iid)
+	repository := r.Repository
+	var policy *AuditPolicy
+	if r.Settings != nil {
+		cfg := r.Settings.Snapshot()
+		policy = capturePolicy(cfg)
+		pinned, e := NewGitLabRepository(cfg.GitLab.Token, cfg.GitLab.URL)
+		if e != nil {
+			return 0, false, e
+		}
+		repository = pinned
+	}
+	snap, err := repository.Snapshot(ctx, pid, iid)
 	if err != nil {
 		return 0, false, err
 	}
+	snap.AuditPolicy = policy
 	return r.Store.Enqueue(ctx, snap, actor, force)
 }
 func (r *Runner) Cancel(ctx context.Context, id, actor int64) error {
@@ -105,15 +117,38 @@ func (r *Runner) loop(ctx context.Context) {
 func (r *Runner) execute(parent context.Context, id int64) {
 	defer func() {
 		if recover() != nil {
-			r.finish(id, "failed", "unexpected worker failure", AuditResult{}, nil)
+			failureCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+			_, _ = r.Store.DB.ExecContext(failureCtx, `UPDATE platform_runs SET status='failed',error='unexpected worker failure; checkpoint retained',finished_at=? WHERE id=? AND status='running'`, now(), id)
+			stop()
 			log.Printf("audit run %d recovered a worker failure", id)
 		}
 	}()
+	run, err := r.Store.Run(parent, id)
+	if err != nil {
+		r.finish(id, "failed", "unable to load run", AuditResult{}, nil)
+		return
+	}
 	var gitConfig GitAuditSettings
 	timeout := r.Timeout
 	repo, auditor, excluded := r.Repository, r.Auditor, r.Excluded
 	if r.Settings != nil {
 		cfg := r.Settings.Snapshot()
+		if p := run.AuditPolicy; p != nil {
+			if capturePolicy(cfg).RepositoryURL != p.RepositoryURL || cfg.OpenAI.URL != p.ModelURL {
+				r.finish(id, "failed", "service endpoint changed since enqueue; resubmit audit to bind current credentials", AuditResult{}, nil)
+				return
+			}
+			cfg.GitLab.URL = p.RepositoryURL
+			cfg.OpenAI.URL = p.ModelURL
+			cfg.OpenAI.Model = p.Model
+			cfg.ReAct.Model = p.Model
+			cfg.ReAct.Temperature = float64(p.Temperature)
+			cfg.ReAct.MaxSteps = p.MaxSteps
+			cfg.AuditTimeoutSeconds = p.TimeoutSeconds
+			cfg.GitAudit = p.Git
+			cfg.WhitelistExtensions = p.Excluded
+			cfg.GenerateSequenceDiagrams = p.GenerateDiagrams
+		}
 		gitConfig = cfg.GitAudit
 		timeout = time.Duration(cfg.AuditTimeoutSeconds) * time.Second
 		excluded = cfg.WhitelistExtensions
@@ -129,13 +164,22 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		}
 		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams}}
 	}
+	if original, ok := auditor.(*EinoAuditor); ok {
+		copy := *original
+		copy.Config.Progress = func(result AuditResult, trace []ToolTrace) error {
+			checkpointCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+			defer stop()
+			return r.Store.Checkpoint(checkpointCtx, id, result, trace)
+		}
+		auditor = &copy
+	}
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	r.mu.Lock()
 	r.active[id] = cancel
 	r.mu.Unlock()
 	defer func() { r.mu.Lock(); delete(r.active, id); r.mu.Unlock() }()
-	run, err := r.Store.Run(ctx, id)
+	run, err = r.Store.Run(ctx, id)
 	if err != nil {
 		r.finish(id, "failed", "unable to load run", AuditResult{}, nil)
 		return
@@ -174,7 +218,11 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	scope := BuildDiff(changes, excluded, 96*1024)
 	scope.Notes = append(scope.Notes, notes...)
 	if scope.Text == "" {
-		r.finish(id, "incomplete", "no auditable textual changes", AuditResult{Summary: "No auditable textual changes", CoverageNotes: scope.Notes}, nil)
+		status := "incomplete"
+		if len(scope.Excluded) > 0 && len(scope.Notes) == 0 {
+			status = "skipped"
+		}
+		r.finish(id, status, "", AuditResult{Summary: "No auditable textual changes in configured scope", CoverageNotes: scope.Notes, ExcludedFiles: scope.Excluded}, nil)
 		return
 	}
 	result, trace, err := auditor.Audit(ctx, run.Snapshot, scope)

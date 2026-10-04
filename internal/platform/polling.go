@@ -47,6 +47,7 @@ func (r *Runner) Poll(ctx context.Context) {
 									_ = r.Store.DB.QueryRowContext(ctx, `SELECT head_sha FROM platform_poll_seen WHERE project_id=? AND mr_iid=?`, p.ID, mr.IID).Scan(&previous)
 									baseline := !initialized[p.ID] && !cfg.ScanExistingMRs && previous == ""
 									if !baseline && previous != snap.HeadSHA {
+										snap.AuditPolicy = capturePolicy(cfg)
 										if _, _, err = r.Store.Enqueue(ctx, snap, 0, false); err != nil {
 											complete = false
 											continue

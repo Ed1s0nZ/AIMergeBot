@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-const PolicyVersion = "eino-sequence-v3"
+const PolicyVersion = "eino-audit-contract-v4"
 
 var ErrConflict = errors.New("operation conflicts with current state")
 
@@ -23,19 +23,22 @@ func (s *Store) Enqueue(ctx context.Context, snap Snapshot, actor int64, force b
 	}
 	defer tx.Rollback()
 	var id int64
-	q := `SELECT id FROM platform_runs WHERE project_id=? AND mr_iid=? AND head_sha=? AND policy_version=?`
+	q := `SELECT id FROM platform_runs WHERE project_id=? AND mr_iid=? AND base_sha=? AND head_sha=? AND policy_version=? AND policy_digest=?`
 	if force {
 		q += ` AND status IN ('pending','running')`
+	} else {
+		q += ` AND status IN ('pending','running','succeeded','skipped')`
 	}
 	q += ` ORDER BY id DESC LIMIT 1`
-	err = tx.QueryRowContext(ctx, q, snap.ProjectID, snap.MRIID, snap.HeadSHA, PolicyVersion).Scan(&id)
+	err = tx.QueryRowContext(ctx, q, snap.ProjectID, snap.MRIID, snap.BaseSHA, snap.HeadSHA, PolicyVersion, policyDigest(snap.AuditPolicy)).Scan(&id)
 	if err == nil {
 		return id, false, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return 0, false, err
 	}
-	res, err := tx.ExecContext(ctx, `INSERT INTO platform_runs(project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,created_at,requested_by,policy_version) VALUES(?,?,?,?,?,?,?,?,'pending',?,?,?)`, snap.ProjectID, snap.MRIID, snap.SourceProjectID, snap.DiffVersionID, snap.BaseSHA, snap.HeadSHA, snap.Title, snap.URL, now(), actor, PolicyVersion)
+	policyJSON, _ := json.Marshal(snap.AuditPolicy)
+	res, err := tx.ExecContext(ctx, `INSERT INTO platform_runs(project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,created_at,requested_by,policy_version,policy_digest,audit_policy_json) VALUES(?,?,?,?,?,?,?,?,'pending',?,?,?,?,?)`, snap.ProjectID, snap.MRIID, snap.SourceProjectID, snap.DiffVersionID, snap.BaseSHA, snap.HeadSHA, snap.Title, snap.URL, now(), actor, PolicyVersion, policyDigest(snap.AuditPolicy), string(policyJSON))
 	if err != nil {
 		return 0, false, err
 	}
@@ -74,7 +77,7 @@ func (s *Store) Claim(ctx context.Context) (int64, error) {
 }
 
 func (s *Store) Finish(ctx context.Context, id int64, status, message string, result AuditResult, trace []ToolTrace) error {
-	if status != "succeeded" && status != "failed" && status != "incomplete" && status != "cancelled" {
+	if status != "succeeded" && status != "failed" && status != "incomplete" && status != "cancelled" && status != "skipped" {
 		return fmt.Errorf("invalid terminal state")
 	}
 	if result.Findings == nil {

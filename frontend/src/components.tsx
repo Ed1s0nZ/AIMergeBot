@@ -4,6 +4,7 @@ export const statuses: Record<string, string> = {
   pending: "待处理",
   running: "审计中",
   succeeded: "已完成",
+  skipped: "按策略跳过",
   failed: "失败",
   incomplete: "覆盖不完整",
   cancelled: "已取消",

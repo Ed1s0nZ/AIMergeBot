@@ -24,12 +24,15 @@ func (r *Runner) comment(parent context.Context, id int64) {
 	if err != nil || run.Status != "succeeded" {
 		return
 	}
+	if run.AuditPolicy != nil && strings.TrimRight(cfg.GitLab.URL, "/") != run.AuditPolicy.RepositoryURL {
+		return
+	}
 	repo, err := NewGitLabRepository(cfg.GitLab.Token, cfg.GitLab.URL)
 	if err != nil {
 		return
 	}
 	current, err := repo.Snapshot(ctx, run.ProjectID, run.MRIID)
-	if err != nil || current.HeadSHA != run.HeadSHA {
+	if err != nil || current.HeadSHA != run.HeadSHA || current.BaseSHA != run.BaseSHA {
 		return
 	}
 	res, err := r.Store.DB.ExecContext(ctx, `INSERT OR IGNORE INTO platform_comments(run_id,status,updated_at) VALUES(?,'sending',?)`, id, now())

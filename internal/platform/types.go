@@ -40,6 +40,7 @@ type Investigation struct {
 	NextSteps       []string `json:"next_steps"`
 }
 type AuditResult struct {
+	ExcludedFiles  []string        `json:"excluded_files,omitempty"`
 	Investigations []Investigation `json:"investigations,omitempty"`
 	Findings       []Finding       `json:"findings"`
 	Summary        string          `json:"summary"`
@@ -47,14 +48,15 @@ type AuditResult struct {
 }
 
 type Snapshot struct {
-	DiffVersionID   int    `json:"diff_version_id"`
-	ProjectID       int    `json:"project_id"`
-	SourceProjectID int    `json:"source_project_id"`
-	MRIID           int    `json:"mr_iid"`
-	BaseSHA         string `json:"base_sha"`
-	HeadSHA         string `json:"head_sha"`
-	Title           string `json:"title"`
-	URL             string `json:"url"`
+	AuditPolicy     *AuditPolicy `json:"audit_policy,omitempty"`
+	DiffVersionID   int          `json:"diff_version_id"`
+	ProjectID       int          `json:"project_id"`
+	SourceProjectID int          `json:"source_project_id"`
+	MRIID           int          `json:"mr_iid"`
+	BaseSHA         string       `json:"base_sha"`
+	HeadSHA         string       `json:"head_sha"`
+	Title           string       `json:"title"`
+	URL             string       `json:"url"`
 }
 
 type Run struct {

@@ -66,11 +66,11 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 }
 func (t *auditTools) submit(ctx context.Context, a Finding) (toolOutput, error) {
 	return t.invoke("submit_finding", a, func() (toolOutput, error) {
-		result := AuditResult{Findings: []Finding{a}}
-		if e := ValidateFindings(ctx, t.repo, t.snap, t.scope, &result); e != nil {
+		accepted, e := t.acceptFinding(ctx, a)
+		if e != nil {
 			return toolOutput{}, e
 		}
-		raw, _ := json.Marshal(result.Findings[0])
+		raw, _ := json.Marshal(accepted)
 		return toolOutput{Text: string(raw)}, nil
 	})
 }
