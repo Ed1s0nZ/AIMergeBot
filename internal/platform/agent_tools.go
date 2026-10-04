@@ -42,22 +42,23 @@ type toolOutput struct {
 }
 
 type auditTools struct {
-	pages         map[string]*paginationCoverage
-	progress      func(AuditResult, []ToolTrace) error
-	progressMu    sync.Mutex
-	progressError string
-	repo          Repository
-	snap          Snapshot
-	mu            sync.Mutex
-	cache         map[string]string
-	trace         []ToolTrace
-	calls         int
-	cacheBytes    int
-	maxCalls      int
-	scope         DiffScope
-	findings      map[string]Finding
-	ledger        map[string]Investigation
-	pending       map[string]ToolTrace
+	pages              map[string]*paginationCoverage
+	progress           func(AuditResult, []ToolTrace) error
+	progressMu         sync.Mutex
+	supplementalResult *AuditResult
+	progressError      string
+	repo               Repository
+	snap               Snapshot
+	mu                 sync.Mutex
+	cache              map[string]string
+	trace              []ToolTrace
+	calls              int
+	cacheBytes         int
+	maxCalls           int
+	scope              DiffScope
+	findings           map[string]Finding
+	ledger             map[string]Investigation
+	pending            map[string]ToolTrace
 }
 
 func (t *auditTools) read(ctx context.Context, p string, base bool) (string, error) {

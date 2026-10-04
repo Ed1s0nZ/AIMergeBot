@@ -115,6 +115,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if progressError != "" {
 		result.CoverageNotes = append(result.CoverageNotes, progressError)
 	}
+	tools.sequenceCheckpoint(result)
 	if cfg.GenerateDiagrams && len(result.Findings) > 0 {
 		graphCB := callbacks.NewHandlerBuilder().OnEndFn(func(c context.Context, _ *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
 			if data, ok := output.(*em.CallbackOutput); ok {
@@ -135,6 +136,13 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		for i := range result.Findings {
 			result.Findings[i].SequenceDiagram = unavailableSequence("系统设置已关闭时序图生成")
 		}
+	}
+	tools.sequenceCheckpoint(result)
+	tools.mu.Lock()
+	finalProgressError := tools.progressError
+	tools.mu.Unlock()
+	if finalProgressError != "" && finalProgressError != progressError {
+		result.CoverageNotes = append(result.CoverageNotes, finalProgressError)
 	}
 	return result, tools.trace, nil
 }
