@@ -1,0 +1,23 @@
+# Changelog
+
+## 2026-10-04 — 审计工作台产品化
+
+### 新增
+
+- React/TypeScript 工作台：登录、概览、项目、审计任务与详情、人工复核、用户、操作日志、系统设置及窄屏布局。
+- 管理员/成员服务端权限、bcrypt 密码、可撤销 HttpOnly 会话、首次管理员环境变量引导。
+- 系统设置保存模型、GitLab、Webhook 与审计策略到 config.yaml；首次从 config.example.yaml 生成，秘密字段脱敏、空值保留，文件权限0600。项目启用状态同步配置。
+- Eino 标准工具调用 Agent：固定 GitLab diff 版本/base/head、fork MR、head新增与base删除行证据、只读文件/目录/搜索、严格输出与证据校验、工具及模型usage记录。
+- SQLite 持久化任务、提交去重、独立重审、并发/超时/取消/重启恢复、准确筛选分页与覆盖不足状态。
+- 分页轮询、验证 token 的 Webhook、显式开启且检查当前head的评论，发送状态不确定时避免自动重复。
+- 历史数据幂等导入、17项后端测试、竞态/构建验证、多阶段非root Docker、迁移及回退文档。
+
+### 修复
+
+- 干净响应被旧解析器兜底制造问题。
+- 默认main读取导致审计代码与MR提交不一致、新提交无法再次审计、过滤无效等旧流程问题。
+- 工具示例无法通过Go编译；React慢请求覆盖新筛选的竞态。
+
+### 升级注意
+
+旧无认证业务API已替换为 /api/v1，原HTML和MCP/ReAct说明只作参考。config.yaml停止跟踪；升级前备份数据库与配置。首次引导使用 AIM_ADMIN_USERNAME/AIM_ADMIN_PASSWORD。自动轮询、Webhook、评论默认关闭。listen/worker设置变更需要重启；真实模型需支持OpenAI兼容工具调用。本版本为单团队/单实例GitLab工作台，真实模型精度及生产吞吐未作保证。参见 README 与 docs/feature/platform-modernization/verification.md。
