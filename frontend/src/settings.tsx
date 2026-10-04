@@ -347,6 +347,7 @@ export function SystemSettings() {
               <p>控制并发与任务预算。排除文件会记录在覆盖说明中。</p>
             </div>
             <div className="fields">
+              <div className="settings-option-card">
               <label className="check">
                 <input
                   type="checkbox"
@@ -364,6 +365,7 @@ export function SystemSettings() {
                 额外调用当前模型生成链路，增加耗时和 token
                 用量。生成失败会保留审计发现。
               </p>
+              </div>
               <GitAuditSettingsFields
                 value={s.git_audit}
                 onChange={(git_audit) => setSettings({ ...s, git_audit })}
@@ -443,10 +445,10 @@ export function SystemSettings() {
           <div className="settings-save">
             <span className={dirty ? "save-state dirty" : "save-state"}>
               <CheckCircle2 size={16} />
-              {dirty ? "有未保存的更改" : "配置已同步"}
+              {dirty ? "有未保存的更改" : "没有未保存的更改"}
               <small>保存到 config.yaml</small>
             </span>
-            <button className="primary" disabled={busy}>
+            <button className="primary" disabled={busy || !dirty}>
               <Save size={16} />
               {busy ? "保存中…" : "保存设置"}
             </button>

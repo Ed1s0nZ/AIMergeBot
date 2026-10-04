@@ -567,8 +567,7 @@ td small {
   grid-column: 2;
 }
 .settings-save {
-  position: sticky;
-  bottom: 16px;
+  position: static;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 11px;
@@ -666,9 +665,10 @@ footer {
   position: relative;
 }
 .settings-section .fields label small {
-  position: absolute;
-  top: 0;
-  right: 0;
+  position: static;
+  display: block;
+  line-height: 1.6;
+  color: #738499;
 }
 
 .event-target {
@@ -720,4 +720,83 @@ footer {
 }
 .settings-section fieldset .field-row {
   margin: 18px 0;
+}
+
+/* Settings groups share one readable form rhythm. */
+.settings-section .fields > fieldset,
+.settings-option-card {
+  grid-column: 1 / -1;
+}
+.settings-section .fields label {
+  min-width: 0;
+  line-height: 1.6;
+}
+.settings-section .fields input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+}
+.settings-section .fields p.muted {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 10px 0 0;
+  color: #738499;
+  overflow-wrap: anywhere;
+}
+.settings-option-card {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fafbfd;
+}
+.settings-option-card .check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.settings-section .git-audit-fields {
+  padding: 18px 20px 22px;
+  background: #fafbfd;
+}
+.settings-section .git-audit-fields legend {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.settings-section .git-audit-fields .check {
+  font-size: 13px;
+  gap: 10px;
+}
+.settings-section .git-audit-fields input[type="checkbox"],
+.settings-option-card input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+.settings-section .git-audit-fields .field-row {
+  align-items: start;
+  margin: 20px 0;
+}
+.settings-save {
+  margin-top: 20px;
+  box-shadow: none;
+}
+.settings-save .primary:disabled {
+  opacity: .55;
+  cursor: default;
+}
+@media (max-width: 760px) {
+  .settings-section .git-audit-fields .field-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .settings-save {
+    position: static;
+    flex-wrap: wrap;
+  }
+  .settings-save .primary {
+    margin-left: auto;
+  }
 }

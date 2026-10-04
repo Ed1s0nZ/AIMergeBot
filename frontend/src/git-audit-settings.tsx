@@ -7,7 +7,7 @@ export function GitAuditSettingsFields({
   onChange: (value: Settings["git_audit"]) => void;
 }) {
   return (
-    <fieldset>
+    <fieldset className="git-audit-fields">
       <legend>Git 深度调查</legend>
       <label className="check">
         <input
