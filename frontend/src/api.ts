@@ -224,3 +224,5 @@ export type Settings = {
   has_gitlab_token: boolean;
   has_webhook_token: boolean;
 };
+
+export type RunListItem = Omit<Run, "result" | "trace" | "audit_policy" | "reviews"> & { finding_count: number };

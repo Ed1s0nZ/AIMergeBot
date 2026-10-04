@@ -271,57 +271,25 @@ func (h *HTTP) runs(c *gin.Context) {
 		args = append(args, status)
 	}
 	if level := c.Query("level"); level != "" {
-		where += ` AND EXISTS(SELECT 1 FROM json_each(platform_runs.result_json,'$.findings') f WHERE json_extract(f.value,'$.severity')=?)`
+		where += ` AND EXISTS(SELECT 1 FROM platform_finding_index f WHERE f.run_id=platform_runs.id AND f.severity=?)`
 		args = append(args, level)
 	}
 	if kind := c.Query("type"); kind != "" {
-		where += ` AND EXISTS(SELECT 1 FROM json_each(platform_runs.result_json,'$.findings') f WHERE json_extract(f.value,'$.type')=?)`
+		where += ` AND EXISTS(SELECT 1 FROM platform_finding_index f WHERE f.run_id=platform_runs.id AND f.kind=?)`
 		args = append(args, kind)
 	}
 	if review := c.Query("review_status"); review != "" {
 		if review == "pending" {
-			where += ` AND EXISTS(SELECT 1 FROM json_each(platform_runs.result_json,'$.findings') f LEFT JOIN platform_reviews r ON r.run_id=platform_runs.id AND r.finding_id=json_extract(f.value,'$.id') WHERE COALESCE(r.status,'pending')='pending')`
+			where += ` AND EXISTS(SELECT 1 FROM platform_finding_index f LEFT JOIN platform_reviews r ON r.run_id=f.run_id AND r.finding_id=f.finding_id WHERE f.run_id=platform_runs.id AND COALESCE(r.status,'pending')='pending')`
 		} else {
-			where += ` AND EXISTS(SELECT 1 FROM platform_reviews r WHERE r.run_id=platform_runs.id AND r.status=?)`
+			where += ` AND EXISTS(SELECT 1 FROM platform_finding_index f JOIN platform_reviews r ON r.run_id=f.run_id AND r.finding_id=f.finding_id WHERE f.run_id=platform_runs.id AND r.status=?)`
 			args = append(args, review)
 		}
 	}
-	var total int
-	if err := h.Store.DB.QueryRowContext(c.Request.Context(), `SELECT COUNT(*) FROM platform_runs`+where, args...).Scan(&total); err != nil {
-		fail(c, err)
-		return
-	}
-	params := append(append([]any{}, args...), size, (page-1)*size)
-	rows, err := h.Store.DB.QueryContext(c.Request.Context(), `SELECT id FROM platform_runs`+where+` ORDER BY id DESC LIMIT ? OFFSET ?`, params...)
+	items, total, err := h.Store.listRuns(c.Request.Context(), where, args, page, size)
 	if err != nil {
 		fail(c, err)
 		return
-	}
-	ids := []int64{}
-	for rows.Next() {
-		var id int64
-		if err = rows.Scan(&id); err != nil {
-			rows.Close()
-			fail(c, err)
-			return
-		}
-		ids = append(ids, id)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		fail(c, err)
-		return
-	}
-	items := []Run{}
-	for _, id := range ids {
-		r, err := h.Store.RunSummary(c.Request.Context(), id)
-		if err != nil {
-			fail(c, err)
-			return
-		}
-		r.Trace = nil
-		items = append(items, r)
 	}
 	c.JSON(200, gin.H{"items": items, "total": total, "page": page, "size": size})
 }

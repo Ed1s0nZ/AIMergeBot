@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, GitPullRequest } from "lucide-react";
-import { api, APIError, type Run } from "./api";
+import { api, APIError, type RunListItem } from "./api";
 import { Badge, Empty, date } from "./components";
 export function useResource<T>(path: string) {
   const [data, setData] = useState<T | null>(null),
@@ -61,7 +61,7 @@ export function Heading({
     </div>
   );
 }
-export function RunTable({ runs }: { runs: Run[] }) {
+export function RunTable({ runs }: { runs: RunListItem[] }) {
   return runs.length ? (
     <div className="table-scroll">
       <table>
@@ -96,7 +96,7 @@ export function RunTable({ runs }: { runs: Run[] }) {
               <td>
                 <Badge value={r.status} />
               </td>
-              <td>{r.result.findings.length}</td>
+              <td>{r.finding_count}</td>
               <td className="muted">{date(r.created_at)}</td>
               <td>
                 <a href={"#/runs/" + r.id} aria-label={"查看任务 " + r.id}>

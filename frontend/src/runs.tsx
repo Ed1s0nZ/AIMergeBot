@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowUpRight, RefreshCw, SlidersHorizontal } from "lucide-react";
-import { api, write, APIError, type Project, type Run } from "./api";
+import { api, write, APIError, type Project, type RunListItem } from "./api";
 import { ErrorBox, Empty, statuses } from "./components";
 import { useResource, Heading, RunTable } from "./page-utils";
 export function Runs() {
@@ -23,7 +23,7 @@ export function Runs() {
     review_status: review,
     type: riskType,
   });
-  const resource = useResource<{ items: Run[]; total: number; size: number }>(
+  const resource = useResource<{ items: RunListItem[]; total: number; size: number }>(
     "/runs?" + query,
   );
   const projects = useResource<{ items: Project[] }>("/projects");

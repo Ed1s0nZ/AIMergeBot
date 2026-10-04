@@ -6,11 +6,11 @@ import {
   ScanLine,
   Flag,
 } from "lucide-react";
-import { type Project, type Run } from "./api";
+import { type Project, type RunListItem } from "./api";
 import { ErrorBox, Empty } from "./components";
 import { useResource, Heading, RunTable } from "./page-utils";
 export function Overview() {
-  const { data, error, loading } = useResource<{ items: Run[]; total: number }>(
+  const { data, error, loading } = useResource<{ items: RunListItem[]; total: number }>(
     "/runs?size=8",
   );
   const projects = useResource<{ items: Project[] }>("/projects");
@@ -50,7 +50,7 @@ export function Overview() {
             最近任务中的发现
           </span>
           <strong>
-            {data?.items.reduce((n, r) => n + r.result.findings.length, 0) ??
+            {data?.items.reduce((n, r) => n + r.finding_count, 0) ??
               "—"}
           </strong>
           <small>统计范围：最近 8 次运行</small>
