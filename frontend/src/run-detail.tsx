@@ -16,6 +16,7 @@ import {
   type Review,
   type Finding,
   type ProjectPermissions,
+ type CommentSync,
 } from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
@@ -132,17 +133,18 @@ export function RunDetail({ id }: { id: number }) {
       run: Run;
       reviews: Review[];
       permissions: ProjectPermissions;
+ comment_sync?: CommentSync | null;
       queue_wait?: { reason: string; eligible_at?: string } | null;
     }>("/runs/" + id),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const r = resource.data?.run;
   useEffect(() => {
-    if (r && ["pending", "running"].includes(r.status)) {
+    if (r && (["pending", "running"].includes(r.status) || (resource.data?.comment_sync?.enabled && !resource.data.comment_sync.retry_exhausted && ["pending","sending","unknown"].includes(resource.data.comment_sync.state)))) {
       const interval = setInterval(resource.load, 2000);
       return () => clearInterval(interval);
     }
-  }, [id, r?.status]);
+  }, [id, r?.status, resource.data?.comment_sync?.enabled, resource.data?.comment_sync?.state, resource.data?.comment_sync?.retry_exhausted]);
   const action = async (kind: "cancel" | "retry") => {
     setBusy(true);
     setError("");
@@ -269,6 +271,14 @@ export function RunDetail({ id }: { id: number }) {
         </p>
       )}
       <RetryExplanation run={r} />
+      {resource.data?.comment_sync && <section className="panel summary">
+        <h2>GitLab 评论同步</h2>
+        <p>{!resource.data.comment_sync.enabled ? "自动同步已关闭，复核记录保存在工作台。" : ({pending:"等待同步最新复核状态。",sending:"正在核对或同步评论。",sent:"评论已同步。",unknown:"发送结果未确认，正在核对原评论，不会重复创建。",conflict:"原评论或发布身份发生变化，自动同步已停止。",stale:"MR 提交已变化，此次审计评论停止同步。",blocked:"同步条件不满足，自动同步已停止。"} as Record<string,string>)[resource.data.comment_sync.state] || "同步状态待确认。"}</p>
+        {resource.data.comment_sync.retry_exhausted && <p>自动核对次数已用尽，请管理员检查原评论和同步原因。系统不会重复创建评论。</p>}
+        {resource.data.comment_sync.note_id && safeURL(r.url) && <p><a href={`${safeURL(r.url)}#note_${resource.data.comment_sync.note_id}`} target="_blank" rel="noreferrer">查看原评论</a></p>}
+        <small>已同步版本 {resource.data.comment_sync.sent_generation} / 当前版本 {resource.data.comment_sync.desired_generation} · {date(resource.data.comment_sync.updated_at)}</small>
+      </section>}
+
       {r.error && <ErrorBox error={r.error} />}
       <section className="panel summary">
         <h2>审计摘要</h2>

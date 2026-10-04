@@ -208,7 +208,20 @@ func (h *HTTP) run(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	c.JSON(200, gin.H{"run": r, "reviews": reviews, "permissions": access, "queue_wait": wait})
+	var syncState any
+	delivery, deliveryErr := h.Store.CommentDelivery(c.Request.Context(), id)
+	if deliveryErr == nil {
+		enabled := h.Runner != nil && h.Runner.Settings != nil && h.Runner.Settings.Snapshot().EnableMRComment
+		syncState = struct {
+			CommentDelivery
+			Enabled        bool `json:"enabled"`
+			RetryExhausted bool `json:"retry_exhausted"`
+		}{delivery, enabled, delivery.Attempts >= 5}
+	} else if !errors.Is(deliveryErr, sql.ErrNoRows) {
+		fail(c, deliveryErr)
+		return
+	}
+	c.JSON(200, gin.H{"run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)

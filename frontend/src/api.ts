@@ -226,3 +226,5 @@ export type Settings = {
 };
 
 export type RunListItem = Omit<Run, "result" | "trace" | "audit_policy" | "reviews"> & { finding_count: number };
+
+export type CommentSync = { retry_exhausted: boolean; enabled: boolean; state: string; desired_generation: number; sent_generation: number; reason?: string; discussion_id?: string; note_id?: number; updated_at: string };

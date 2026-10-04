@@ -81,6 +81,8 @@ func (r *Runner) Start(parent context.Context) error {
 	}
 	if r.Settings != nil {
 		r.wg.Add(1)
+		go func() { defer r.wg.Done(); r.commentLoop(ctx) }()
+		r.wg.Add(1)
 		go func() { defer r.wg.Done(); r.Poll(ctx) }()
 	}
 	return nil
@@ -337,10 +339,8 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	if status == "failed" && ctx.Err() == nil && r.failTransient(id, err, result, trace) {
 		return
 	}
-	persisted := r.finish(id, status, message, result, trace)
-	if status == "succeeded" && persisted {
-		r.comment(ctx, id)
-	}
+	// Successful completion schedules publication in the same database write.
+	r.finish(id, status, message, result, trace)
 }
 func (r *Runner) finish(id int64, status, message string, result AuditResult, trace []ToolTrace) bool {
 	if r.workerStopped() {

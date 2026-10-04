@@ -37,10 +37,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True)
     parser.add_argument("--metadata-preview", action="store_true", help="Also verify a metadata-only finding and note-only diagram")
+    parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
     parser.add_argument("--ui-preview", action="store_true", help="Keep fixture online after proof until SIGTERM for browser inspection")
     parser.add_argument("--app-port", type=int, default=19234)
     parser.add_argument("--upstream-port", type=int, default=19235)
     args = parser.parse_args()
+    if args.comment_preview and not args.metadata_preview:
+        parser.error("--comment-preview requires --metadata-preview")
     def stop_fixture(*unused):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, stop_fixture)
@@ -51,6 +54,8 @@ def main():
     root = Path(tempfile.mkdtemp(prefix="aimangebot-recovery-smoke."))
     calls = {90: 0, 91: 0, 92: 0}
     lock = threading.Lock()
+    comments = {}
+    comment_creates, comment_updates = {}, {}
     base_sha, head_sha = "a" * 40, "b" * 40
     metadata_content = b"untrusted(command)\n"
     metadata_object = hashlib.sha1(b"blob " + str(len(metadata_content)).encode() + b"\x00" + metadata_content).hexdigest()
@@ -77,6 +82,20 @@ def main():
 
         def do_GET(self):
             path = self.path.split("?", 1)[0]
+            if path == "/api/v4/user":
+                self.send_json({"id": 7})
+                return
+            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)/discussions(?:/synthetic-(90|91|92))?", path)
+            if match_comment:
+                iid = int(match_comment.group(1))
+                with lock:
+                    body = comments.get(iid)
+                if body is None:
+                    self.send_json([])
+                else:
+                    discussion = {"id": f"synthetic-{iid}", "notes": [{"id": iid, "body": body, "author": {"id": 7}}]}
+                    self.send_json(discussion if match_comment.group(2) else [discussion])
+                return
             if path == "/api/v4/projects/1/repository/tree":
                 object_id = hashlib.sha1(b"blob 7\x00change\n").hexdigest()
                 head = "ref=" + head_sha in self.path
@@ -103,6 +122,15 @@ def main():
                 self.send_json({"iid": int(match.group(1)), "source_project_id": 1, "title": "合成验证：重试与恢复", "web_url": "", "diff_refs": {"base_sha": base_sha, "head_sha": head_sha}})
 
         def do_POST(self):
+            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)/discussions", self.path)
+            if match_comment:
+                iid = int(match_comment.group(1))
+                request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
+                with lock:
+                    comments[iid] = request["body"]
+                    comment_creates[iid] = comment_creates.get(iid, 0) + 1
+                self.send_json({"id": f"synthetic-{iid}", "notes": [{"id": iid, "body": request["body"], "author": {"id": 7}}]}, 201)
+                return
             if self.path != "/v1/chat/completions":
                 self.send_json({"message": "fixture endpoint unavailable"}, 404)
                 return
@@ -138,9 +166,21 @@ def main():
                 finish = "stop"
             self.send_json({"id": "fixture-completion", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
 
+        def do_PUT(self):
+            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92)/discussions/synthetic-(90|91|92)/notes/(90|91|92)", self.path)
+            if not match or len(set(match.groups())) != 1:
+                self.send_json({"message": "fixture endpoint unavailable"}, 404)
+                return
+            iid = int(match.group(1))
+            request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
+            with lock:
+                comments[iid] = request["body"]
+                comment_updates[iid] = comment_updates.get(iid, 0) + 1
+            self.send_json({"id": iid, "body": request["body"], "author": {"id": 7}})
+
     upstream = ThreadingHTTPServer(("127.0.0.1", args.upstream_port), Fixture)
     threading.Thread(target=upstream.serve_forever, daemon=True).start()
-    config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": False, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "generate_sequence_diagrams": args.metadata_preview}
+    config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "generate_sequence_diagrams": args.metadata_preview}
     (root / "config.yaml").write_text(json.dumps(config))  # JSON is valid YAML.
     env = dict(os.environ, AIM_ADMIN_USERNAME="recovery-fixture-admin", AIM_ADMIN_PASSWORD="recovery-fixture-password")
     processes, logs = [], []
@@ -161,9 +201,10 @@ def main():
         except Exception:
             return False
 
-    def api(path, value=None):
-        request = urllib.request.Request(base_url + "/api/v1" + path, data=json.dumps(value).encode() if value is not None else None, headers={"Content-Type": "application/json", "Origin": base_url})
-        return json.load(opener.open(request, timeout=5))
+    def api(path, value=None, method=None):
+        request = urllib.request.Request(base_url + "/api/v1" + path, data=json.dumps(value).encode() if value is not None else None, headers={"Content-Type": "application/json", "Origin": base_url}, method=method)
+        with opener.open(request, timeout=5) as response:
+            return None if response.status == 204 else json.load(response)
 
     def row(run_id):
         return db.execute("SELECT status,trace_json,result_json,retry_child_id FROM (SELECT *,COALESCE((SELECT child.id FROM platform_runs child WHERE child.retry_parent_id=r.id LIMIT 1),0) AS retry_child_id FROM platform_runs r) WHERE id=?", (run_id,)).fetchone()
@@ -218,6 +259,13 @@ def main():
             assert finding["sequence_diagram"]["status"] == "partial" and finding["sequence_diagram"]["steps"][0]["evidence"][0]["metadata"] == finding["metadata"]
             assert calls[92] == 3
             proof.update(metadata_run=metadata_run, metadata_finding_verified=True, metadata_note_diagram="partial", preview_url=base_url+f"/#/runs/{metadata_run}")
+        if args.comment_preview:
+            wait_for(lambda: api(f"/runs/{metadata_run}")["comment_sync"]["state"] == "sent")
+            api(f"/runs/{metadata_run}/findings/{finding['id']}/review", {"status": "false_positive", "reason": "合成同步验证：未运行复现，仅验证评论更新。"}, method="PUT")
+            wait_for(lambda: api(f"/runs/{metadata_run}")["comment_sync"]["sent_generation"] == 2)
+            with lock:
+                assert comment_creates[92] == 1 and comment_updates[92] == 1 and "误报" in comments[92]
+            proof.update(comment_run=metadata_run, comment_single_create=True, comment_review_update=True)
         (root / "proof.json").write_text(json.dumps(proof, ensure_ascii=False, indent=2))
         print(json.dumps(proof, ensure_ascii=False), flush=True)
         if args.ui_preview:
