@@ -50,7 +50,7 @@ export function Heading({
   return (
     <div className="page-heading">
       <div>
-        <span className="eyebrow">SECURITY WORKSPACE</span>
+        <span className="eyebrow">工作空间</span>
         <h1>{title}</h1>
         <p>{sub}</p>
       </div>

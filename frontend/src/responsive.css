@@ -21,12 +21,6 @@
   .settings-section {
     gap: 30px;
   }
-  .login-story {
-    padding: 65px 10%;
-  }
-  .login-story h1 {
-    font-size: 33px;
-  }
 }
 @media (max-width: 760px) {
   .sidebar {
@@ -130,25 +124,8 @@
   .login {
     grid-template-columns: 1fr;
   }
-  .login-story {
-    padding: 45px 30px;
-  }
-  .login-story .brand {
-    position: static;
-    margin-bottom: 35px;
-  }
-  .login-story h1 {
-    font-size: 29px;
-  }
-  .login-story > small,
-  .login-features {
-    display: none;
-  }
   .login-form {
     padding: 45px 25px;
-  }
-  .login-story p {
-    margin-bottom: 0;
   }
   .guide {
     padding: 20px;

@@ -159,12 +159,12 @@ pre {
   margin-bottom: 15px;
   color: #576f90;
 }
-nav {
+.sidebar nav {
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
-nav a {
+.sidebar nav a {
   color: #91a1b8;
   display: flex;
   align-items: center;
@@ -173,20 +173,20 @@ nav a {
   border-radius: 7px;
   font-size: 13px;
 }
-nav a > svg:last-child {
+.sidebar nav a > svg:last-child {
   margin-left: auto;
   opacity: 0;
 }
-nav a:hover {
+.sidebar nav a:hover {
   color: white;
   background: #152137;
   text-decoration: none;
 }
-nav a.active {
+.sidebar nav a.active {
   background: #1b3154;
   color: #bdd6ff;
 }
-nav a.active > svg:last-child {
+.sidebar nav a.active > svg:last-child {
   opacity: 1;
 }
 .sidebar-bottom {
@@ -638,27 +638,6 @@ dd {
   background: #eef3fe;
   color: #648bd0;
 }
-.settings-section {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr;
-  gap: 65px;
-  padding: 30px;
-}
-.settings-description p {
-  font-size: 12px;
-  line-height: 1.9;
-  color: #8795aa;
-  max-width: 260px;
-}
-.fields {
-  display: flex;
-  flex-direction: column;
-  gap: 21px;
-}
-.fields label small {
-  color: #91a0b4;
-  font-weight: 400;
-}
 .field-row {
   display: flex;
   gap: 15px;
@@ -675,12 +654,6 @@ dd {
 }
 .check input {
   accent-color: var(--blue);
-}
-.settings-save {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
 }
 .config-tag {
   display: flex;
@@ -711,52 +684,6 @@ footer span {
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 100vh;
-}
-.login-story {
-  background: #0a1425;
-  color: #a3b3ca;
-  padding: 65px 12%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-}
-.login-story .brand {
-  position: absolute;
-  top: 54px;
-  font-size: 23px;
-}
-.login-story .eyebrow {
-  color: #6686b0;
-}
-.login-story h1 {
-  font-size: 43px;
-  color: #eaf0fb;
-  line-height: 1.6;
-  font-weight: 500;
-  letter-spacing: -1px;
-}
-.login-story p {
-  font-size: 14px;
-  line-height: 2;
-  max-width: 400px;
-  color: #788ea9;
-}
-.login-features {
-  display: flex;
-  gap: 20px;
-  font-size: 10px;
-  border-top: 1px solid #20334f;
-  padding-top: 26px;
-  margin-top: 30px;
-  color: #819dc0;
-}
-.login-story > small {
-  position: absolute;
-  bottom: 40px;
-  font-size: 10px;
-  letter-spacing: 1px;
-  color: #466084;
 }
 .login-form {
   display: flex;

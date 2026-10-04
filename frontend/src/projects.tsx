@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { GitPullRequest, Plus } from "lucide-react";
+import { Plus, FolderGit2 } from "lucide-react";
 import { api, write, type Project } from "./api";
-import { Badge, ErrorBox, Empty } from "./components";
+import { ErrorBox, Empty } from "./components";
 import { useResource, Heading } from "./page-utils";
 export function Projects({ admin }: { admin: boolean }) {
   const resource = useResource<{ items: Project[] }>("/projects"),
@@ -14,59 +14,76 @@ export function Projects({ admin }: { admin: boolean }) {
       <Heading title="项目" sub="管理团队的 GitLab 审计范围。" />
       <ErrorBox error={error || resource.error} />
       {admin && (
-        <form
-          className="panel inline-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setBusy(true);
-            setError("");
-            try {
-              await api(
-                "/projects",
-                write("POST", { id: Number(id), name, enabled: true }),
-              );
-              setId("");
-              setName("");
-              await resource.load();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <input
-            aria-label="GitLab 项目 ID"
-            type="number"
-            min="1"
-            required
-            placeholder="GitLab 项目 ID"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-          />
-          <input
-            aria-label="项目名称"
-            required
-            maxLength={200}
-            placeholder="group/project"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <button className="primary" disabled={busy}>
-            <Plus size={16} />
-            添加项目
-          </button>
-        </form>
+        <details className="panel create-panel">
+          <summary>
+            <Plus size={17} />
+            <strong>添加项目</strong>
+            <span>接入新的 GitLab 仓库</span>
+          </summary>
+          <form
+            className="inline-form create-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setError("");
+              try {
+                await api(
+                  "/projects",
+                  write("POST", { id: Number(id), name, enabled: true }),
+                );
+                setId("");
+                setName("");
+                await resource.load();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label>
+              GitLab 项目 ID
+              <input
+                aria-label="GitLab 项目 ID"
+                type="number"
+                min="1"
+                required
+                placeholder="GitLab 项目 ID"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+              />
+            </label>
+            <label>
+              项目名称
+              <input
+                aria-label="项目名称"
+                required
+                maxLength={200}
+                placeholder="group/project"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              <Plus size={16} />
+              添加项目
+            </button>
+          </form>
+        </details>
       )}
       <div className="project-grid">
         {resource.data?.items.map((p) => (
           <article className="panel project-card" key={p.id}>
             <div className="project-icon">
-              <GitPullRequest />
+              <FolderGit2 />
             </div>
             <h2>{p.name}</h2>
+            <span className="repository-caption">GitLab 仓库</span>
             <p>GitLab #{p.id}</p>
-            <Badge value={p.enabled ? "已启用" : "已停用"} />
+            <span className={"project-status " + (p.enabled ? "enabled" : "")}>
+              <i />
+              {p.enabled ? "审计已启用" : "审计已停用"}
+            </span>
             {admin && (
               <button
                 disabled={busy}

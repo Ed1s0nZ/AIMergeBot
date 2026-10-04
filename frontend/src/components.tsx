@@ -1,3 +1,4 @@
+import { ScanLine } from "lucide-react";
 import type { ReactNode } from "react";
 export const statuses: Record<string, string> = {
   pending: "待处理",
@@ -24,7 +25,14 @@ export function ErrorBox({ error }: { error: string }) {
   ) : null;
 }
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="empty">{children}</div>;
+  return (
+    <div className="empty">
+      <span className="empty-icon">
+        <ScanLine size={25} />
+      </span>
+      <div>{children}</div>
+    </div>
+  );
 }
 export function date(s: string) {
   return new Date(s).toLocaleString("zh-CN", {

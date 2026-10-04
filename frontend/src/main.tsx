@@ -25,6 +25,8 @@ import {
 import { SystemSettings } from "./settings";
 import "./style.css";
 import "./responsive.css";
+import "./workspace.css";
+import "./workspace-responsive.css";
 
 function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const [username, setUsername] = useState(""),
@@ -33,27 +35,15 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
     [busy, setBusy] = useState(false);
   return (
     <main className="login">
-      <section className="login-story">
-        <div className="brand">
-          <ShieldCheck /> AIMergeBot
-        </div>
-        <span className="eyebrow">CODE SECURITY / BUILT FOR TEAMS</span>
-        <h1>
-          每一次变更，
-          <br />
-          都有据可查。
-        </h1>
-        <p>把 Git 变更、AI 调查和人工复核连成一条可追溯的审计流程。</p>
-        <div className="login-features">
-          <span>01 · 提交快照</span>
-          <span>02 · 证据审计</span>
-          <span>03 · 团队复核</span>
-        </div>
-        <small>Powered by Eino · GitLab · React</small>
-      </section>
       <section className="login-form">
         <div className="form-wrap">
-          <span className="eyebrow">WELCOME BACK</span>
+          <a className="login-brand" href="#/">
+            <span>
+              <ShieldCheck size={25} />
+            </span>
+            AIMergeBot
+          </a>
+          <span className="eyebrow">团队代码安全工作台</span>
           <h2>登录工作台</h2>
           <p className="muted">使用管理员为你创建的团队账号。</p>
           <form
@@ -101,6 +91,10 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             </button>
           </form>
           <p className="footnote">账号不可用？请联系团队管理员。</p>
+          <div className="login-assurance">
+            <ShieldCheck size={15} />
+            <span>提交快照 · 证据审计 · 人工复核</span>
+          </div>
         </div>
       </section>
     </main>
@@ -163,12 +157,17 @@ function App() {
         <a href="#/" className="brand">
           <ShieldCheck /> AIMergeBot
         </a>
-        <span className="workspace-label">TEAM WORKSPACE</span>
+        <span className="workspace-label">审计工作空间</span>
         <nav>
           {links.map(({ path, label, icon: Icon }) => (
             <a
               key={path}
               href={"#" + path}
+              aria-current={
+                route === path || (path === "/runs" && detail)
+                  ? "page"
+                  : undefined
+              }
               className={
                 route === path || (path === "/runs" && detail) ? "active" : ""
               }

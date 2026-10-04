@@ -1,0 +1,230 @@
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 195px;
+  }
+  .workspace {
+    margin-left: 195px;
+  }
+  .content {
+    padding: 27px 24px;
+  }
+  .settings-layout {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 18px;
+  }
+  .settings-nav button {
+    gap: 8px;
+    padding: 12px 10px;
+  }
+  .settings-description {
+    padding: 21px;
+  }
+  .settings-section .fields {
+    padding: 22px;
+  }
+  .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    width: 100%;
+    padding: 18px;
+  }
+  .workspace {
+    margin: 0;
+  }
+  .sidebar .brand {
+    margin-bottom: 15px;
+  }
+  .sidebar nav a {
+    padding: 10px;
+  }
+  .topbar {
+    height: 50px;
+    padding: 0 18px;
+  }
+  .content {
+    padding: 24px 18px 30px;
+  }
+  .page-heading {
+    gap: 13px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  .metrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .metrics > div {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 16px 18px;
+    align-items: center;
+  }
+  .metrics strong {
+    margin: 0;
+    grid-row: 1/3;
+    grid-column: 2;
+    font-size: 28px;
+  }
+  .metrics small {
+    font-size: 10px;
+    margin-top: 6px;
+  }
+  .settings-layout {
+    grid-template-columns: 1fr;
+    gap: 17px;
+  }
+  .settings-rail {
+    position: static;
+  }
+  .rail-caption,
+  .config-note {
+    display: none;
+  }
+  .settings-nav {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .settings-nav button {
+    padding: 11px 9px;
+    gap: 6px;
+    width: auto;
+    flex: 1;
+  }
+  .settings-nav button strong {
+    font-size: 11px;
+  }
+  .settings-nav button small,
+  .settings-nav button > svg:last-child {
+    display: none;
+  }
+  .settings-section .fields {
+    grid-template-columns: 1fr;
+    gap: 19px;
+    padding: 20px;
+  }
+  .settings-description {
+    padding: 20px;
+  }
+  .settings-description p {
+    clear: both;
+    padding-top: 12px;
+  }
+  .settings-section[data-group="model"] .fields > label:nth-child(2),
+  .settings-section[data-group="model"] .fields > label:nth-child(3) {
+    grid-column: 1;
+  }
+  .settings-section .fields > .check {
+    grid-column: 1;
+  }
+  .settings-save {
+    bottom: 9px;
+    padding: 13px;
+    gap: 8px;
+  }
+  .save-state small {
+    display: none;
+  }
+  .settings-save .primary {
+    font-size: 12px;
+    padding: 9px 12px;
+  }
+  .create-panel > summary {
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+  .create-panel > summary > span {
+    flex-basis: calc(100% - 28px);
+    margin-left: 27px;
+  }
+  .create-panel > summary::after {
+    position: absolute;
+    right: 37px;
+  }
+  .create-form {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px;
+  }
+  .create-form label,
+  .create-form input,
+  .create-form select {
+    width: 100%;
+    min-width: 0;
+  }
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+  .filters {
+    padding: 0 16px 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filters select {
+    width: 100%;
+  }
+  .filters form {
+    grid-column: 1/-1;
+    flex-wrap: nowrap;
+  }
+  .filters .inline-form input {
+    max-width: none;
+    width: 100%;
+    min-width: 0;
+  }
+  .submit-panel {
+    padding: 20px;
+  }
+  .submit-panel .inline-form {
+    width: 100%;
+  }
+  .submit-panel select {
+    width: 100%;
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .submit-panel input {
+    max-width: none;
+    min-width: 90px;
+  }
+  .finding,
+  .summary,
+  .trace {
+    padding: 19px;
+  }
+  .snapshot {
+    padding: 19px;
+  }
+  .review-form {
+    gap: 9px;
+  }
+  .review-form select {
+    width: 100%;
+  }
+  .review-form input {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  footer {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .login {
+    padding: 25px 18px;
+  }
+  .login-form {
+    padding: 29px 25px 22px;
+    width: 100%;
+    max-width: 430px;
+    border-radius: 16px;
+  }
+  .login-brand {
+    margin-bottom: 25px;
+  }
+}
