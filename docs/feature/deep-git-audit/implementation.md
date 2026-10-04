@@ -23,3 +23,10 @@ Settings add git_audit (enabled, history_depth, max_pack_mib, max_tool_calls). D
 Flow: queued run → capture config → obtain GitLab diff snapshot → prepare bare repository → native diff → Eino investigation → validate findings → persist result/observations → delete workspace → existing optional comment. No fallback that silently masks native-Git failure.
 
 Official references: [Git grep](https://git-scm.com/docs/git-grep), [Git log](https://git-scm.com/docs/git-log), [Git config](https://git-scm.com/docs/git-config).
+
+## F3 implementation plan
+1. Add native Git adapter and guarded GitLab preparation; test real repositories, forks, renames/deletions, unusual paths and process limits.
+2. Extract tool modules, register language-neutral exploration/history/ledger tools, retain schema compatibility; test full search pagination and evidence validation.
+3. Wire per-run preparation and cleanup, settings and trace UI; test Eino HTTP fixture and frontend build.
+4. Run repository/race tests, document limitations, merge/push main, build/restart the existing native port-1234 service with unchanged private config.
+Rollback: previous main binary/commit; existing database JSON remains additive and old traces render without output. No repository code execution, writes or automatic clone credential reuse across origins.
