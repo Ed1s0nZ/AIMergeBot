@@ -9,3 +9,5 @@ F3: Adjust settings.tsx/git-audit-settings.tsx scoped classes and workspace CSS.
 F4/F5: Fixed long help absolute positioning, full-width Git group, scoped readable descriptions, unified diagram option card and normal-flow save row. Unchanged settings disable submit. TypeScript/Vite production build passed. Browser desktop verified help/save position static and full content-width Git card; mobile390px verified scrollWidth=clientWidth390 and single-column controls. Fixture screenshots /tmp/aimangebot-settings-fixed.png and /tmp/aimangebot-settings-mobile.png. No production settings modified.
 
 F6: Scoped presentation change, existing save/validation/API retained; no backend migration. Generated embedded assets rebuilt. Ready for main/local1234 update.
+
+F7/F8: Pushed main b168f5e, deployed rebuilt native binary on localhost1234 and verified new embedded asset. Private backup made; config bytes preserved; no active audits interrupted. Fixture server stopped. Presentation-only repair complete.
