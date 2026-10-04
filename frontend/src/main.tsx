@@ -14,8 +14,12 @@ import {
   UserRound,
   LockKeyhole,
   GitBranch,
+  Eye,
+  EyeOff,
+  FileCode2,
+  Check,
 } from "lucide-react";
-import { api, write, type User } from "./api";
+import { api, write, APIError, type User } from "./api";
 import { ErrorBox } from "./components";
 import {
   Overview,
@@ -36,94 +40,183 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const [username, setUsername] = useState(""),
     [password, setPassword] = useState(""),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [visiblePassword, setVisiblePassword] = useState(false);
   return (
     <main className="login">
-      <div className="login-art" aria-hidden="true">
-        <div className="login-orbit orbit-one" />
-        <div className="login-orbit orbit-two" />
-        <div className="branch-art">
-          <GitBranch strokeWidth={0.7} />
-        </div>
-        <span className="art-node node-one" />
-        <span className="art-node node-two" />
-      </div>
-      <section className="login-form">
-        <div className="form-wrap">
-          <a className="login-brand" href="#/">
-            <span>
-              <ShieldCheck size={25} />
-            </span>
-            AIMergeBot
-          </a>
-          <span className="eyebrow">团队代码安全工作台</span>
-          <h1>
-            登录工作台<span className="login-heading-dot">.</span>
+      <header className="login-header">
+        <a className="login-brand" href="#/">
+          <span>
+            <ShieldCheck size={23} />
+          </span>
+          AIMergeBot
+        </a>
+        <span className="login-header-caption">团队代码审计平台</span>
+      </header>
+      <div className="login-layout">
+        <section className="login-intro" aria-labelledby="login-intro-title">
+          <span className="login-kicker">
+            <i />
+            CODE REVIEW, WITH EVIDENCE
+          </span>
+          <h1 id="login-intro-title">
+            从代码变更，
+            <br />
+            到可信的<span>审计。</span>
           </h1>
-          <p className="muted">使用管理员为你创建的团队账号。</p>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setError("");
-              try {
-                onLogin(
-                  await api<User>(
-                    "/auth/login",
-                    write("POST", { username, password }),
-                  ),
-                );
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <label>
-              账号
-              <span className="login-input">
-                <UserRound size={17} />
-                <input
-                  placeholder="输入你的团队账号"
-                  autoComplete="username"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
+          <p>
+            连接 Git 变更、AI 调查与人工复核。
+            <br />
+            每一次审计，都有明确的版本和可追溯的证据。
+          </p>
+          <div className="login-workflow" aria-label="审计流程">
+            <div className="workflow-top">
+              <span>
+                <GitBranch size={15} />
+                MERGE REQUEST
               </span>
-            </label>
-            <label>
-              密码
-              <span className="login-input">
-                <LockKeyhole size={17} />
-                <input
-                  placeholder="输入密码"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+              <span>固定提交</span>
+            </div>
+            <div className="workflow-code">
+              <span className="code-number">01</span>
+              <code>代码变更</code>
+              <span className="code-mark">+</span>
+            </div>
+            <div className="workflow-code added">
+              <span className="code-number">02</span>
+              <code>上下文与证据</code>
+              <span className="code-mark">
+                <Check size={14} />
               </span>
-            </label>
-            <ErrorBox error={error} />
-            <button disabled={busy} className="primary full">
-              {busy ? "正在登录…" : "进入工作台"}
-              <ArrowUpRight size={17} />
-            </button>
-          </form>
-          <p className="footnote">账号不可用？请联系团队管理员。</p>
-          <div className="login-assurance">
-            <ShieldCheck size={15} />
-            <span>提交快照</span>
-            <i />
-            <span>证据审计</span>
-            <i />
-            <span>人工复核</span>
+            </div>
+            <div className="workflow-bottom">
+              <span>
+                <FileCode2 size={17} />
+                <strong>提交快照</strong>
+              </span>
+              <span className="workflow-arrow">→</span>
+              <span>
+                <ScanLine size={17} />
+                <strong>AI 调查</strong>
+              </span>
+              <span className="workflow-arrow">→</span>
+              <span>
+                <ShieldCheck size={17} />
+                <strong>人工复核</strong>
+              </span>
+            </div>
           </div>
-        </div>
-      </section>
+          <div className="intro-footnote">
+            <span>版本固定</span>
+            <i />
+            <span>证据校验</span>
+            <i />
+            <span>团队协作</span>
+          </div>
+        </section>
+        <section className="login-form" aria-labelledby="login-title">
+          <div className="form-wrap">
+            <span className="login-form-caption">访问你的工作空间</span>
+            <h2 id="login-title">登录工作台</h2>
+            <p className="muted">欢迎回来，使用团队账号继续。</p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setVisiblePassword(false);
+                setBusy(true);
+                setError("");
+                try {
+                  onLogin(
+                    await api<User>(
+                      "/auth/login",
+                      write("POST", { username, password }),
+                    ),
+                  );
+                } catch (e) {
+                  setError(
+                    e instanceof APIError && e.status === 401
+                      ? "账号或密码不正确，请重新输入。"
+                      : e instanceof APIError && e.status === 429
+                        ? "尝试次数过多，请稍后再试。"
+                        : "登录暂时不可用，请稍后重试。",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <label>
+                账号
+                <span className="login-input">
+                  <UserRound size={17} aria-hidden="true" />
+                  <input
+                    placeholder="输入你的团队账号"
+                    name="username"
+                    disabled={busy}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    aria-describedby={error ? "login-error" : undefined}
+                    autoComplete="username"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </span>
+              </label>
+              <label>
+                密码
+                <span className="login-input">
+                  <LockKeyhole size={17} aria-hidden="true" />
+                  <input
+                    placeholder="输入密码"
+                    id="login-password"
+                    name="password"
+                    aria-label="密码"
+                    disabled={busy}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    aria-describedby={error ? "login-error" : undefined}
+                    type={visiblePassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    aria-label={visiblePassword ? "隐藏密码" : "显示密码"}
+                    aria-controls="login-password"
+                    aria-pressed={visiblePassword}
+                    disabled={busy}
+                    onClick={() => setVisiblePassword(!visiblePassword)}
+                  >
+                    {visiblePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </span>
+              </label>
+              {error && (
+                <div id="login-error">
+                  <ErrorBox error={error} />
+                </div>
+              )}
+              <button disabled={busy} className="primary full">
+                {busy ? "正在登录…" : "进入工作台"}
+                <ArrowUpRight size={17} />
+              </button>
+            </form>
+            <p className="footnote">账号不可用？请联系团队管理员。</p>
+            <div className="login-security">
+              <LockKeyhole size={14} />
+              <span>仅限授权团队成员访问</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div className="login-footer">
+        <span>AIMergeBot · 代码审计工作台</span>
+        <span>让每次变更，有据可查。</span>
+      </div>
     </main>
   );
 }

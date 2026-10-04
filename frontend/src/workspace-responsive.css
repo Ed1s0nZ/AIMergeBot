@@ -213,18 +213,3 @@
     padding: 18px;
   }
 }
-
-@media (max-width: 760px) {
-  .login {
-    padding: 25px 18px;
-  }
-  .login-form {
-    padding: 29px 25px 22px;
-    width: 100%;
-    max-width: 430px;
-    border-radius: 16px;
-  }
-  .login-brand {
-    margin-bottom: 25px;
-  }
-}
