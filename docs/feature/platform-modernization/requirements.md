@@ -1,9 +1,10 @@
 # Requirements: AIMergeBot 产品化与审计升级
 
-- Status: Pending Confirmation
+- Status: Confirmed
 - Source: 2026-10-04 用户 /goal 请求；当前仓库源码，见 analysis.md。
 - Created / Last updated: 2026-10-04
-- Confirmed by / Confirmation date: Pending
+- Confirmed by: 用户（按推荐方案推进）
+- Confirmation date: 2026-10-04
 
 ## 原始需求与目标
 
@@ -83,4 +84,4 @@
 
 ## 确认
 
-请确认本需求快照及上述推荐默认，或按 REQ/ASM/DEC 编号提出修改。确认前不进入技术设计与生产实现；确认后继续完成设计、React/登录、审计改造、迁移与验证。
+用户于 2026-10-04 明确回复“按推荐方案推进”。本快照及 ASM-001–004、DEC-001–004 推荐默认已确认。继续完成设计、React/登录、审计改造、迁移与验证，最终合入并推送 main。
