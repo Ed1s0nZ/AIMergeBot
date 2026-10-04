@@ -221,7 +221,12 @@ func (h *HTTP) run(c *gin.Context) {
 		fail(c, deliveryErr)
 		return
 	}
-	c.JSON(200, gin.H{"run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
+	lifecycle, err := h.Store.FindingLifecycle(c.Request.Context(), r)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(200, gin.H{"finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)

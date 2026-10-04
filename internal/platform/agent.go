@@ -255,12 +255,14 @@ func ValidateFindings(ctx context.Context, repo Repository, snap Snapshot, scope
 		}
 		h := sha256.Sum256([]byte(identity))
 		f.ID = hex.EncodeToString(h[:12])
+		f.Fingerprint = findingFingerprint(snap, f)
 		if seen[f.ID] {
 			continue
 		}
 		seen[f.ID] = true
 		out = append(out, f)
 	}
+	clearAmbiguousFingerprints(out)
 	result.Findings = out
 	return nil
 }

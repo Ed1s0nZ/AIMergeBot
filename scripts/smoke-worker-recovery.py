@@ -36,6 +36,7 @@ def wait_for(check, timeout=15):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True)
+    parser.add_argument("--lifecycle-preview", action="store_true", help="Verify recurring and absent findings across three pinned heads")
     parser.add_argument("--group-preview", action="store_true", help="Verify actual grouped25-file audit and synthesis")
     parser.add_argument("--metadata-preview", action="store_true", help="Also verify a metadata-only finding and note-only diagram")
     parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
@@ -56,7 +57,8 @@ def main():
     if args.app_port in (1234, 8080) or args.upstream_port in (1234, 8080) or args.app_port == args.upstream_port:
         raise ValueError("choose distinct temporary ports, not production1234/8080")
     root = Path(tempfile.mkdtemp(prefix="aimangebot-recovery-smoke."))
-    calls = {90: 0, 91: 0, 92: 0, 93: 0}
+    calls = {90: 0, 91: 0, 92: 0, 93: 0, 94: 0}
+    lifecycle_phase = [1]
     lock = threading.Lock()
     comments = {}
     comment_creates, comment_updates = {}, {}
@@ -89,7 +91,7 @@ def main():
             if path == "/api/v4/user":
                 self.send_json({"id": 7})
                 return
-            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)/discussions(?:/synthetic-(90|91|92|93))?", path)
+            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)/discussions(?:/synthetic-(90|91|92|93|94))?", path)
             if match_comment:
                 iid = int(match_comment.group(1))
                 with lock:
@@ -103,18 +105,27 @@ def main():
             if path == "/api/v4/projects/1/repository/tree":
                 object_id = hashlib.sha1(b"blob 7\x00change\n").hexdigest()
                 head = "ref=" + head_sha in self.path
+                if any("ref=" + ch * 40 in self.path for ch in "cde"):
+                    body = b"prefix\nchange\n" if "ref=" + "d" * 40 in self.path else b"change\n"
+                    object_id = hashlib.sha1(b"blob " + str(len(body)).encode() + b"\x00" + body).hexdigest()
+                    head = True
                 if not head:
                     object_id = hashlib.sha1(b"blob 4\x00old\n").hexdigest()
                 self.send_json([{"path": f"f{i:02d}.any", "mode": "100644", "type": "blob", "id": object_id} for i in range(24)] + [{"path": "a.any", "mode": "100644", "type": "blob", "id": object_id}, {"path": "entry.any", "mode": "100755" if head else "100644", "type": "blob", "id": metadata_object}])
                 return
             if "/repository/files/" in path:
-                self.send_json({"file_path": "a.any", "encoding": "base64", "content": base64.b64encode(b"change\n").decode(), "size": 7})
+                body = b"prefix\nchange\n" if "ref=" + "d" * 40 in self.path else b"change\n"
+                self.send_json({"file_path": "a.any", "encoding": "base64", "content": base64.b64encode(body).decode(), "size": len(body)})
                 return
-            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)(/versions(?:/1)?)?", path)
+            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)(/versions(?:/1)?)?", path)
             if not match:
                 self.send_json({"message": "fixture endpoint unavailable"}, 404)
                 return
             version = {"id": 1, "base_commit_sha": base_sha, "head_commit_sha": head_sha}
+            if match.group(1) == "94":
+                with lock:
+                    phase = lifecycle_phase[0]
+                version["head_commit_sha"] = {1: "c", 2: "d", 3: "e"}[phase] * 40
             suffix = match.group(2)
             if suffix == "/versions":
                 self.send_json([version])
@@ -124,13 +135,16 @@ def main():
                     diffs = [{"old_path": "entry.any", "new_path": "entry.any", "diff": ""}]
                 if match.group(1) == "93":
                     diffs = [{"old_path": p, "new_path": p, "diff": "@@ -1 +1 @@\n-old\n+change"} for p in ["a.any"] + [f"f{i:02d}.any" for i in range(24)]]
+                if match.group(1) == "94":
+                    diff = "@@ -1 +1 @@\n-old\n+change" if phase != 2 else "@@ -1 +1,2 @@\n-old\n+prefix\n+change"
+                    diffs = [{"old_path": "a.any", "new_path": "a.any", "diff": diff}]
                 version.update(state="collected", real_size=str(len(diffs)), diffs=diffs)
                 self.send_json(version)
             else:
-                self.send_json({"iid": int(match.group(1)), "source_project_id": 1, "title": "合成验证：重试与恢复", "web_url": "", "diff_refs": {"base_sha": base_sha, "head_sha": head_sha}})
+                self.send_json({"iid": int(match.group(1)), "source_project_id": 1, "title": "合成验证：重试与恢复", "web_url": "", "diff_refs": {"base_sha": base_sha, "head_sha": version["head_commit_sha"]}})
 
         def do_POST(self):
-            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)/discussions", self.path)
+            match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)/discussions", self.path)
             if match_comment:
                 iid = int(match_comment.group(1))
                 request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
@@ -144,10 +158,23 @@ def main():
                 return
             request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
             content = " ".join(str(message.get("content", "")) for message in request["messages"] if message.get("role") == "user")
-            iid = 90 if '"mr_iid":90' in content else 92 if '"mr_iid":92' in content else 93 if '"mr_iid":93' in content else 91
+            iid = 90 if '"mr_iid":90' in content else 92 if '"mr_iid":92' in content else 93 if '"mr_iid":93' in content else 94 if '"mr_iid":94' in content else 91
             with lock:
                 calls[iid] += 1
                 number = calls[iid]
+            if iid == 94:
+                moved = '"head_sha":"' + "d" * 40 + '"' in content
+                absent = '"head_sha":"' + "e" * 40 + '"' in content
+                line = 2 if moved else 1
+                if number in (1, 3):
+                    message = {"role": "assistant", "content": None, "tool_calls": [{"id": "fixture_lifecycle_read", "type": "function", "function": {"name": "read_file", "arguments": json.dumps({"path": "a.any", "start": line, "end": line})}}]}
+                    finish = "tool_calls"
+                else:
+                    findings = [] if absent else [{"side": "head", "file": "a.any", "line": line, "severity": "medium", "type": "synthetic lifecycle", "title": "合成历史候选：行号移动" if moved else "合成历史候选", "description": "仅验证跨版本历史，不代表真实漏洞。", "evidence": "change", "trigger": "合成固定触发条件", "suggestion": "人工核验当前版本", "confidence": "candidate", "observation_ids": ["observation-1"]}]
+                    message = {"role": "assistant", "content": json.dumps({"findings": findings, "summary": "合成问题生命周期验证，未执行仓库代码。", "coverage_notes": []}, ensure_ascii=False)}
+                    finish = "stop"
+                self.send_json({"id": "fixture-lifecycle", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
+                return
             if iid == 93:
                 synthesis = any(str(m.get("content", "")).startswith("Summarize a grouped") for m in request["messages"] if m.get("role") == "system")
                 finish = "stop"
@@ -204,7 +231,7 @@ def main():
             self.send_json({"id": "fixture-completion", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
 
         def do_PUT(self):
-            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93)/discussions/synthetic-(90|91|92|93)/notes/(90|91|92|93)", self.path)
+            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)/discussions/synthetic-(90|91|92|93|94)/notes/(90|91|92|93|94)", self.path)
             if not match or len(set(match.groups())) != 1:
                 self.send_json({"message": "fixture endpoint unavailable"}, 404)
                 return
@@ -313,6 +340,29 @@ def main():
             assert any(t.get("observation_id") == "group-1-observation-1" for t in grouped["trace"])
             assert any(t.get("stage") == "synthesis" for t in grouped["trace"]) and calls[93] == 4
             proof.update(group_run=group_run, completed_groups=2, grouped_files=25, grouped_finding_retained=True, preview_url=base_url+f"/#/runs/{group_run}")
+        if args.lifecycle_preview:
+            lifecycle_runs = []
+            for phase in (1, 2, 3):
+                with lock:
+                    lifecycle_phase[0] = phase
+                current = api("/runs", {"project_id": 1, "mr_iid": 94})["id"]
+                lifecycle_runs.append(current)
+                wait_for(lambda: row(current)[0] == "succeeded", timeout=15)
+                detail = api(f"/runs/{current}")
+                if phase == 1:
+                    original_finding = detail["run"]["result"]["findings"][0]
+                    api(f"/runs/{current}/findings/{original_finding['id']}/review", {"status": "fixed", "reason": "合成旧版本人工决定，不能自动继承。"}, method="PUT")
+                elif phase == 2:
+                    moved_finding = detail["run"]["result"]["findings"][0]
+                    assert moved_finding["line"] == 2 and moved_finding["id"] != original_finding["id"] and moved_finding["fingerprint"] == original_finding["fingerprint"]
+                    history = detail["finding_lifecycle"]["current"][0]
+                    assert history["first_run_id"] == lifecycle_runs[0] and len(history["occurrences"]) == 2 and history["reviews"][0]["status"] == "fixed"
+                    assert not detail["reviews"], "old human decision copied to new HEAD"
+                else:
+                    assert not detail["run"]["result"]["findings"] and not detail["reviews"]
+                    assert detail["finding_lifecycle"]["not_reobserved"][0]["run_id"] == lifecycle_runs[1]
+            assert calls[94] == 5
+            proof.update(lifecycle_runs=lifecycle_runs, recurring_fingerprint_preserved=True, human_decision_not_copied=True, absence_not_auto_fixed=True, preview_url=base_url+f"/#/runs/{lifecycle_runs[1]}")
         if args.comment_preview:
             wait_for(lambda: api(f"/runs/{metadata_run}")["comment_sync"]["state"] == "sent")
             api(f"/runs/{metadata_run}/findings/{finding['id']}/review", {"status": "false_positive", "reason": "合成同步验证：未运行复现，仅验证评论更新。"}, method="PUT")

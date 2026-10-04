@@ -17,6 +17,7 @@ type Project struct {
 }
 
 type Finding struct {
+	Fingerprint     string               `json:"fingerprint,omitempty"`
 	Verification    *FindingVerification `json:"verification,omitempty"`
 	AnchorType      string               `json:"anchor_type,omitempty"`
 	Metadata        *GitChangeMetadata   `json:"metadata,omitempty"`

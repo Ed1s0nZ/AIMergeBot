@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-const PolicyVersion = "eino-audit-contract-v8"
+const PolicyVersion = "eino-audit-contract-v9"
 
 var ErrConflict = errors.New("operation conflicts with current state")
 
@@ -269,6 +269,13 @@ func (s *Store) saveReview(ctx context.Context, r Review, authorize bool) error 
 		if _, err = requireSnapshotRole(ctx, tx, run.Snapshot, r.Actor, "reviewer"); err != nil {
 			return err
 		}
+	}
+	var current int
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM platform_finding_index WHERE run_id=? AND finding_id=?`, r.RunID, r.FindingID).Scan(&current); err != nil {
+		return err
+	}
+	if current == 0 {
+		return sql.ErrNoRows
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO platform_reviews(run_id,finding_id,status,reason,actor,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(run_id,finding_id) DO UPDATE SET status=excluded.status,reason=excluded.reason,actor=excluded.actor,updated_at=excluded.updated_at`, r.RunID, r.FindingID, r.Status, r.Reason, r.Actor, now())
 	if err != nil {

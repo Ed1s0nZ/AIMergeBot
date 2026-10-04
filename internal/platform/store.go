@@ -103,6 +103,9 @@ func (s *Store) migrate() error {
 	if err = migrateFindingProjection(tx); err != nil {
 		return err
 	}
+	if err = migrateFindingLifecycle(tx); err != nil {
+		return err
+	}
 	if err = migrateProjectAccess(tx); err != nil {
 		return err
 	}

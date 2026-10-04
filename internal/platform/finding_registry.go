@@ -36,6 +36,7 @@ func (t *auditTools) acceptedFindings() []Finding {
 	for _, id := range ids {
 		out = append(out, t.findings[id])
 	}
+	clearAmbiguousFingerprints(out)
 	return out
 }
 func (t *auditTools) mergeProposals(ctx context.Context, result *AuditResult) {

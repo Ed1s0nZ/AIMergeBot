@@ -1,3 +1,4 @@
+import { FindingHistoryPanel } from "./finding-history";
 import { VerificationEvidence } from "./finding-verification";
 import {
   GitMetadataEvidence,
@@ -18,6 +19,7 @@ import {
   type Finding,
   type ProjectPermissions,
  type CommentSync,
+ type FindingLifecycle,
 } from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
@@ -134,6 +136,7 @@ export function RunDetail({ id }: { id: number }) {
   const resource = useResource<{
       run: Run;
       reviews: Review[];
+      finding_lifecycle?: FindingLifecycle;
       permissions: ProjectPermissions;
  comment_sync?: CommentSync | null;
       queue_wait?: { reason: string; eligible_at?: string } | null;
@@ -317,6 +320,7 @@ export function RunDetail({ id }: { id: number }) {
           </div>
         )}
       </section>
+      <FindingHistoryPanel lifecycle={resource.data?.finding_lifecycle} findings={r.result.findings} />
       <div className="section-heading">
         <h2>
           发现 <span className="muted">{r.result.findings.length}</span>

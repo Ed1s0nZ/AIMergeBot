@@ -97,6 +97,7 @@ export type SequenceDiagram = {
 };
 export type FindingVerification = { status: string; reason: string; limitations: string[]; observation_ids: string[]; base_sha: string; head_sha: string };
 export type Finding = {
+ fingerprint?: string;
  verification?: FindingVerification;
   anchor_type?: "line" | "git_metadata";
   metadata?: GitChangeMetadata;
@@ -232,3 +233,12 @@ export type Settings = {
 export type RunListItem = Omit<Run, "result" | "trace" | "audit_policy" | "reviews"> & { finding_count: number };
 
 export type CommentSync = { retry_exhausted: boolean; enabled: boolean; state: string; desired_generation: number; sent_generation: number; reason?: string; discussion_id?: string; note_id?: number; updated_at: string };
+
+export type FindingOccurrence = { run_id: number; finding_id: string; head_sha: string; run_status: string };
+export type FindingHistory = {
+ finding_id: string; fingerprint: string; first_run_id: number; last_run_id: number;
+ occurrences: FindingOccurrence[];
+ reviews: { run_id: number; finding_id: string; status: string; reason: string; actor: number; created_at: string; imported: boolean }[];
+ occurrences_truncated: boolean; reviews_truncated: boolean;
+};
+export type FindingLifecycle = { history_truncated: boolean; current: FindingHistory[]; not_reobserved: FindingOccurrence[]; not_reobserved_truncated: boolean };
