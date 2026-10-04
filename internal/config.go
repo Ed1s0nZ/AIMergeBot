@@ -17,24 +17,27 @@ type Config struct {
 		URL    string `yaml:"url"`
 		Model  string `yaml:"model"`
 	} `yaml:"openai"`
-	Projects []struct {
-		ID   int    `yaml:"id"`
-		Name string `yaml:"name"`
-	} `yaml:"projects"`
-	EnableWebhook       bool     `yaml:"enable_webhook"`
-	EnableMRComment     bool     `yaml:"enable_mr_comment"`
-	ScanExistingMRs     bool     `yaml:"scan_existing_mrs"`
-	EnablePolling       bool     `yaml:"enable_polling"`
-	WhitelistExtensions []string `yaml:"whitelist_extensions"`
-	MCP                 MCPConfig `yaml:"mcp"`
-	ReAct               ReActConfig `yaml:"react"`
+	Projects            []ProjectConfig `yaml:"projects"`
+	EnableWebhook       bool            `yaml:"enable_webhook"`
+	EnableMRComment     bool            `yaml:"enable_mr_comment"`
+	ScanExistingMRs     bool            `yaml:"scan_existing_mrs"`
+	EnablePolling       bool            `yaml:"enable_polling"`
+	WhitelistExtensions []string        `yaml:"whitelist_extensions"`
+	MCP                 MCPConfig       `yaml:"mcp"`
+	ReAct               ReActConfig     `yaml:"react"`
+}
+
+type ProjectConfig struct {
+	ID      int    `yaml:"id"`
+	Name    string `yaml:"name"`
+	Enabled *bool  `yaml:"enabled,omitempty"`
 }
 
 type MCPConfig struct {
-	Enabled   bool   `yaml:"enabled"`
-	Mode      string `yaml:"mode"` // full, simplified, hybrid
-	MaxSteps  int    `yaml:"max_steps"`
-	Verbose   bool   `yaml:"verbose_logging"`
+	Enabled  bool   `yaml:"enabled"`
+	Mode     string `yaml:"mode"` // full, simplified, hybrid
+	MaxSteps int    `yaml:"max_steps"`
+	Verbose  bool   `yaml:"verbose_logging"`
 }
 
 type ReActConfig struct {

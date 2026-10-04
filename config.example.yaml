@@ -1,0 +1,29 @@
+# Copy automatically to config.yaml on first start. Configure in System Settings.
+listen: ":8080"
+public_url: "" # Set https://audit.example.com when TLS terminates at a reverse proxy
+gitlab:
+  token: ""
+  url: "https://gitlab.com"
+openai:
+  api_key: ""
+  url: "https://api.openai.com/v1"
+  model: "gpt-4o-mini"
+projects: []
+enable_polling: false
+enable_webhook: false
+enable_mr_comment: false
+scan_existing_mrs: false
+webhook_token: ""
+audit_workers: 2
+audit_timeout_seconds: 300
+whitelist_extensions: [txt, md, xlsx, xls, csv, zip]
+react:
+  enabled: true
+  model: ""
+  temperature: 0.1
+  max_retries: 3
+  max_steps: 16
+mcp:
+  enabled: true
+  mode: simplified
+  verbose_logging: false

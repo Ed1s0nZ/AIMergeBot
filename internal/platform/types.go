@@ -1,0 +1,82 @@
+package platform
+
+import "time"
+
+type User struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Disabled bool   `json:"disabled"`
+}
+
+type Project struct {
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+type Finding struct {
+	Side        string `json:"side"`
+	Type        string `json:"type"`
+	ID          string `json:"id"`
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Severity    string `json:"severity"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Evidence    string `json:"evidence"`
+	Trigger     string `json:"trigger"`
+	Suggestion  string `json:"suggestion"`
+	Confidence  string `json:"confidence"`
+}
+
+type AuditResult struct {
+	Findings      []Finding `json:"findings"`
+	Summary       string    `json:"summary"`
+	CoverageNotes []string  `json:"coverage_notes"`
+}
+
+type Snapshot struct {
+	DiffVersionID   int    `json:"diff_version_id"`
+	ProjectID       int    `json:"project_id"`
+	SourceProjectID int    `json:"source_project_id"`
+	MRIID           int    `json:"mr_iid"`
+	BaseSHA         string `json:"base_sha"`
+	HeadSHA         string `json:"head_sha"`
+	Title           string `json:"title"`
+	URL             string `json:"url"`
+}
+
+type Run struct {
+	ID int64 `json:"id"`
+	Snapshot
+	Status        string      `json:"status"`
+	Error         string      `json:"error"`
+	Result        AuditResult `json:"result"`
+	Trace         []ToolTrace `json:"trace"`
+	CreatedAt     time.Time   `json:"created_at"`
+	StartedAt     *time.Time  `json:"started_at,omitempty"`
+	FinishedAt    *time.Time  `json:"finished_at,omitempty"`
+	RequestedBy   int64       `json:"requested_by"`
+	PolicyVersion string      `json:"policy_version"`
+}
+
+type ToolTrace struct {
+	PromptTokens     int    `json:"prompt_tokens,omitempty"`
+	CompletionTokens int    `json:"completion_tokens,omitempty"`
+	UsageReported    bool   `json:"usage_reported,omitempty"`
+	Partial          bool   `json:"partial,omitempty"`
+	Name             string `json:"name"`
+	Arguments        string `json:"arguments"`
+	DurationMS       int64  `json:"duration_ms"`
+	Error            string `json:"error,omitempty"`
+}
+
+type Review struct {
+	RunID     int64  `json:"run_id"`
+	FindingID string `json:"finding_id"`
+	Status    string `json:"status"`
+	Reason    string `json:"reason"`
+	Actor     int64  `json:"actor"`
+	UpdatedAt string `json:"updated_at"`
+}

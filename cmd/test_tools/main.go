@@ -14,7 +14,7 @@ func main() {
 	// 配置GitLab客户端
 	gitlabURL := "https://gitlab.com"
 	token := "your-gitlab-token" // 请替换为实际的token
-	projectID := 12345678 // 请替换为实际的项目ID
+	projectID := 12345678        // 请替换为实际的项目ID
 
 	git, err := gitlab.NewClient(token, gitlab.WithBaseURL(gitlabURL+"/api/v4"))
 	if err != nil {
@@ -42,17 +42,17 @@ func main() {
 
 func testPromptTools() {
 	// 创建ReAct审计器实例来获取提示词
-	auditor := internal.NewReActAuditorWithGitLab("test-key", "", "gpt-4o-mini", nil, 0, "simplified")
-	
+	tools := internal.GetAvailableSimplifiedGitLabTools()
+
 	// 获取简化模式提示词
-	simplifiedPrompt := auditor.(*internal.ReActAuditor).buildSimplifiedPrompt()
-	
+	simplifiedPrompt := fmt.Sprint(tools)
+
 	// 检查是否包含新工具
 	newTools := []string{
 		"gitlab_project_structure",
 		"gitlab_global_search",
 	}
-	
+
 	fmt.Println("检查简化模式提示词中的新工具:")
 	for _, tool := range newTools {
 		if strings.Contains(simplifiedPrompt, tool) {
@@ -61,14 +61,14 @@ func testPromptTools() {
 			fmt.Printf("  ✗ %s - 未包含\n", tool)
 		}
 	}
-	
+
 	// 检查工具使用策略
 	if strings.Contains(simplifiedPrompt, "推荐的分析流程") {
 		fmt.Println("  ✓ 工具使用策略 - 已包含")
 	} else {
 		fmt.Println("  ✗ 工具使用策略 - 未包含")
 	}
-	
+
 	// 检查搜索策略示例
 	if strings.Contains(simplifiedPrompt, "搜索策略示例") {
 		fmt.Println("  ✓ 搜索策略示例 - 已包含")
@@ -79,7 +79,7 @@ func testPromptTools() {
 
 func testProjectStructure(git *gitlab.Client, projectID int) {
 	args := map[string]interface{}{
-		"include_content":   true,
+		"include_content":  true,
 		"file_type_filter": "go",
 	}
 
@@ -102,7 +102,7 @@ func testProjectStructure(git *gitlab.Client, projectID int) {
 
 	fmt.Printf("项目名称: %s\n", data["project_name"])
 	fmt.Printf("项目路径: %s\n", data["project_path"])
-	
+
 	if stats, ok := data["statistics"].(map[string]interface{}); ok {
 		fmt.Printf("总文件数: %v\n", stats["total_files"])
 		fmt.Printf("总目录数: %v\n", stats["total_directories"])
@@ -129,12 +129,12 @@ func testProjectStructure(git *gitlab.Client, projectID int) {
 
 func testGlobalSearch(git *gitlab.Client, projectID int) {
 	args := map[string]interface{}{
-		"search_patterns": []interface{}{"func", "import"},
-		"file_patterns":   []interface{}{"*.go"},
+		"search_patterns":  []interface{}{"func", "import"},
+		"file_patterns":    []interface{}{"*.go"},
 		"exclude_patterns": []interface{}{"*_test.go", "vendor/*"},
-		"case_sensitive":  false,
-		"include_context": true,
-		"context_lines":   2,
+		"case_sensitive":   false,
+		"include_context":  true,
+		"context_lines":    2,
 	}
 
 	result := internal.SimplifiedGitLabMCPExecutor(internal.GitLabMCPCall{
@@ -189,4 +189,4 @@ func showAvailableTools() {
 	for i, tool := range fullTools {
 		fmt.Printf("  %d. %s: %s\n", i+1, tool.Name, tool.Description)
 	}
-} 
+}

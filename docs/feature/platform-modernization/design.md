@@ -15,8 +15,8 @@
 |User|id integer PK、username unique 3–64、password_hash bcrypt、role admin/member、disabled bool|管理员创建；禁止删除最后一个可用管理员；密码/禁用修改撤销会话|
 |Session|token_hash unique、user_id FK、expires_at UTC|随机 32 字节 token，数据库仅存 SHA256；HttpOnly SameSite=Lax cookie，TLS 时 Secure，退出撤销；24h 过期|
 |Project|id GitLab 数字 ID、name、enabled bool|管理员配置；沿用全局 GitLab 凭证；默认 enabled|
-|Run|id、project_id、mr_iid、source_project_id、base_sha/head_sha、title/url、status、error、coverage、result_json、trace_json、created/started/finished、requested_by、policy_version、attempt|持久化 pending 后有界 worker 认领；成功保存结果与终态同事务；重跑新 ID；历史不覆盖|
-|Finding|id/fingerprint、file、line、severity、title、description、evidence、trigger、suggestion、confidence|结果严格 JSON；有效文件/行号/快照证据校验；不充分候选与已验证证据分开|
+|Run|id、project_id、mr_iid、source_project_id、diff_version_id、base_sha/head_sha、title/url、status、error、coverage、result_json、trace_json、created/started/finished、requested_by、policy_version、运行 ID 表示独立尝试|持久化 pending 后有界 worker 认领；成功保存结果与终态同事务；重跑新 ID；历史不覆盖|
+|Finding|id/fingerprint、file、line、side(head/base)、type、severity、title、description、evidence、trigger、suggestion、confidence|结果严格 JSON；有效文件/行号/快照证据校验；不充分候选与已验证证据分开|
 |Review|run_id、finding_id、status、reason、actor、updated_at|accepted/false_positive/fixed/pending；每次修改记录事件，运行重试不覆盖原记录|
 |Event|id、actor、action、target、created_at|登录外的任务/管理/复核操作留痕；无 token 或模型秘密|
 |Schema|version integer|事务迁移；旧库保留原表；备份后升级，回退旧二进制仍可读取旧表|
@@ -66,9 +66,9 @@ pending → running → succeeded/failed/incomplete/cancelled。重启时 runnin
 
 ## Git 快照与 Eino
 
-GitLab MR changes 记录 DiffRefs base/head SHA 与 source project，diff 返回截断/overflow 视为覆盖不足。处理文件增删改/重命名；解析 @@ hunk 获取真实新增行和删除旧行；二进制、排除扩展、大小限制明确显示。fork 上下文读取 source project/head，base 内容读取目标项目/base，不允许 Agent 传入任意项目或 ref。
+GitLab MR 元数据与版本列表确定 diff_version_id、base/head SHA 与 source project；读取不可变 /versions/:id，验证 SHA、state/real_size 与 collapsed/too_large 标志，覆盖受限明确记录。依据 https://docs.gitlab.com/api/merge_requests/ 的 diff version 契约，避免依赖旧 /changes 接口。处理文件增删改/重命名；解析 @@ hunk 获取真实新增行和删除旧行；发现分别引用 head 或 base 并验证该侧证据；二进制、排除扩展、大小限制明确显示。fork 上下文读取 source project/head，base 内容读取目标项目/base，不允许 Agent 传入任意项目或 ref。
 
-Eino v0.9.21 与 openai extension v0.1.13 先验证编译兼容，锁定依赖。通过标准 tool calling 绑定少量工具：read_file、list_files、search_code、read_context；这些工具只读任务快照，分页、有界输出、缓存。搜索命中不是漏洞，工具不给所有依赖默认风险。模型提示将代码视为不可信数据，不接受仓库中的操作指令。
+Eino v0.9.21 与 openai extension v0.1.13 先验证编译兼容，锁定依赖。通过标准 tool calling 绑定少量工具：read_file、list_files、search_code；这些工具只读任务快照，分页、有界输出、缓存。搜索命中不是漏洞，工具不给所有依赖默认风险。模型提示将代码视为不可信数据，不接受仓库中的操作指令。
 
 最终模型必须输出 {findings:[],summary,coverage_notes:[]}，未知字段、空响应、错误 JSON、超限都不得被当成无漏洞。文件/行/证据必须对应快照；未充分验证的候选标记 confidence，不声明程序可利用性已验证。持久化工具名、脱敏参数、时长/失败、token 使用，不保存隐藏推理。评论仅管理员启用后由确定性流程发送，失败不删除已完成结果；发送前核对当前 MR head，旧提交不发送“当前通过”。
 
@@ -83,3 +83,7 @@ Vite 打包 web/dist，Go embed 打包产物，使单二进制运行；开发使
 需要真实行为测试：登录/权限/撤销/Origin、任务认领和重复事件、新 SHA 重审、取消/超时/恢复、严格解析/定位、fork refs、筛选、旧数据迁移、React 构建及浏览器交互。使用本地假 GitLab 与模型 tool-calling 服务固定样例；真实私有 GitLab/model 无凭证时明确报告未验证，不用模拟成功冒充真实质量提升。
 
 当前设计不需要额外用户决策；生产容量和真实模型质量需部署证据。上线前备份 SQLite 与配置，使用新构建启动，验证数据与登录；回退二进制不会恢复新业务记录到旧模型，应保留备份。
+
+## 系统设置补充（用户 2026-10-04 明确追加）
+
+GET/PUT /api/v1/settings 仅管理员。仓库不再跟踪 config.yaml，提供 config.example.yaml；首次启动复制生成权限 0600 的 config.yaml。设置使用旧 YAML 字段，保存前校验、同目录临时文件 fsync/rename 原子替换，成功后替换内存快照。UI 脱敏密钥并显示是否已设置，留空保留。模型与 GitLab 配置用于新操作，listen 与 worker 数变更明确提示需要重启；运行中审计不应混用不同实例，执行服务需捕获配置快照。项目配置从专用 API 修改并同步 projects（含 enabled）到配置文件；启动按配置条目恢复/更新项目投影。同步失败明确提示重试，原数据库记录不静默回滚。配置写入错误不得改变内存状态。

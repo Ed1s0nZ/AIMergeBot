@@ -1,403 +1,102 @@
 # AIMergeBot
 
-> 🚀 自动化代码安全审查平台，支持 GitLab MR ，AI 智能检测 SQL注入、XSS、敏感信息泄露等风险，开箱即用！   
->[ bilibili视频介绍 - AIMergeBot](https://www.bilibili.com/video/BV1wpuozTETg/?vd_source=32c8f3da92120ecaedeefea506bf5be8)
+团队自托管的 GitLab 代码安全审计工作台。React 前端、登录与管理员权限、SQLite 任务历史、Eino 工具调用 Agent，围绕具体 Git 提交收集证据并支持人工复核。
 
-## 实现原理
-  ![详情预览](./image/流程.png)
+## 功能
 
----
-
-## 功能亮点
-- **支持 GitLab Merge Request（MR）自动安全审查**
-- **AI 智能检测**：SQL注入、XSS、CSRF、敏感信息泄露、SSRF、依赖风险等
-- **结构化结果**：风险类型、等级、建议、上下文一目了然
-- **智能修复建议**：提供完整的修复代码、修复说明、测试建议及注意事项
-- **主动/被动双模式**：支持定时轮询和 Webhook
-- **MR评论**：可自定义配置将扫描结果信息及建议以评论的方式，评论到对应MR
-- **本地持久化**：已分析过的MR会记录在本地文件，系统重启不会重复分析
-- **多项目支持**：配置灵活
-- **ReAct + MCP**：更准确
-- **导出结果**：支持导出PDF结果
-- **一键部署，开箱即用**
-
----
-
-## 核心特性
-
-### 1. ReAct + MCP 增强架构
-AIMergeBot 采用 ReAct（Reasoning and Acting）推理模式结合 MCP（Model Context Protocol）工具集，提供更精准的代码安全分析：
-
-#### ReAct 推理模式
-- **结构化推理**：每个分析步骤都包含思考、行动、观察的完整循环
-- **深度分析**：通过多步骤推理深入理解代码逻辑和安全风险
-- **智能决策**：基于上下文信息智能选择分析策略
-
-#### MCP 工具集
-- **10个核心工具**：覆盖代码安全审计的各个关键领域
-- **专业化分工**：每个工具专注于特定安全领域
-- **统一接口**：所有工具使用统一的 JSON 格式
-
-### 2. 增强的 MCP 工具集
-
-#### 已完全实现的核心工具（7个）
-
-1. **gitlab_file_content** - 文件内容获取
-   - 获取指定文件的完整内容
-   - 支持分支和提交引用
-   - 用于分析函数定义、变量声明等
-
-2. **gitlab_file_info** - 文件信息获取
-   - 获取文件的基本信息（行数、大小、类型等）
-   - 帮助了解文件结构
-   - 为后续分析提供上下文
-
-3. **gitlab_search_code** - 代码搜索
-   - 在仓库中搜索指定的文本或模式
-   - 支持文件类型过滤
-   - 用于查找相关函数调用、变量使用等
-
-4. **gitlab_context_analysis** - 上下文分析
-   - 分析代码片段的上下文关系
-   - 智能行号调整和小文件优化
-   - 提供前后代码、函数调用等信息
-
-5. **gitlab_function_analysis** - 函数深度分析
-   - 分析函数定义、调用关系、参数传递
-   - 追踪函数调用链
-   - 识别函数级别的安全风险
-
-6. **gitlab_security_pattern_search** - 安全模式搜索
-   - 支持 6 种常见漏洞模式
-   - 可配置严重程度过滤
-   - 提供具体的代码位置和上下文
-
-7. **gitlab_dependency_analysis** - 依赖安全分析
-   - 支持 Go、Node.js、Python 依赖
-   - 识别依赖相关的安全风险
-   - 提供版本安全检查
-
-
-
-### 3. 智能工具调用改进
-
-#### 智能行号调整
-- 自动调整超出范围的行号到有效范围
-- 提供详细的调整信息和建议
-- 返回调整后的分析结果
-
-#### 小文件优化
-- 对于小文件（≤20行），自动返回完整内容
-- 避免信息不足导致的误导
-- 提高分析效率
-
-#### 重试机制
-- 自动重试网络错误、限流等临时性错误
-- 递增延迟避免频繁请求
-- 错误分类和友好提示
-
-### 4. 统一架构优化
-
-#### 统一智能修复建议流程
-- ReAct模式和普通模式使用相同的修复建议生成逻辑
-- 为所有问题生成具体的修复建议
-- 统一错误处理和日志记录
-
-#### 改进的评论功能
-- 检测ReAct的整体建议
-- 在评论开头显示ReAct智能分析的整体建议
-- 避免重复显示上下文信息
-
----
+- 登录/退出、管理员创建账号、禁用、角色变更、密码重置与会话撤销。
+- 项目管理、手动审计、GitLab Webhook、分页轮询与提交级去重。
+- 有界 worker、任务超时/取消、服务重启中断标记、独立重审记录。
+- 固定 diff 版本 ID 和 base/head SHA；支持 fork MR、文件重命名、真实 diff 新增/删除行定位。
+- Eino 标准 tool calling：`read_file`、`list_files`、`search_code`，有缓存与输出预算。
+- 严格结果校验、提交代码证据匹配、候选标记、覆盖不足说明、工具与模型调用/token 记录。
+- 项目/状态/等级/类型/复核过滤，发现复核及操作日志。
+- 管理员系统设置：模型、GitLab、Webhook、审计策略保存到工作目录 `config.yaml`。
+- React 静态资源嵌入 Go 二进制；旧 SQLite 结果导入并明确标记缺失提交证据。
 
 ## 快速开始
 
-### 1. 克隆项目
+需要 Go（模块最低声明 1.21，当前验证环境为 1.27.1）、CGO/C 编译器；改动前端需要 Node.js 20.19+ / npm。SQLite 驱动需要 `CGO_ENABLED=1`。
+
 ```bash
-git clone https://github.com/Ed1s0nZ/AIMergeBot.git
-cd AIMergeBot
+# 安装并构建前端；产物进入 web/dist 并嵌入 Go 二进制
+cd frontend
+npm ci
+npm run build
+cd ..
+
+go test ./...
+go build -o aimangebot .
+
+# 首次空数据库启动必须配置管理员，密码至少 12 字节、最多 72 字节
+export AIM_ADMIN_USERNAME=admin
+export AIM_ADMIN_PASSWORD='请替换为自己的强密码'
+./aimangebot
 ```
 
-### 2. 安装依赖
+打开 [http://localhost:8080](http://localhost:8080)。首次缺少 `config.yaml` 时，程序从 `config.example.yaml` 复制生成权限为 `0600` 的配置文件。已有 `config.yaml` 不覆盖；该文件和数据库不纳入 Git。初始账号创建后可移除引导环境变量，不会每次重置密码。
+
+登录后进入 **系统设置**，填写模型 API 地址、模型名称/API Key、GitLab 实例/Token。模型须支持 OpenAI 兼容 tool calling；保存后写入本地 `config.yaml`，秘密字段留空保留原值。新审计采用保存后的模型/仓库设置；监听地址与 worker 数变化需要重启。直接手改文件需重启加载，不提供双向文件监控覆盖界面修改。
+
+在 **项目** 添加 GitLab 数字 ID 和展示名称，再到 **审计任务** 填写 MR 编号。项目配置（含启用状态）也同步到 `config.yaml`；写文件失败会提示重试保存。项目 ID 是否可访问在发起审计时由 GitLab 验证。所有团队成员可读团队项目、执行审计及复核；只有管理员可以管理项目、用户、设置和查看操作日志。当前为单团队，不提供项目级成员隔离或多租户。
+
+## 自动触发与评论
+
+默认关闭轮询、Webhook 和评论。在系统设置中明确启用：
+
+- Webhook URL：`https://你的服务/webhook`；事件选择 Merge request，Secret Token 与系统设置的 Webhook Token 一致。未签名和未配置项目的请求不会入队。
+- 轮询约每 30 秒执行，遍历 opened MR 的分页。`scan_existing_mrs=false` 时第一次建立已见 SHA 基线，随后新 MR/新 SHA 执行审计；不制造“已完成”的基线任务。
+- 相同项目/MR/head/审计策略重复事件去重；运行中的强制重审不创建副本，终态强制重审创建独立尝试。
+- 评论只对成功、覆盖完整且当前 MR head 仍匹配的结果发送。发送失败记录 `comment.unknown`，避免网络结果不确定时自动重复发送。结果不会因评论失败丢失。
+
+使用 TLS 反向代理时，在系统设置填写公开访问地址 `public_url: https://audit.example.com`，用于写请求 Origin 校验及 Secure Cookie。程序不信任任意 `X-Forwarded-*` 请求头。不要直接把 HTTP 服务开放到公网；生产代理应强制 HTTPS。单实例部署，数据库持久化磁盘应支持 SQLite WAL。
+
+## 审计状态与可信度
+
+`pending → running → succeeded / failed / incomplete / cancelled`。
+
+- `succeeded` 表示流程和已请求的证据校验完成，不保证代码不存在漏洞。
+- 模型 JSON 无效、文件/行/证据不匹配会失败，不通过关键词兜底制造问题。
+- GitLab diff 状态/数量受限或 collapsed/too_large、被排除或预算外文件、工具失败/部分输出、任务超时标记 `incomplete`，显示覆盖原因。
+- 文件读取最大 256 KiB；单次工具最多 200 行/16 KiB，目录最多 20 页，工具最多 40 次、每任务文件缓存最多 4 MiB，diff 最多 96 KiB。搜索按页最多读 20 文件；返回 `more` 为覆盖受限。
+- 发现定位此次 diff 的 head 新增行或 base 删除行；删除防护逻辑也可报告风险，详情明确标识 HEAD/BASE，并验证对应提交的证据。候选 `candidate` 与证据支持 `supported` 都需要人工判断可利用性。
+- 依赖清单和关键词不被默认判为漏洞；当前没有 CVE 数据库集成。
+- 模型 token 数依赖兼容接口返回 usage；未返回时不能当作零成本。工具详情里 `model` 条目记录返回的 token 数。
+
+## 结构与 API
+
+```text
+frontend/src/          React 页面、共享组件、请求与样式
+web/dist/              可重复生成的嵌入静态产物
+web/ui.go              SPA 静态资源与 API 404 边界
+internal/platform/     auth / settings / store / runner / GitLab / Eino / HTTP
+internal/*.go          旧版本兼容类型、工具与对比基线；新服务不注册旧业务路由
+config.example.yaml    无真实密钥的默认配置
+main.go                启动、资源装配、关闭
+```
+
+业务 API `/api/v1`；会话由 HttpOnly Cookie 认证；`/auth/login` 公开，`/auth/me` 和 `/auth/logout` 管理会话。详细契约见 [design.md](docs/feature/platform-modernization/design.md)。原 `/results`、`/mr_status`、`/reanalyze_mr` 等端点不再注册，旧 HTML 不再作为服务 UI。旧 ReAct/MCP 说明属于旧版本参考，当前运行采用 Eino。
+
+## 升级与回退
+
+1. 停止旧服务，备份 `pr_agent.db`（WAL 模式先完成 checkpoint/备份）和 `config.yaml`。
+2. 构建新版本，设置首次管理员凭证，使用原工作目录启动。
+3. 新表使用 `platform_` 前缀；原 `results` 等表保留。旧结果导入一次，标记 `incomplete`，不伪造 SHA/行号。损坏 JSON 会明确报错，修复或从备份恢复后重试。
+4. 校验项目与历史，配置模型，发起一条审计后再启用自动触发。
+5. 回退停止新版本并恢复旧二进制/数据库备份。新运行、账号和复核不会自动降级到旧表。
+
+## 开发与验证
+
 ```bash
-go mod tidy
+go test ./...
+go test -race ./internal/platform
+go vet ./...
+cd frontend
+npm run typecheck
+npm run build
+npm run dev
 ```
 
-### 3. 配置 `config.yaml`
-```yaml
-# AIMergeBot 配置
+Vite 开发代理默认转发到 `localhost:8080`。提交前前端构建更新 `web/dist`，确保 Go 嵌入最新 UI。模块版本和前端依赖均有锁文件。
 
-# 监听端口，格式如 :8080
-listen: ":8080"  # 监听的 HTTP 服务端口
-
-gitlab:
-  token: "xxxxxxxxxxxxxxxxxxxxx"  # GitLab 访问 Token，需有项目读权限
-  url: "https://gitlab.com"           # GitLab 实例地址，支持自建/私有
-
-openai:
-  api_key: "sk-xxxxxxxxxxxxxxxxxxxxx"  # OpenAI 或兼容大模型 API Key
-  url: "https://api.openai.com/v1"                                 # OpenAI API 地址，可自定义
-  model: "gpt-4o-mini"                                           # 使用的大模型名称
-
-projects:
-  - id: 12345678           # GitLab 项目 ID（数字），可在项目设置页面底部查看
-    name: "group/project" # GitLab 项目名称（group/project 格式），仅用于展示
-
-# 是否启用主动轮询模式（定时扫描所有 MR）
-enable_polling: true
-# 是否启用 Webhook 模式（推荐，实时响应 MR 事件）
-enable_webhook: true
-# 是否自动在 MR 下添加安全审查评论
-enable_mr_comment: true
-# 是否全量扫描历史 MR（true=全量，false=只扫新/增量 MR）
-scan_existing_mrs: true  # true=全量扫描，false=只扫增量MR
-# 检测文件白名单，命中这些扩展名的文件将不进行检测
-whitelist_extensions: ["txt", "md", "xlsx", "xls", "csv","zip"]
-
-# ReAct + MCP 增强功能配置
-react:
-  enabled: true
-  model: "gpt-4o-mini"
-  temperature: 0.1
-  max_retries: 3
-  max_steps: 10
-
-mcp:
-  enabled: true
-  verbose_logging: true
-  gitlab:
-    enabled: true
-    retry_count: 2
-    retry_delay: 1
-```
-
-### 4. 运行服务
-```bash
-go run main.go
-```
-
-### 5. 配置 GitLab Webhook（可选）
-- 在项目设置 Webhook，URL 填 `http://你的服务器:8080/webhook`
-- 事件选择 Merge Request
-
-### 6. 访问前端
-浏览器打开 [http://localhost:8080/](http://localhost:8080/) 查看安全分析结果
-
----
-
-## 界面预览
-1. 展示界面：   
-  ![界面预览](./image/展示.png)
-
-2. 详情界面：      
-  ![详情预览](./image/详情.png)
-
-3. 评论界面：   
-  ![详情预览](./image/评论.png)
-4. 推理界面：
-  ![推理预览](./image/推理.png)
-
----
-
-## 技术架构
-
-### 文件结构
-```
-AIMergeBot/
-├── internal/
-│   ├── gitlab_mcp.go          # 核心 MCP 工具实现
-│   ├── react_auditor.go       # ReAct 审计器
-│   ├── gitlab.go              # GitLab 集成
-│   ├── openai.go              # OpenAI 集成
-│   ├── handler.go             # HTTP 处理器
-│   ├── storage.go             # 数据存储
-│   └── config.go              # 配置管理
-├── web/
-│   ├── index.html             # 前端界面
-│   └── react_audit.html       # ReAct 分析界面
-├── cmd/
-│   └── test_tools/            # 测试工具
-├── image/                     # 界面截图
-├── main.go                    # 主程序入口
-├── config.yaml                # 配置文件
-└── README.md                  # 项目文档
-```
-
-### 核心特性
-
-1. **避免误导**
-   - 统一的 JSON 输出格式
-   - 详细的上下文信息
-   - 明确的风险等级和建议
-
-2. **提高精准度**
-   - 专业化工具分工
-   - 多维度交叉验证
-   - 结构化分析结果
-
-3. **增强可操作性**
-   - 精确的代码位置
-   - 具体的修复建议
-   - 清晰的风险评估
-
-### 分层分析策略
-
-1. **基础信息收集层**
-   - `gitlab_file_info` → 了解文件结构
-   - `gitlab_file_content` → 获取完整内容
-
-2. **模式识别层**
-   - `gitlab_security_pattern_search` → 搜索漏洞模式
-   - `gitlab_search_code` → 搜索特定代码
-
-3. **深度分析层**
-   - `gitlab_function_analysis` → 分析关键函数
-   - `gitlab_context_analysis` → 分析代码上下文
-
-4. **专项审计层**
-   - `gitlab_dependency_analysis` → 依赖安全检查
-   - `gitlab_config_analysis` → 配置安全审查
-   - `gitlab_api_endpoint_analysis` → API 安全审计
-
-5. **风险追踪层**
-   - `gitlab_data_flow_analysis` → 数据流追踪
-   - `gitlab_error_handling_analysis` → 错误处理检查
-   - `gitlab_authentication_analysis` → 认证机制分析
-
----
-
-## 使用策略
-
-### 工具组合示例
-
-#### SSRF 漏洞分析流程
-1. gitlab_security_pattern_search → 搜索 SSRF 模式
-2. gitlab_function_analysis → 分析相关函数
-3. gitlab_data_flow_analysis → 追踪数据流
-4. gitlab_context_analysis → 分析上下文
-
-#### 依赖安全审计流程
-
-1. gitlab_dependency_analysis → 分析依赖
-2. gitlab_config_analysis → 检查配置
-3. gitlab_security_pattern_search → 搜索漏洞模式
-
-
-### 预期效果
-
-#### 精准度提升
-1. **更全面的覆盖**
-   - 从单一文件分析扩展到多维度审计
-   - 覆盖代码、配置、依赖、API 等各个层面
-
-2. **更深入的理解**
-   - 从表面模式识别到深层逻辑分析
-   - 支持函数级、数据流级、架构级的分析
-
-3. **更准确的判断**
-   - 从简单匹配到上下文感知分析
-   - 多维度交叉验证降低误报率
-
-#### 效率提升
-1. **减少重复调用**
-   - 每个工具都有明确的职责分工
-   - 避免重复获取相同信息
-
-2. **提高分析速度**
-   - 并行处理多个维度
-   - 智能缓存和优化
-
-3. **降低误报率**
-   - 多维度交叉验证
-   - 上下文感知分析
-
-#### 可操作性提升
-1. **具体的位置**
-   - 精确到行号的代码位置
-   - 清晰的函数和变量追踪
-
-2. **明确的建议**
-   - 可操作的修复建议
-   - 具体的代码示例
-
-3. **风险分级**
-   - 清晰的风险等级评估
-   - 优先级排序建议
-
----
-
-## 常见问题 FAQ
-
-**Q: 支持 GitHub PR 吗？**   
-**A: 当前仅支持 GitLab MR，GitHub PR 暂不支持。**   
-
-**Q: 支持哪些 AI 大模型？**   
-A: 支持 OpenAI 兼容 API（gpt-3.5-turbo/gpt-4/moonshot/qwen/glm等），可自定义模型和API地址。   
-
-**Q: 如何获取项目ID？**   
-A: 见 GitLab 项目设置页面底部，或用 API 查询。   
-
-**Q: 支持多项目吗？**   
-A: 支持，`projects` 列表可配置多个项目。   
-
-**Q: 支持自建/私有 GitLab 吗？**   
-A: 支持，`gitlab.url` 填你的私有地址即可。   
-
-**Q: 如何自定义分析频率？**   
-A: 修改 `internal/gitlab.go` 里的 `time.Sleep` 参数。   
-
-**Q: ReAct 模式有什么优势？**   
-A: ReAct 模式通过结构化推理和多步骤分析，能够更深入地理解代码逻辑，提供更准确的安全分析结果。   
-
-**Q: MCP 工具集支持哪些编程语言？**   
-A: 支持 Go、Node.js、Python、Java、PHP、Ruby、Rust 等多种编程语言。   
-
-**Q: 如何调整 ReAct 分析深度？**   
-A: 在配置文件中设置 `react.max_steps` 参数，控制推理步骤数量。   
-
----
-
-## 时间线
-1. 2025.07.19
-   - 优化界面展示；
-   - 增加文件白名单，该名单内的文件都不进行扫描
-2. 2025.07.20
-   - 增加了按项目筛选的功能
-3. 2025.08.03
-   - 增加了ReAct模式，并完成了gitlab mcp开发和接入
-   - 新增10个核心MCP工具，覆盖代码安全审计的各个关键领域
-   - 优化工具调用机制，解决行号超出范围等问题
-   - 统一架构设计，提供更一致的用户体验
-
----
-
-## 未来扩展
-
-### 短期计划
-1. **优化现有工具**
-   - 提高分析精度和性能
-   - 增强错误处理和重试机制
-   - 支持更多编程语言和框架
-
-2. **添加新的安全分析工具**
-   - 根据实际需求开发新的分析工具
-   - 添加更多安全模式和检测规则
-   - 扩展支持更多编程语言
-
-### 长期计划
-1. **集成外部服务**
-   - 漏洞数据库集成
-   - 安全扫描工具集成
-   - 威胁情报集成
-
-2. **机器学习增强**
-   - 模式学习
-   - 风险预测
-   - 自动修复建议
-
-3. **扩展支持**
-   - 更多编程语言
-   - 更多框架支持
-   - 更多安全标准
-
----
+验证包含：会话/权限/跨站写入拒绝、提交去重/重审/并发、取消/超时/恢复、fork refs、diff 行号与证据、旧数据导入、Eino 实际工具调用、旧/新结果逻辑对比，以及本地浏览器登录/设置保存/复核/移动布局。详见 [验证记录](docs/feature/platform-modernization/verification.md)。固定模型响应测试证明流程行为，不证明真实模型准确率；真实私有 GitLab、模型精度和生产吞吐仍需部署样例验证。

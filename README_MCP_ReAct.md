@@ -1,3 +1,5 @@
+> 旧版本参考：当前服务已采用 Eino 和 `/api/v1` 工作台。请以 [README](README.md) 为准；本文中的旧工具和流程不作为当前运行契约。
+
 # AIMergeBot MCP & ReAct 功能说明
 
 ## 概述

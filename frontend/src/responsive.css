@@ -1,0 +1,167 @@
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 195px;
+  }
+  .workspace {
+    margin-left: 195px;
+  }
+  .content {
+    padding: 30px 24px;
+  }
+  .topbar {
+    padding: 0 24px;
+  }
+  .submit-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .project-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .settings-section {
+    gap: 30px;
+  }
+  .login-story {
+    padding: 65px 10%;
+  }
+  .login-story h1 {
+    font-size: 33px;
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 18px;
+  }
+  .sidebar .brand {
+    margin: 0 0 18px;
+  }
+  .workspace-label,
+  .sidebar-bottom {
+    display: none;
+  }
+  .sidebar nav {
+    flex-direction: row;
+    overflow: auto;
+    gap: 5px;
+  }
+  .sidebar nav a {
+    white-space: nowrap;
+    padding: 9px;
+  }
+  .sidebar nav a svg:last-child {
+    display: none;
+  }
+  .shell {
+    display: block;
+  }
+  .workspace {
+    margin: 0;
+  }
+  .topbar {
+    height: 55px;
+  }
+  .topbar-tag {
+    display: none;
+  }
+  .content {
+    padding: 27px 18px;
+  }
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  .metrics {
+    gap: 10px;
+  }
+  .metrics > div {
+    padding: 15px 10px;
+  }
+  .metrics strong {
+    font-size: 25px;
+  }
+  .metrics small {
+    font-size: 9px;
+  }
+  .inline-form {
+    flex-wrap: wrap;
+  }
+  .inline-form input,
+  .inline-form select {
+    max-width: none;
+    flex: 1;
+    min-width: 130px;
+  }
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-section {
+    grid-template-columns: 1fr;
+    padding: 22px;
+    gap: 12px;
+  }
+  .settings-description p {
+    max-width: none;
+  }
+  .review-form {
+    flex-wrap: wrap;
+  }
+  .review-form input {
+    min-width: 180px;
+  }
+  .snapshot {
+    gap: 18px;
+    padding: 20px;
+  }
+  .snapshot code {
+    font-size: 10px;
+  }
+  .finding-heading {
+    flex-wrap: wrap;
+  }
+  .settings-save {
+    gap: 15px;
+  }
+  .login {
+    grid-template-columns: 1fr;
+  }
+  .login-story {
+    padding: 45px 30px;
+  }
+  .login-story .brand {
+    position: static;
+    margin-bottom: 35px;
+  }
+  .login-story h1 {
+    font-size: 29px;
+  }
+  .login-story > small,
+  .login-features {
+    display: none;
+  }
+  .login-form {
+    padding: 45px 25px;
+  }
+  .login-story p {
+    margin-bottom: 0;
+  }
+  .guide {
+    padding: 20px;
+  }
+  footer {
+    padding: 20px;
+  }
+  .sidebar-bottom {
+    display: flex;
+    padding-top: 13px;
+    margin-top: 18px;
+  }
+  .avatar {
+    padding: 5px 9px;
+  }
+}

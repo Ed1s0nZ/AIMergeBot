@@ -1,0 +1,11 @@
+config.yaml
+*.db
+*.db-shm
+*.db-wal
+node_modules/
+frontend/dist/
+.env
+.env.*
+*.log
+*.tsbuildinfo
+/aimangebot
