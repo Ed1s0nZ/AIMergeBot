@@ -24,6 +24,9 @@ type Runner struct {
 }
 
 func (r *Runner) Start(parent context.Context) error {
+	if r.Settings != nil {
+		r.Store.BindQuotaSettings(r.Settings)
+	}
 	if err := r.Store.Recover(parent); err != nil {
 		return err
 	}

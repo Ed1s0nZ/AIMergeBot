@@ -1,3 +1,4 @@
+import { AuditQuotaSettingsFields } from "./audit-quota-settings";
 import { GitAuditSettingsFields } from "./git-audit-settings";
 import { useEffect, useState } from "react";
 import {
@@ -8,12 +9,13 @@ import {
   SlidersHorizontal,
   CheckCircle2,
   ChevronRight,
+  Gauge,
 } from "lucide-react";
 import { api, write, APIError, type Settings } from "./api";
 import { ErrorBox, Empty } from "./components";
 export function SystemSettings() {
   const [trustedProxyDraft, setTrustedProxyDraft] = useState("");
-  const [conflict,setConflict]=useState(false);
+  const [conflict, setConflict] = useState(false);
   const [section, setSection] = useState("model");
   const [baseline, setBaseline] = useState("");
   const [settings, setSettings] = useState<Settings | null>(null),
@@ -24,8 +26,8 @@ export function SystemSettings() {
     api<Settings>("/settings")
       .then((s) => {
         setConflict(false);
- setError("");
- setSettings(s);
+        setError("");
+        setSettings(s);
         setTrustedProxyDraft((s.trusted_proxies || []).join(", "));
         setBaseline(JSON.stringify(s));
       })
@@ -58,9 +60,15 @@ export function SystemSettings() {
       icon: GitBranch,
     },
     {
+      id: "quotas",
+      title: "审计配额",
+      description: "队列容量与执行次数",
+      icon: Gauge,
+    },
+    {
       id: "execution",
       title: "执行策略",
-      description: "预算与服务配置",
+      description: "调查预算与服务配置",
       icon: SlidersHorizontal,
     },
   ];
@@ -83,8 +91,16 @@ export function SystemSettings() {
           服务配置待重启：监听地址、并发数或可信代理与当前运行配置不同。重启前继续使用原来的服务配置。
         </div>
       )}
- {conflict && <button type="button" onClick={load}>重新加载最新设置（放弃当前修改）</button>}
- {s.project_config_sync?.pending && <div className="error" role="status">项目配置尚未同步到 config.yaml，服务会自动重试。数据库中的修改已保留。</div>}
+      {conflict && (
+        <button type="button" onClick={load}>
+          重新加载最新设置（放弃当前修改）
+        </button>
+      )}
+      {s.project_config_sync?.pending && (
+        <div className="error" role="status">
+          项目配置尚未同步到 config.yaml，服务会自动重试。数据库中的修改已保留。
+        </div>
+      )}
       {saved && (
         <div className="success" role="status">
           {saved}
@@ -136,7 +152,9 @@ export function SystemSettings() {
                 restart_required: boolean;
               }>("/settings", write("PUT", s));
               setSettings(r.settings);
-              setTrustedProxyDraft((r.settings.trusted_proxies || []).join(", "));
+              setTrustedProxyDraft(
+                (r.settings.trusted_proxies || []).join(", "),
+              );
               setBaseline(JSON.stringify(r.settings));
               setSaved(
                 r.restart_required
@@ -144,10 +162,14 @@ export function SystemSettings() {
                   : "设置已保存，新审计将使用更新后的配置。",
               );
             } catch (e) {
-              setError(e instanceof APIError && e.code === "invalid_trusted_proxies"
-                ? "可信代理最多填写 32 个 IP 或 CIDR，不能使用全网范围、域名或未指定地址。"
-                : e instanceof APIError && e.status===409 ? "配置已被其他操作更新，请重新加载后再保存。" : (e as Error).message);
- setConflict(e instanceof APIError && e.status===409);
+              setError(
+                e instanceof APIError && e.code === "invalid_trusted_proxies"
+                  ? "可信代理最多填写 32 个 IP 或 CIDR，不能使用全网范围、域名或未指定地址。"
+                  : e instanceof APIError && e.status === 409
+                    ? "配置已被其他操作更新，请重新加载后再保存。"
+                    : (e as Error).message,
+              );
+              setConflict(e instanceof APIError && e.status === 409);
             } finally {
               setBusy(false);
             }
@@ -352,6 +374,25 @@ export function SystemSettings() {
           </section>
           <section
             className="panel settings-section"
+            data-group="quotas"
+            hidden={section !== "quotas"}
+          >
+            <div className="settings-description">
+              <span className="section-icon">
+                <Gauge size={22} />
+              </span>
+              <h2>审计配额</h2>
+              <p>控制队列容量、项目与用户并发，以及滚动审计次数。</p>
+            </div>
+            <div className="fields">
+              <AuditQuotaSettingsFields
+                value={s.audit_quotas}
+                onChange={(audit_quotas) => setSettings({ ...s, audit_quotas })}
+              />
+            </div>
+          </section>
+          <section
+            className="panel settings-section"
             data-group="execution"
             hidden={section !== "execution"}
           >
@@ -364,24 +405,25 @@ export function SystemSettings() {
             </div>
             <div className="fields">
               <div className="settings-option-card">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={s.generate_sequence_diagrams}
-                  onChange={(e) =>
-                    setSettings({
-                      ...s,
-                      generate_sequence_diagrams: e.target.checked,
-                    })
-                  }
-                />
-                发现问题后生成时序图
-              </label>
-              <p className="muted">
-                额外调用当前模型生成链路，增加耗时和 token
-                用量。生成失败会保留审计发现。
-              </p>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={s.generate_sequence_diagrams}
+                    onChange={(e) =>
+                      setSettings({
+                        ...s,
+                        generate_sequence_diagrams: e.target.checked,
+                      })
+                    }
+                  />
+                  发现问题后生成时序图
+                </label>
+                <p className="muted">
+                  额外调用当前模型生成链路，增加耗时和 token
+                  用量。生成失败会保留审计发现。
+                </p>
               </div>
+
               <GitAuditSettingsFields
                 value={s.git_audit}
                 onChange={(git_audit) => setSettings({ ...s, git_audit })}
@@ -451,12 +493,16 @@ export function SystemSettings() {
                     setTrustedProxyDraft(e.target.value);
                     setSettings({
                       ...s,
-                      trusted_proxies: e.target.value.split(",").map((x) => x.trim()).filter(Boolean),
+                      trusted_proxies: e.target.value
+                        .split(",")
+                        .map((x) => x.trim())
+                        .filter(Boolean),
                     });
                   }}
                 />
                 <small className="muted" id="trusted-proxy-help">
-                  只填写实际代理地址。留空时忽略转发的客户端 IP；保存后需要重启服务。
+                  只填写实际代理地址。留空时忽略转发的客户端
+                  IP；保存后需要重启服务。
                 </small>
               </label>
               <label>

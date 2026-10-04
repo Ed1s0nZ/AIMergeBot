@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -15,6 +16,7 @@ import (
 type Store struct {
 	DB            *sql.DB
 	projectSyncMu sync.Mutex
+	quotaSettings atomic.Pointer[SettingsService]
 }
 
 func OpenStore(path string) (*Store, error) {
@@ -94,6 +96,17 @@ func (s *Store) migrate() error {
 	}
 	if err = migrateProjectAccess(tx); err != nil {
 		return err
+	}
+	for _, query := range []string{
+		`CREATE INDEX IF NOT EXISTS platform_quota_project_running ON platform_runs(status,project_id)`,
+		`CREATE INDEX IF NOT EXISTS platform_quota_user_running ON platform_runs(status,requested_by)`,
+		`CREATE INDEX IF NOT EXISTS platform_quota_started ON platform_runs(julianday(started_at))`,
+		`CREATE INDEX IF NOT EXISTS platform_quota_project_started ON platform_runs(project_id,julianday(started_at))`,
+		`CREATE INDEX IF NOT EXISTS platform_quota_user_started ON platform_runs(requested_by,julianday(started_at))`,
+	} {
+		if _, err = tx.Exec(query); err != nil {
+			return err
+		}
 	}
 	var version int
 	if err = tx.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil {

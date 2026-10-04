@@ -14,6 +14,12 @@ import (
 )
 
 func fail(c *gin.Context, err error) {
+	var quota *QuotaError
+	if errors.As(err, &quota) {
+		c.Header("Retry-After", "60")
+		c.JSON(429, gin.H{"error": "audit capacity reached; retry later", "code": "audit_quota_exceeded", "scope": quota.Scope, "limit": quota.Limit})
+		return
+	}
 	status := 500
 	message := "operation failed"
 	code := ""
@@ -156,7 +162,8 @@ func (h *HTTP) submit(c *gin.Context) {
 	}
 	id, created, err := h.Runner.Submit(c.Request.Context(), req.ProjectID, req.MRIID, currentUser(c).ID, req.Force)
 	if err != nil {
-		if errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrCredentials) {
+		var quota *QuotaError
+		if errors.As(err, &quota) || errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrCredentials) {
 			fail(c, err)
 			return
 		}
@@ -191,7 +198,12 @@ func (h *HTTP) run(c *gin.Context) {
 		return
 	}
 	access.CanSubmit = access.CanSubmit && enabled
-	c.JSON(200, gin.H{"run": r, "reviews": reviews, "permissions": access})
+	wait, err := h.Store.QueueWaitFor(c.Request.Context(), r)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(200, gin.H{"run": r, "reviews": reviews, "permissions": access, "queue_wait": wait})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)
@@ -373,6 +385,11 @@ func (h *HTTP) webhook(c *gin.Context) {
 	}
 	id, created, err := h.Runner.Submit(c.Request.Context(), mr.Project.ID, mr.ObjectAttributes.IID, 0, false)
 	if err != nil {
+		var quota *QuotaError
+		if errors.As(err, &quota) {
+			fail(c, err)
+			return
+		}
 		c.JSON(422, gin.H{"error": "unable to enqueue configured project"})
 		return
 	}
@@ -405,11 +422,19 @@ func (h *HTTP) saveSettings(c *gin.Context) {
 	}
 	cfg, err := h.Settings.DecodePublic(raw)
 	if err != nil {
+		if errors.Is(err, ErrAuditQuotas) {
+			c.JSON(400, gin.H{"error": err.Error(), "code": "invalid_audit_quotas"})
+			return
+		}
 		c.JSON(400, gin.H{"error": "invalid settings fields"})
 		return
 	}
 	if err = h.Settings.Save(cfg); err != nil {
 		status := 400
+		if errors.Is(err, ErrAuditQuotas) {
+			c.JSON(status, gin.H{"error": err.Error(), "code": "invalid_audit_quotas"})
+			return
+		}
 		if errors.Is(err, ErrTrustedProxies) {
 			c.JSON(status, gin.H{"error": err.Error(), "code": "invalid_trusted_proxies"})
 			return

@@ -138,6 +138,7 @@ func (h *HTTP) login(c *gin.Context) {
 
 func (h *HTTP) Register(r *gin.Engine) {
 	if h.Settings != nil {
+		h.Store.BindQuotaSettings(h.Settings)
 		cfg := h.Settings.Snapshot()
 		h.startupSettings = &cfg
 	}

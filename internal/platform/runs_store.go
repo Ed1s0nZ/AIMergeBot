@@ -51,6 +51,9 @@ func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, 
 	if !errors.Is(err, sql.ErrNoRows) {
 		return 0, false, err
 	}
+	if err = checkOutstanding(ctx, tx, snap.ProjectID, actor, s.auditQuotas()); err != nil {
+		return 0, false, err
+	}
 	policyJSON, _ := json.Marshal(snap.AuditPolicy)
 	res, err := tx.ExecContext(ctx, `INSERT INTO platform_runs(project_id,mr_iid,source_project_id,diff_version_id,base_sha,head_sha,title,url,status,created_at,requested_by,policy_version,policy_digest,audit_policy_json) VALUES(?,?,?,?,?,?,?,?,'pending',?,?,?,?,?)`, snap.ProjectID, snap.MRIID, snap.SourceProjectID, snap.DiffVersionID, snap.BaseSHA, snap.HeadSHA, snap.Title, snap.URL, now(), actor, PolicyVersion, policyDigest(snap.AuditPolicy), string(policyJSON))
 	if err != nil {
@@ -73,7 +76,8 @@ func (s *Store) Claim(ctx context.Context) (int64, error) {
 	}
 	defer tx.Rollback()
 	var id int64
-	if err = tx.QueryRowContext(ctx, `SELECT id FROM platform_runs WHERE status='pending' AND (retry_at='' OR julianday(retry_at)<=julianday('now')) ORDER BY id LIMIT 1`).Scan(&id); err != nil {
+	predicate, args := quotaClaimPredicate(s.auditQuotas())
+	if err = tx.QueryRowContext(ctx, `SELECT r.id FROM platform_runs r WHERE r.status='pending' AND (r.retry_at='' OR julianday(r.retry_at)<=julianday('now'))`+predicate+` ORDER BY r.id LIMIT 1`, args...).Scan(&id); err != nil {
 		return 0, err
 	}
 	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='running',started_at=? WHERE id=? AND status='pending'`, now(), id)

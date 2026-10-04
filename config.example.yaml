@@ -38,3 +38,15 @@ git_audit:
 
 # Generate an evidence-linked sequence diagram after validated findings (extra model calls).
 generate_sequence_diagrams: true
+
+# Live queue/start limits. Rolling 24-hour starts include retries, not token cost.
+# System tasks share global/project buckets; individual user buckets apply to user IDs > 0.
+audit_quotas:
+  outstanding_global: 200
+  outstanding_project: 50
+  outstanding_user: 20
+  running_project: 2
+  running_user: 2
+  daily_global: 1000
+  daily_project: 200
+  daily_user: 100

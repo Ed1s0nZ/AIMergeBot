@@ -120,6 +120,7 @@ export function RunDetail({ id }: { id: number }) {
       run: Run;
       reviews: Review[];
       permissions: ProjectPermissions;
+      queue_wait?: { reason: string; eligible_at?: string } | null;
     }>("/runs/" + id),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -219,6 +220,23 @@ export function RunDetail({ id }: { id: number }) {
           <code>{r.base_sha || "旧数据未记录"}</code>
         </div>
       </section>
+      {r.status === "pending" && resource.data?.queue_wait && (
+        <div className="coverage" role="status">
+          {(
+            {
+              retry_delay: "任务已保留，等待自动重试时间。",
+              project_running: "任务已保留，等待项目并发额度。",
+              user_running: "任务已保留，等待用户并发额度。",
+              global_daily: "任务已保留，等待工作空间 24 小时次数额度恢复。",
+              project_daily: "任务已保留，等待项目 24 小时次数额度恢复。",
+              user_daily: "任务已保留，等待用户 24 小时次数额度恢复。",
+              worker_available: "任务已保留，等待空闲 Worker。",
+            } as Record<string, string>
+          )[resource.data.queue_wait.reason] || "任务等待调度。"}
+          {resource.data.queue_wait.eligible_at &&
+            ` 最早可重新检查时间：${date(resource.data.queue_wait.eligible_at)}。`}
+        </div>
+      )}
       {r.retry_child_id && (
         <p className="muted">
           已创建自动重试记录 ·{" "}

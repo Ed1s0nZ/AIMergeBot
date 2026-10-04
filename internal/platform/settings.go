@@ -43,6 +43,7 @@ var ErrSettingsConflict = errors.New("settings changed; reload current configura
 type Settings struct {
 	Revision                 uint64           `yaml:"config_revision" json:"config_revision"`
 	GenerateSequenceDiagrams bool             `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
+	AuditQuotas              AuditQuotas      `yaml:"audit_quotas" json:"audit_quotas"`
 	GitAudit                 GitAuditSettings `yaml:"git_audit" json:"git_audit"`
 	legacy.Config            `yaml:",inline"`
 	PublicURL                string   `yaml:"public_url" json:"public_url"`
@@ -94,6 +95,7 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 		cfg.Revision = 1
 	}
 	defaultGitAudit(&cfg.GitAudit)
+	defaultAuditQuotas(&cfg.AuditQuotas)
 	if cfg.Listen == "" {
 		cfg.Listen = ":8080"
 	}
@@ -131,6 +133,10 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
+	defaultAuditQuotas(&c.AuditQuotas)
+	if err := validateAuditQuotas(c.AuditQuotas); err != nil {
+		return err
+	}
 	if err := validateTrustedProxies(c.TrustedProxies); err != nil {
 		return err
 	}
@@ -194,6 +200,7 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 		return ErrSettingsConflict
 	}
 	defaultGitAudit(&next.GitAudit)
+	defaultAuditQuotas(&next.AuditQuotas)
 	if next.GitLab.Token == "" {
 		next.GitLab.Token = old.GitLab.Token
 	}
@@ -279,11 +286,16 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 		return Settings{}, err
 	}
 	current := s.Snapshot()
-	cfg := Settings{GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, TrustedProxies: current.TrustedProxies}
+	cfg := Settings{AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, TrustedProxies: current.TrustedProxies}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {
 		return cfg, err
+	}
+	if _, present := mapping["audit_quotas"]; present {
+		if err = validateAuditQuotas(cfg.AuditQuotas); err != nil {
+			return cfg, err
+		}
 	}
 	return cfg, nil
 }

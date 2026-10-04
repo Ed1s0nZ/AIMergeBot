@@ -75,7 +75,7 @@
     margin-top: 6px;
   }
   .settings-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 17px;
   }
   .settings-rail {
@@ -86,14 +86,15 @@
     display: none;
   }
   .settings-nav {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
   .settings-nav button {
     padding: 11px 9px;
     gap: 6px;
-    width: auto;
-    flex: 1;
+    width: 100%;
+    min-width: 0;
   }
   .settings-nav button strong {
     font-size: 11px;

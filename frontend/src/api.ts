@@ -23,6 +23,10 @@ export async function api<T>(
     const messages: Record<string, string> = {
       project_permission_required: "当前项目权限不足，请联系管理员。",
       not_found: "资源不存在或没有访问权限。",
+      audit_quota_exceeded:
+        "审计队列容量已满，请等待任务完成或联系管理员调整配额。",
+      invalid_audit_quotas:
+        "审计配额必须为范围内的正整数，项目和用户并发不能超过各自任务容量。",
     };
     throw new APIError(
       res.status,
@@ -152,6 +156,16 @@ export type Review = {
 };
 export type Settings = {
   config_revision: number;
+  audit_quotas: {
+    outstanding_global: number;
+    outstanding_project: number;
+    outstanding_user: number;
+    running_project: number;
+    running_user: number;
+    daily_global: number;
+    daily_project: number;
+    daily_user: number;
+  };
   project_config_sync?: { pending: boolean; generation: number; error: string };
   generate_sequence_diagrams: boolean;
   git_audit: {

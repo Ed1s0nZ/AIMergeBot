@@ -1,0 +1,48 @@
+.settings-section .audit-quota-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 24px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+}
+.audit-quota-fields legend {
+  padding: 0 8px;
+  font-weight: 650;
+  color: var(--text, #1e293b);
+}
+.settings-section .fields .audit-quota-fields > p.muted {
+  margin: 0 0 24px;
+  line-height: 1.65;
+}
+.audit-quota-group + .audit-quota-group {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+.audit-quota-group h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.settings-section .fields .audit-quota-group p.muted {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.audit-quota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 16px;
+}
+.audit-quota-grid label {
+  min-width: 0;
+}
+.audit-quota-fields > small {
+  display: block;
+  margin-top: 20px;
+  line-height: 1.65;
+}
+@media (max-width: 640px) {
+  .settings-section .audit-quota-fields {
+    padding: 16px;
+  }
+}
