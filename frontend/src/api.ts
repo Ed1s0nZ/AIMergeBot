@@ -299,6 +299,37 @@ export type FindingHistory = {
   occurrences_truncated: boolean;
   reviews_truncated: boolean;
 };
+export type AssociationDecision = {
+  revision: number;
+  decision: "pending" | "confirmed" | "rejected";
+  reason: string;
+  actor: number;
+  created_at: string;
+};
+export type FindingAssociation = {
+  id: string;
+  finding_id: string;
+  prior_run_id: number;
+  prior_finding_id: string;
+  old_path: string;
+  new_path: string;
+  prior_head_sha: string;
+  head_sha: string;
+  rename_base_sha: string;
+  metadata: GitChangeMetadata;
+  evidence: string;
+  trigger: string;
+  risk_type: string;
+  ambiguous: boolean;
+  state: AssociationDecision;
+  history: AssociationDecision[];
+  history_truncated: boolean;
+};
+export type FindingAssociations = {
+  items: FindingAssociation[];
+  truncated: boolean;
+  limitations: string[];
+};
 export type FindingLifecycle = {
   history_truncated: boolean;
   current: FindingHistory[];

@@ -1,4 +1,5 @@
 import { FrozenContextRepositories } from "./context-repositories";
+import { FindingAssociationsPanel } from "./finding-associations";
 import { RetryUsagePanel } from "./retry-usage";
 import { FollowupAuditPanel } from "./followup-audit";
 import { ModelUsagePanel } from "./model-usage";
@@ -425,6 +426,11 @@ export function RunDetail({ id }: { id: number }) {
       <FindingHistoryPanel
         lifecycle={resource.data?.finding_lifecycle}
         findings={r.result.findings}
+      />
+      <FindingAssociationsPanel
+        key={r.id}
+        run={r}
+        canReview={resource.data?.permissions.can_review || false}
       />
       <div className="section-heading">
         <h2>

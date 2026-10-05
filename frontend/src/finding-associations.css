@@ -1,0 +1,72 @@
+.finding-associations {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.association-content {
+  margin-top: 20px;
+}
+.association-item {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.association-item h3 {
+  margin: 0;
+}
+.association-state {
+  font-size: 13px;
+  color: var(--muted);
+}
+.association-versions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.association-versions > div {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: var(--surface-soft, #f6f8fc);
+  border-radius: 8px;
+}
+.association-versions code {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.association-item pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.association-decision {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.association-decision label {
+  display: grid;
+  gap: 8px;
+}
+.association-decision textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+}
+.association-decision .actions {
+  flex-wrap: wrap;
+}
+.association-message {
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .finding-associations {
+    padding: 16px;
+  }
+  .association-item {
+    padding: 14px;
+  }
+  .association-versions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
