@@ -29,12 +29,53 @@
 }
 .sequence-scroll {
   overflow: auto;
-  max-height: 760px;
+  max-height: 680px;
   background: white;
-  padding: 8px 0;
+  padding: 20px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e5 #f7f9fd;
 }
 .sequence-scroll svg {
   display: block;
+  width: 100%;
+  min-width: 820px;
+  max-width: 1180px;
+  height: auto;
+  margin: 0 auto;
+}
+.sequence-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 24px;
+  font-size: 12px;
+  color: #64748b;
+  border-bottom: 1px solid #eef1f6;
+  background: #fbfcff;
+}
+.sequence-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.sequence-legend i {
+  width: 18px;
+  border-top: 2px solid #53698b;
+}
+.sequence-legend .risk {
+  color: #bc3942;
+}
+.sequence-legend .risk i {
+  border-color: #bc3942;
+}
+.sequence-legend .inferred i {
+  border-top-style: dashed;
+}
+.sequence-legend small {
+  margin-left: auto;
+  font-size: 11px;
+  color: #8391a6;
 }
 .sequence-step {
   cursor: pointer;
@@ -66,6 +107,13 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 13px;
+  background: #f8faff;
+  border-left: 3px solid #7895d5;
+}
+.sequence-evidence strong {
+  display: block;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 .sequence-evidence code {
   overflow-wrap: anywhere;
@@ -135,4 +183,10 @@
   .sequence-scroll {
     max-height: 580px;
   }
+}
+
+.sequence-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }

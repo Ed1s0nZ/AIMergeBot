@@ -1,8 +1,8 @@
 import { GitMetadataEvidence } from "./git-metadata-evidence";
 import { useId, useRef, useState } from "react";
-import { Download, GitBranch } from "lucide-react";
+import { Download, GitBranch, LocateFixed } from "lucide-react";
 import type { SequenceDiagram } from "./api";
-import { sequenceLayout, wrapSequenceText } from "./sequence-layout";
+import { sequenceLayout, compactSequenceText } from "./sequence-layout";
 
 export function FindingSequence({
   diagram,
@@ -53,6 +53,30 @@ export function FindingSequence({
         ? steps.findIndex((s) => s.risk)
         : Math.min(selected, steps.length - 1),
     step = steps[active];
+  const selectStep = (index: number) => {
+    setSelected(index);
+    const canvas = svg.current?.parentElement;
+    const target = svg.current?.querySelector(
+      `[data-sequence-step="${index}"]`,
+    );
+    if (canvas && target) {
+      canvas.scrollTo({
+        left: Math.max(
+          0,
+          (layout.rows[index].middle *
+            svg.current!.getBoundingClientRect().width) /
+            layout.width -
+            canvas.clientWidth / 2,
+        ),
+        top:
+          canvas.scrollTop +
+          target.getBoundingClientRect().top -
+          canvas.getBoundingClientRect().top -
+          20,
+        behavior: "smooth",
+      });
+    }
+  };
   const download = () => {
     if (!svg.current) return;
     try {
@@ -78,18 +102,44 @@ export function FindingSequence({
             <GitBranch size={17} />
             问题时序图
           </h4>
-          <p>静态代码推导 · 红色为风险步骤 · 标注“推测”的关系尚未确认</p>
+          <p>点击步骤查看完整说明与固定提交的代码证据</p>
         </div>
-        <button type="button" onClick={download}>
-          <Download size={15} />
-          下载 SVG
-        </button>
+        <div className="sequence-actions">
+          {steps.some((s) => s.risk) && (
+            <button
+              type="button"
+              onClick={() => selectStep(steps.findIndex((s) => s.risk))}
+            >
+              <LocateFixed size={15} />
+              定位风险
+            </button>
+          )}
+          <button type="button" onClick={download}>
+            <Download size={15} />
+            下载 SVG
+          </button>
+        </div>
       </div>
       {diagram.status === "partial" && (
         <p className="sequence-limit">
           链路包含推测或缺失信息，请结合代码证据复核。
         </p>
       )}
+      <div className="sequence-legend">
+        <span>
+          <i />
+          代码证据
+        </span>
+        <span className="risk">
+          <i />
+          风险步骤
+        </span>
+        <span className="inferred">
+          <i />
+          推测关系
+        </span>
+        <small>静态推导 · 非实际运行轨迹</small>
+      </div>
       <div
         className="sequence-scroll"
         tabIndex={0}
@@ -143,25 +193,26 @@ export function FindingSequence({
           />
           {participants.map((p) => {
             const x = layout.x(p.id),
-              lines = wrapSequenceText(p.label, 140);
+              lines = compactSequenceText(p.label, 180);
             return (
               <g key={p.id}>
+                <title>{p.label}</title>
                 <line
                   x1={x}
                   x2={x}
                   y1={layout.headerHeight + 18}
                   y2={layout.height - 22}
-                  stroke="#dce3ed"
+                  stroke="#dce3ef"
                   strokeDasharray="5 5"
                 />
                 <rect
-                  x={x - 75}
+                  x={x - 102}
                   y={18}
-                  width={150}
+                  width={204}
                   height={layout.headerHeight}
                   rx={10}
-                  fill="#f3f6fb"
-                  stroke="#dce3ed"
+                  fill="#f5f7ff"
+                  stroke="#dce3ef"
                 />
                 <text
                   x={x}
@@ -198,7 +249,9 @@ export function FindingSequence({
                   }
                 }}
                 className="sequence-step"
+                data-sequence-step={i}
               >
+                <title>{s.label}</title>
                 <rect
                   x={10}
                   y={row.top + 4}
@@ -232,11 +285,11 @@ export function FindingSequence({
                     <rect
                       x={Math.max(
                         60,
-                        Math.min(row.middle - 160, layout.width - 370),
+                        Math.min(row.middle - 180, layout.width - 390),
                       )}
-                      y={row.top + 16}
-                      width={320}
-                      height={row.height - 34}
+                      y={row.top + 10}
+                      width={360}
+                      height={row.height - 20}
                       rx={8}
                       fill={s.risk ? "#ffe4e6" : "#eef3fb"}
                       stroke={color}
@@ -246,10 +299,10 @@ export function FindingSequence({
                     />
                     <text
                       x={Math.max(
-                        220,
+                        240,
                         Math.min(row.middle, layout.width - 210),
                       )}
-                      y={row.top + 38}
+                      y={row.top + 30}
                       textAnchor="middle"
                       fontSize={12}
                       fill={color}
@@ -258,7 +311,7 @@ export function FindingSequence({
                         <tspan
                           key={n}
                           x={Math.max(
-                            220,
+                            240,
                             Math.min(row.middle, layout.width - 210),
                           )}
                           dy={n ? 18 : 0}
@@ -288,7 +341,7 @@ export function FindingSequence({
                         d={`M ${row.from} ${y - 12} h 70 v 20 h -70`}
                         fill="none"
                         stroke={color}
-                        strokeWidth={1.8}
+                        strokeWidth={s.risk ? 2.4 : 1.6}
                         strokeDasharray={
                           s.certainty === "inferred" ? "6 4" : undefined
                         }
@@ -301,7 +354,7 @@ export function FindingSequence({
                         y1={y}
                         y2={y}
                         stroke={color}
-                        strokeWidth={1.8}
+                        strokeWidth={s.risk ? 2.4 : 1.6}
                         strokeDasharray={
                           s.certainty === "inferred" || s.kind === "return"
                             ? "6 4"
@@ -324,7 +377,7 @@ export function FindingSequence({
             type="button"
             aria-pressed={active === i}
             className={s.risk ? "risk" : ""}
-            onClick={() => setSelected(i)}
+            onClick={() => selectStep(i)}
           >
             {i + 1}
             {s.risk ? " · 风险" : ""}
