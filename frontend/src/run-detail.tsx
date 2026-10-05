@@ -7,7 +7,7 @@ import { RetryUsagePanel } from "./retry-usage";
 import { FollowupAuditPanel } from "./followup-audit";
 import { ModelUsagePanel } from "./model-usage";
 import { FindingHistoryPanel } from "./finding-history";
-import { VerificationEvidence } from "./finding-verification";
+import { VerificationEvidence, VerificationNotice } from "./finding-verification";
 import {
   GitMetadataEvidence,
   GitMetadataChanges,
@@ -75,7 +75,7 @@ export function FindingCard({
         <Badge value={finding.severity} />
         <h3>{finding.title}</h3>
         <span className="muted">
-          {finding.confidence === "candidate" ? "待验证候选" : "证据支持"}
+          {finding.confidence === "candidate" ? "待验证候选" : "主调查源码支持"}
         </span>
       </div>
       <div className="mono file-location">
@@ -86,6 +86,7 @@ export function FindingCard({
           : `:${finding.line}`}
         {finding.type && ` · ${finding.type}`}
       </div>
+      <VerificationNotice verification={finding.verification} />
       <p>{finding.description}</p>
       {finding.investigation_id && (
         <p className="muted">关联调查：{finding.investigation_id}</p>

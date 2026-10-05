@@ -154,3 +154,9 @@ v20同配置4例结果未满足负对照：102模型不查看已配置的billing
 真实4例复核均结束receipt；101/102/103各1候选且claim_coverage=partial，服务器降inconclusive；104零发现。490166 token。101伤害方向相反、102负例再次误报且复核计算错误，降级不等于消除误报，evaluation-cross-v25.md保留失败与逐项解释。250原始文件SHA256归档。
 
 另外冻结未参与此前调优的6例corpus-acceptance-v1.json，外部人工真值包括Lua保护删除/修复、JS到Python身份头覆盖及独立认证反证、Go到Python兼容默认参数、Python无关日志PR与既存eval。协议明确不据同一验收输出调优再声称未见、逐条判断附加断言而非计数。SHA256 8fc3da20d047082dd6a2e37460afe4254ab4870e52c26735b27fbc563e0474af；临时只读输入验证程序使用实际LoadCorpus、BuildRepository、PrepareContextFixtures成功构造全部6个固定Git输入，未运行样例/模型，程序及生成目录已清理。无生产代码变更不重复全量测试。真实验收结果待运行，整体仍未完成。
+
+## 切片16与隔离验收结果
+
+FindingCard描述前复用VerificationNotice显示partial/unknown全文未获支持；主调查标签明确为主调查源码支持，VerificationEvidence显示full/partial/unknown及历史未声明范围，缺复核仍显示原空态。API可选类型同步，不改人工草稿/权限。类型与生产构建通过（Vite955ms）；真实组件加载v25失败样例，AX确认提示先于描述、full/历史/无记录状态分别可见；360×800截图 /tmp/aimangebot-verification-scope-proof.png，DOM scrollWidth=360等于viewport，Tab焦点到observation-1。恢复视口、关闭临时页并清理测试源码/服务。
+
+隔离6例首次运行结束：两个条件风险核心机制正确识别，四个负例未报新增风险；但203主调查未读取授权下游，独立阶段补读而coverage仍称不可检查；205未读契约，不能称兼容判定通过。全部incomplete，273561token，未配置费用。206冻结外部锚点有人工标注行8/实际变更行7勘误，原输入保持不改，人工按实际diff核对。284文件SHA256归档，evaluation-acceptance-v25.md逐项保留质量/链路/覆盖缺口。整体尚需跨阶段事实一致、主调查上下文能力、真实多组与最终AC审查。

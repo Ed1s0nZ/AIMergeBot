@@ -100,6 +100,7 @@ export type SequenceDiagram = {
   mermaid?: string;
 };
 export type FindingVerification = {
+  claim_coverage?: "full" | "partial" | "unknown";
   model?: string;
   status: string;
   reason: string;
