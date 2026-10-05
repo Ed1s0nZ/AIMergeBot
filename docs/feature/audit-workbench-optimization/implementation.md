@@ -184,3 +184,9 @@ CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata�
 ## v27 真实多组诊断与完成矩阵
 
 生产25文件成24+1两组，两组completed，最终1个group-1来源/调查的规范风险保留、独立supported/full，group2重新读取固定BASE/HEAD/diff使用新观察；status=incomplete、256290token、46391ms。后组只负责文档却重复提交首组Lua风险被正确scope拒绝；存在重复调查名、模型将范围拒绝称环境问题、汇总重复coverage/文件总数叙述不准。PRContext记录缺口如实保留，不做完整链路或效率结论。62原始文件SHA256归档、evaluation-grouped-v27.md记录事实。verification-matrix.md按R3所有12项核对当前证据，明确保留未完成项，整体完成审查未通过。下一改进明确当前组锚点范围，稳定去重相同覆盖说明，最终UI与新隔离验收/交付审查仍需完成。
+
+## 切片20：跨组提交范围指引与覆盖去重
+
+每组注入自身ID/文件清单完整JSON及说明：总manifest只导航、只有当前组diff可提交、先前规范finding由服务器保留无需重提，跨组可读但旧观察不能授予新锚点。普通单组不添加，16KiB超限省略文件列表但保留完整JSON及数量。ValidateFindings对未在当前scope的路径明确拒绝，原side/line/source边界不变。汇总成功及分组最终投影稳定去重完全相同coverage字符串，首次顺序和不同文字/不同来源说明保留；不改raw trace/历史，去重说明不能当工具失败次数。策略v28。
+
+实际SDK后一组初始消息含当前group-2与不重复提交说明、保留旧来源导航；模拟综合回传重复原gap及重复新gap，最终精确保留原gap+新gap两条。纯helper无源审计不变、超限完整JSON、顺序/无别名、越组路径错误定向通过；初定向1.137s，补SDK去重后0.580s，race1.862s，Go全量通过（platform45.436s），git diff --check通过。SDK增加的去重断言在全量编译后定向补跑通过，生产代码没有再改。真实模型行为未以测试代替，下一轮生产两组诊断保持上一失败证据及预算，不宣称已避免所有重复调查或完整链路。

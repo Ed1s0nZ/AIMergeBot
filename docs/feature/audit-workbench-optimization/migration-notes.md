@@ -40,3 +40,7 @@ FindingVerification新增可选claim_coverage（full/partial/unknown），无数
 ### v27 风险链记录缺口
 
 新增服务器coverage_notes，检查有效finding合并后的PRContext双方来源和逐边关系；推测关系即使模型待核实列表为空仍提示。元数据发现不强求运行路径。模型supported/full不抹去服务器记录缺口；这不是语义证明或自动补全事实。无API/数据库迁移，旧存储结果不重写，已有覆盖缺口UI/SARIFwarnings继续适用。
+
+### v28 分组范围与去重
+
+无API/DB迁移，内部CurrentGroup仅导航。总PR文件清单不放宽当前组提交锚点；跨组路径明确报范围错误。最终coverage相同字符串去重保持顺序，底层工具trace、调查/发现与历史不删，工具失败次数仍以trace计。旧存储不改写。组内来源/侧/行校验继续原样，模型仍可能重复调查，提示不构成语义保证。

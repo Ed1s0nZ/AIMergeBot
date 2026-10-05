@@ -151,5 +151,6 @@ func (e *EinoAuditor) synthesizeGroups(ctx context.Context, snap Snapshot, resul
 			break
 		}
 	}
+	result.CoverageNotes = uniqueCoverageNotes(result.CoverageNotes)
 	parent.sequenceCheckpoint(*result)
 }

@@ -94,6 +94,8 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		}
 		result.AuditGroups[i].Status = "running"
 		child := *e
+		currentGroup := g
+		child.Config.CurrentGroup = &currentGroup
 		child.Config.PrimaryOnly = true
 		child.Config.ObservationPrefix = g.ID + "-observation"
 		child.Config.Manifest = string(manifest)
@@ -173,6 +175,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 			}
 		}
 	}
+	result.CoverageNotes = uniqueCoverageNotes(result.CoverageNotes)
 	tools.sequenceCheckpoint(result)
 	return result, tools.trace, nil
 }

@@ -27,7 +27,7 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 				}
 				n := calls.Add(1)
 				if n == 3 {
-					if len(request.Messages) < 2 || !strings.Contains(request.Messages[1].Content, "Prior group navigation") || !strings.Contains(request.Messages[1].Content, "unsafe sink") || !strings.Contains(request.Messages[1].Content, "source_locators") || !strings.Contains(request.Messages[1].Content, "group-1-observation-1") {
+					if len(request.Messages) < 2 || !strings.Contains(request.Messages[1].Content, "Current audit group") || !strings.Contains(request.Messages[1].Content, "do not resubmit") || !strings.Contains(request.Messages[1].Content, `"id":"group-2"`) || !strings.Contains(request.Messages[1].Content, "Prior group navigation") || !strings.Contains(request.Messages[1].Content, "unsafe sink") || !strings.Contains(request.Messages[1].Content, "source_locators") || !strings.Contains(request.Messages[1].Content, "group-1-observation-1") {
 						t.Error("later group lost source handoff")
 					}
 					w.WriteHeader(400)
@@ -115,7 +115,16 @@ func TestGroupedSynthesisKeepsCanonicalFindingSet(t *testing.T) {
 		n := calls.Add(1)
 		content := ""
 		if strings.HasPrefix(request.Messages[0].Content, "Summarize a grouped") {
-			content = `{"summary":"Cross-group static summary, not reproduction","coverage_notes":[]}`
+			var payload struct {
+				CoverageNotes []string `json:"coverage_notes"`
+			}
+			if err := json.Unmarshal([]byte(request.Messages[1].Content), &payload); err != nil || len(payload.CoverageNotes) == 0 {
+				t.Error("synthesis lost coverage input", err)
+			}
+			notes := append(append([]string{}, payload.CoverageNotes...), payload.CoverageNotes...)
+			notes = append(notes, "Additional fixture coverage", "Additional fixture coverage")
+			raw, _ := json.Marshal(groupSynthesis{Summary: "Cross-group static summary, not reproduction", CoverageNotes: notes})
+			content = string(raw)
 		} else {
 			findings := []Finding{}
 			if n == 1 {
@@ -131,7 +140,7 @@ func TestGroupedSynthesisKeepsCanonicalFindingSet(t *testing.T) {
 	scope := DiffScope{Added: map[string]map[int]bool{f.File: {2: true}}, Text: "File: service.any\n@@ -2 +2 @@\n+danger(input)"}
 	plan := AuditPlan{Groups: []AuditGroup{{ID: "group-1", Files: []string{f.File}, Scope: scope}, {ID: "group-2", Files: []string{"other.any"}, Scope: scope}}}
 	result, trace, err := auditor.AuditGroups(context.Background(), snap, plan)
-	if err != nil || len(result.Findings) != 1 || result.Findings[0].Confidence != "candidate" || result.Summary != "Cross-group static summary, not reproduction" || len(result.CoverageNotes) != 1 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") || calls.Load() != 3 {
+	if err != nil || len(result.Findings) != 1 || result.Findings[0].Confidence != "candidate" || result.Summary != "Cross-group static summary, not reproduction" || len(result.CoverageNotes) != 2 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") || result.CoverageNotes[1] != "Additional fixture coverage" || calls.Load() != 3 {
 		t.Fatal("synthesis overwrote canonical discovery or missing", result, err, calls.Load())
 	}
 	found := false

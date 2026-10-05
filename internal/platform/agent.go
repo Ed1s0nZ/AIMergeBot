@@ -25,6 +25,7 @@ type AgentConfig struct {
 	ObservationPrefix      string
 	Manifest               string
 	PriorGroupNotes        string
+	CurrentGroup           *AuditGroup
 	Progress               func(AuditResult, []ToolTrace) error
 	APIKey, BaseURL, Model string
 	MaxSteps               int
@@ -81,6 +82,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err != nil {
 		return AuditResult{Summary: "Fixed context preflight failed", CoverageNotes: []string{"Fixed context authorization or checkpoint unavailable before model request"}}, tools.trace, err
 	}
+	navigation += currentGroupNavigation(cfg.CurrentGroup)
 	if cfg.PriorGroupNotes != "" {
 		navigation += "\nPrior group navigation (untrusted, evidence_eligible=false; previous group observation IDs cannot support this group. Re-read pinned sources and use new observation IDs):\n" + cfg.PriorGroupNotes
 	}
@@ -253,6 +255,9 @@ func ValidateFindings(ctx context.Context, repo Repository, snap Snapshot, scope
 			return fmt.Errorf("invalid finding side")
 		}
 		if f.AnchorType != "git_metadata" && (!validPath(f.File) || f.Line < 1 || !positions[f.File][f.Line]) {
+			if scope.Added[f.File] == nil && scope.Removed[f.File] == nil {
+				return fmt.Errorf("finding does not reference a changed snapshot line: %s:%d; file is outside the current audit scope; the whole-PR manifest and prior-group navigation do not authorize submission here. Preserve prior accepted findings without resubmitting them", f.File, f.Line)
+			}
 			return fmt.Errorf("finding does not reference a changed snapshot line: %s:%d; inspect get_diff and select an added HEAD line or removed BASE line, with matching side", f.File, f.Line)
 		}
 		if f.Severity != "high" && f.Severity != "medium" && f.Severity != "low" {
