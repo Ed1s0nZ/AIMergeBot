@@ -64,3 +64,7 @@ GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过�
 ## F2/F3 / HTTP慢请求边界
 
 源码main.go仅ReadHeaderTimeout和IdleTimeout，对POST body持续滴入没有总读取期限；API异步提交任务，不需要把HTTP连接保留整个模型审计。窄修复为入口统一ReadTimeout30秒、WriteTimeout60秒，保留header10秒/idle60秒。测试真实TCP发送声明长body但只提交首字节，缩短测试读取期限后验证连接内请求超时、正常请求继续可用；同时核对生产超时字段非零。此改动不改变审计Worker期限、用户权限或响应schema。新增main_http.go/test把HTTP构造边界隔离，main.go仅委托；低复杂度，无大模块重构。
+
+## F2/F3 / SQLite运行时更新
+
+官方SQLite发布记录（https://www.sqlite.org/changes.html）及WAL-reset说明（https://www.sqlite.org/wal.html#wal_reset_bug）记录已修复的WAL数据库损坏边界；当前驱动1.14.20内置SQLite3.45.0，Store启用WAL。单Store限制1连接并不构成所有外部观察/备份/多进程情形的证明，不声称已复现损坏。官方模块下载验证驱动1.14.52内置SQLite3.53.4。按既定正式加固窄升级驱动，保留SQLite单实例/原DSN/schema，不引入新数据库；全Go/race、既有数据恢复及SQLite运行版本查询为验收，生产更新先备份。Go govulncheck不覆盖此C依赖，所以单独记录升级证据。慢HTTP请求真实TCP回归0.580秒/vet通过。
