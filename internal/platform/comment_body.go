@@ -36,6 +36,12 @@ func renderComment(namespace string, run Run, reviews []Review) (string, error) 
 	var b strings.Builder
 	b.WriteString(commentMarker(namespace, run))
 	fmt.Fprintf(&b, "\n## AIMergeBot 审计 · Run #%d\n\nBASE `%s` · HEAD `%s`\n\n%s", run.ID, run.BaseSHA, run.HeadSHA, commentText(run.Result.Summary))
+	if p := run.AuditPolicy; p != nil && len(p.SelectedFiles) > 0 {
+		fmt.Fprintf(&b, "\n\n选文件补审 · 原任务 #%d，仅包含%d个选择文件；不代表完整PR覆盖。\n", p.FollowupOf, len(p.SelectedFiles))
+		for _, file := range p.SelectedFiles {
+			fmt.Fprintf(&b, "\n- %s", commentText(file))
+		}
+	}
 	for _, f := range run.Result.Findings {
 		location := fmt.Sprintf("%s:%s:%d", f.Side, f.File, f.Line)
 		if f.AnchorType == "git_metadata" {

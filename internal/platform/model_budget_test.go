@@ -34,7 +34,13 @@ func TestEinoTokenBudgetStopsNextRequest(t *testing.T) {
 			}))
 			defer server.Close()
 			a := &EinoAuditor{Repository: fixtureRepo{files: map[string]string{"file.any": "safe()"}}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "synthetic", MaxSteps: 4, MaxTokens: tc.limit}}
-			result, trace, err := a.Audit(context.Background(), Snapshot{BaseSHA: "base", HeadSHA: "head"}, DiffScope{})
+			var checkpoint AuditResult
+			a.Config.Progress = func(result AuditResult, _ []ToolTrace) error { checkpoint = result; return nil }
+			result, trace, err := a.Audit(context.Background(), Snapshot{BaseSHA: "base", HeadSHA: "head"}, DiffScope{Notes: []string{"selected-file follow-up scope"}, Excluded: []string{"readme.md"}})
+			if len(result.ExcludedFiles) != 1 || len(result.CoverageNotes) < 2 || result.CoverageNotes[0] != "selected-file follow-up scope" || len(checkpoint.ExcludedFiles) != 1 || len(checkpoint.CoverageNotes) < 2 || checkpoint.CoverageNotes[0] != "selected-file follow-up scope" {
+				t.Fatal("interruption discarded scope limits")
+			}
+
 			if !errors.Is(err, tc.want) || calls.Load() != 1 {
 				t.Fatalf("err=%v calls=%d", err, calls.Load())
 			}

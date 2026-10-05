@@ -313,6 +313,14 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		r.finish(id, "failed", "cannot obtain pinned diff: "+err.Error(), AuditResult{}, nil)
 		return
 	}
+	if p := run.AuditPolicy; p != nil && len(p.SelectedFiles) > 0 {
+		changes, _, err = selectAuditChanges(changes, p.SelectedFiles)
+		if err != nil {
+			r.finish(id, "incomplete", "selected snapshot scope unavailable", AuditResult{CoverageNotes: []string{"Selected snapshot files unavailable"}}, nil)
+			return
+		}
+		notes = append(notes, followupCoverageNote(p))
+	}
 	scope := BuildDiff(changes, excluded, 96*1024)
 	scope.Notes = append(scope.Notes, notes...)
 	if scope.Text == "" {

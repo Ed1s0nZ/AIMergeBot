@@ -1,3 +1,4 @@
+import { FollowupAuditPanel } from "./followup-audit";
 import { ModelUsagePanel } from "./model-usage";
 import { FindingHistoryPanel } from "./finding-history";
 import { VerificationEvidence } from "./finding-verification";
@@ -323,6 +324,7 @@ export function RunDetail({ id }: { id: number }) {
           </div>
         )}
       </section>
+      <FollowupAuditPanel key={r.id} run={r} canSubmit={resource.data?.permissions.can_submit||false} />
       <ModelUsagePanel usage={resource.data?.usage} />
       <FindingHistoryPanel lifecycle={resource.data?.finding_lifecycle} findings={r.result.findings} />
       <div className="section-heading">

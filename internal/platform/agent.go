@@ -97,15 +97,15 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		if errors.Is(err, ErrModelUsageUnknown) {
 			note = "Model token usage unavailable; further budgeted requests stopped"
 		}
-		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Audit interrupted; validated submissions retained", CoverageNotes: []string{note}}, tools.trace, err
+		return AuditResult{ExcludedFiles: append([]string{}, scope.Excluded...), MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Audit interrupted; validated submissions retained", CoverageNotes: append(append([]string{}, scope.Notes...), note)}, tools.trace, err
 	}
 	if msg == nil || msg.Content == "" {
-		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Empty final response; validated submissions retained", CoverageNotes: []string{"Primary model returned no summary"}}, tools.trace, fmt.Errorf("empty model response")
+		return AuditResult{ExcludedFiles: append([]string{}, scope.Excluded...), MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Empty final response; validated submissions retained", CoverageNotes: append(append([]string{}, scope.Notes...), "Primary model returned no summary")}, tools.trace, fmt.Errorf("empty model response")
 	}
 	result, err := ParseResult(msg.Content)
 	if err != nil {
 		tools.trace = append(tools.trace, ToolTrace{Name: "model_response", Error: err.Error(), Output: responseDiagnostic(msg.Content, err)})
-		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Invalid model response; validated submissions retained", CoverageNotes: []string{"Invalid final model response"}}, tools.trace, err
+		return AuditResult{ExcludedFiles: append([]string{}, scope.Excluded...), MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Invalid model response; validated submissions retained", CoverageNotes: append(append([]string{}, scope.Notes...), "Invalid final model response")}, tools.trace, err
 	}
 	result.AuditGroups = nil // Group completion is server-owned, never model supplied.
 	result.MetadataChanges = scope.metadataChanges()

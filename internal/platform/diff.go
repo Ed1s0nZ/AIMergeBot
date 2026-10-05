@@ -11,6 +11,7 @@ import (
 var hunkPattern = regexp.MustCompile(`^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
 
 type DiffScope struct {
+	Included []string
 	Metadata map[string]GitChangeMetadata
 	Excluded []string
 	Removed  map[string]map[int]bool
@@ -65,6 +66,7 @@ func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
 			continue
 		}
 		out.WriteString(section)
+		d.Included = append(d.Included, p)
 		if metadata != "" {
 			d.Metadata[p] = *c.Metadata
 		}

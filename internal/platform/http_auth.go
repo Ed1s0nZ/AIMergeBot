@@ -188,6 +188,8 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.GET("/runs", h.runs)
 	api.POST("/runs", h.submit)
 	api.GET("/runs/:id", h.run)
+	api.GET("/runs/:id/scope", h.runScope)
+	api.POST("/runs/:id/followup", h.followupRun)
 	api.POST("/runs/:id/cancel", h.cancelRun)
 	api.PUT("/runs/:id/findings/:finding_id/review", h.review)
 	api.GET("/events", admin, h.events)

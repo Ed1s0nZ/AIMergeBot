@@ -36,6 +36,9 @@ func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, 
 			return 0, false, err
 		}
 	}
+	if err = validateFollowupEnqueue(ctx, tx, snap); err != nil {
+		return 0, false, err
+	}
 	var id int64
 	q := `SELECT id FROM platform_runs WHERE project_id=? AND mr_iid=? AND base_sha=? AND head_sha=? AND policy_version=? AND policy_digest=?`
 	if force {

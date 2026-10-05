@@ -9,6 +9,8 @@ import (
 
 // AuditPolicy is immutable per run; it deliberately contains no credentials.
 type AuditPolicy struct {
+	FollowupOf        int64               `json:"followup_of,omitempty"`
+	SelectedFiles     []string            `json:"selected_files,omitempty"`
 	VerificationModel string              `json:"verification_model"`
 	ModelBudget       ModelBudgetSettings `json:"model_budget"`
 	RepositoryURL     string              `json:"repository_url"`
