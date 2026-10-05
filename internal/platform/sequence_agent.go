@@ -43,7 +43,7 @@ func (e *EinoAuditor) generateSequences(ctx context.Context, result *AuditResult
 			reads = append(reads, v)
 		}
 	}
-	graphAgent, err := react.NewAgent(phase, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: reads}, MaxStep: 8})
+	graphAgent, err := react.NewAgent(phase, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: reads}, MaxStep: agentGraphSteps(8)})
 	if err != nil {
 		for i := range result.Findings {
 			result.Findings[i].SequenceDiagram = unavailableSequence("时序图 Agent 初始化失败")

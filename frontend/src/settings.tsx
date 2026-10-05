@@ -253,7 +253,7 @@ export function SystemSettings() {
                   />
                 </label>
                 <label>
-                  最大步骤
+                  模型轮次上限
                   <input
                     type="number"
                     min="2"

@@ -87,7 +87,7 @@ func (e *EinoAuditor) synthesizeGroups(ctx context.Context, snap Snapshot, resul
 		result.CoverageNotes = append(result.CoverageNotes, "Cross-group synthesis tools unavailable")
 		return
 	}
-	agent, err := react.NewAgent(phase, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: readOnlyTools(phase, registered)}, MaxStep: 6})
+	agent, err := react.NewAgent(phase, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: readOnlyTools(phase, registered)}, MaxStep: agentGraphSteps(6)})
 	if err != nil {
 		result.CoverageNotes = append(result.CoverageNotes, "Cross-group synthesis agent unavailable")
 		return
