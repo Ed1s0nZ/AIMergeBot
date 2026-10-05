@@ -169,3 +169,23 @@ python3 scripts/smoke-worker-recovery.py \
 ```
 
 在原生恢复与元数据审计后，使用真实API提交entry.any补审，验证独立任务有有效结果、固定BASE/HEAD和选中文件、父报告/人工复核不变；选文件任务按覆盖边界标记incomplete，不冒称全量完成。合成模型按请求阶段而非全局序号响应，可重复审计；不代表真实PR准确率。可加--ui-preview保留隔离实例做界面交互，停止演练进程会清理其应用和合成上游，不触及1234。
+
+## 专用测试 MR 写入验收
+
+只有在明确授权专用、无人并发编辑的测试 MR 后运行 `scripts/gitlab-write-acceptance.py`。它会触发模型审计和创建测试评论，写入测试人工复核，追加人工编辑标记，再验证应用进入评论冲突而没有覆盖人工编辑。最后保留评论、复核及冲突证据，不自动清理。不要对真实业务审计报告运行。
+
+在私有 shell 环境提供 `AIM_ACCEPT_SESSION`、`AIM_ACCEPT_GITLAB_TOKEN`、`AIM_ACCEPT_WEBHOOK_TOKEN`，禁止把值写入命令参数或历史。输出目录需0700，JSONL阶段证明0600且不覆盖。示例目标值全部是占位，替换为明确授权对象及当前完整 HEAD：
+
+```sh
+python3 scripts/gitlab-write-acceptance.py \
+  --app-url https://audit.example.com \
+  --gitlab-url https://gitlab.example.com \
+  --project-id 123 --mr-iid 45 \
+  --head-sha 0000000000000000000000000000000000000000 \
+  --output /absolute/private-directory/write-acceptance.jsonl \
+  --wait-seconds 300 --allow-test-mr-writes
+```
+
+程序先核对就绪和当前HEAD，每次写入前重验HEAD；需要新建run，有去重历史时停止，零发现时保留新run并停止，不凭空创建风险。成功验证同run Webhook去重、唯一任务评论标记、同note更新及人工编辑冲突。失败可能已经产生副作用，以私有阶段记录为准，不能盲目重跑或删除已有记录。GitLab人工编辑的读取检查与PUT不是原子条件更新，专用测试对象必须排除并发编辑。最多核对10页评论，超出明确拒绝证明唯一性。
+
+程序向应用重放Webhook，只证明应用事件入口。真实GitLab网络投递还需MR实际事件与GitLab delivery记录对照；本机HTTP合成测试不是实际GitLab验收，更不证明模型准确率。

@@ -323,3 +323,11 @@ Workflow Gate P10，R7授权范围及现有Webhook/Review/评论generation/只�
 流程：向应用重放该专用MR的open Webhook→要求created新run（已有去重结果不能冒充创建实证）→等待固定同一HEAD的succeeded/incomplete与sent→重放同事件确认同run且created=false；核对GitLab指定discussion/note及唯一任务标记。明确选定一个有效发现（零发现则停止且保留已创建审计证据），提交测试人工复核false_positive，等待generation递增且同discussion/note更新、正文hash改变。再通过GitLab API在此测试note追加显式验收人工编辑标记，随后改review为pending，等待comment state conflict，核对GitLab正文仍为人工编辑值且note身份不变。保留测试复核/冲突和人工标记，不自动清理或覆盖。每次写之前重新核对当前MR HEAD，漂移立即停止；并发人工编辑的检查与PUT不是原子条件写，必须专用无人并发测试MR，记录此边界。
 
 10秒单请求、总体有界等待、响应2MiB、HTTPS远端/本机HTTP、禁止跟随重定向并关闭HTTPError，固定错误摘要不输出正文/凭据。私有证明0600只保存阶段、ID、generation、SHA/hash、布尔断言，不复制源码/评论/密钥。实际本机HTTP测试覆盖请求顺序、创建/去重/同note更新/冲突保留、漂移停止及失败阶段证据。重放Webhook仅证明应用入口，不证明GitLab网络投递；最终真实GitLab还需专用MR事件投递记录对照，不把重放冒充平台外部投递。
+
+## F4/F5 / 切片11B写入验收程序及本机HTTP测试
+
+新增gitlab-write-acceptance.py：明确测试写入标志、固定对象、三类环境凭据、preflight、逐次写前HEAD重检、新run要求、Webhook去重、唯一marker有界核对、有效finding复核→同note/generation/body变化→人工编辑→pending复核→conflict且人工正文保留。私有JSONL先独占创建并逐阶段flush/fsync，失败保留副作用边界，不复制评论源码或凭据；HTTPError关闭且不跟随重定向。ops说明真实运行授权、无人并发/非原子PUT边界和重放不等于外部投递。
+
+4项真实本机HTTP测试2.341秒通过（ResourceWarning=error）：完整五次写入/同note更新/人工冲突保留、HEAD漂移阻止第一写、零finding不写review、403错误响应closed且停止。py_compile通过。此测试服务器模拟平台/GitLab状态，不是实际应用Worker/GitLab端到端，不替代已有原生合成集成或未来专用真实MR。真实授权未收到，未运行外部写入。R7可复用程序已实现，原生平台联测和真实专用MR验收仍待后续。
+
+补充显式写入标志缺失时零网络请求检查；receipt与write共9项测试2.854秒通过（write共5项）。未扩大真实写入授权。
