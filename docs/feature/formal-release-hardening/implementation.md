@@ -28,3 +28,7 @@
 当前38fc3f7源码不变：go test ./...通过（platform31.267秒、evaluation3.352秒）；Python27项6.194秒通过，ResourceWarning按error；预算/认证/就绪定向测试2.218秒通过。未声称已有race/vet/前端本轮验证。
 
 本机Eino源码核对：ReAct的MessageRewriter每轮修改累积state.Messages，但函数不能返回error；ADK summarization.BeforeModelRewriteState可以直接调用、state包含Messages和ToolInfos且支持错误。因此适配器需要显式停止机制，不能摘要失败后继续发送超长原消息。摘要默认输出不是业务最终JSON，不应复用强制JSONObject的主审模型配置。其额外请求必须归入共享预算与独立compression阶段trace，工具源码证据仍以服务端原始索引核验；系统约束、固定提交、任务输入及未完成调查应保留。完整设计和反例测试是下一阶段，尚未改变Agent。
+
+## F1 / 已授权需求与验收契约
+
+用户已授权最佳实践优化及最终main交付；保守实现不改变写入权限、审计方法和数据保留策略。REQ-C1：长调查自动减少模型历史占用，保留系统指令、固定快照和原始任务；AC-C1：实际多轮HTTP模型请求触发摘要后继续工具调查。REQ-C2：原始工具证据、调查、反证与已接受发现仍由服务端完整核验；AC-C2：压缩摘要没有源码资格，任务账本原样保留。REQ-C3：摘要失败/空输出/取消停止并保留部分结果；AC-C3：失败不再向主模型发送超长上下文。REQ-C4：摘要调用纳入共享预算、检查点和compression阶段用量；AC-C4：未知usage/阈值使下一请求停止，统计不重复。REQ-C5：自动CI覆盖Go、Python、前端且不需要真实密钥；AC-C5：工作流仅只读仓库权限，不处理本机私有配置，不发布。发布差距其余核查保持原队列。
