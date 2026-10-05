@@ -204,3 +204,9 @@ CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata�
 当前v28生产策略保持不改，新增6例Rust保护移除/修复、PHP到Python可控owner及独立认证反证、C#到Ruby显式false兼容、Java无关日志PR与既存exec。类别重叠但源码/语言/仓库未用于此前调优，真值人工独立，双方条件与不运行假设记录到acceptance-protocol-v2.md。SHA256675923cd5ecf2a6831e17e65fe1ea3a53e183c23f3750dcd973d18b9ce35bc70。
 
 临时Go验证器复用实际LoadCorpus/PrepareCase/PrepareContextFixtures/Changes/BuildDiff，6例固定源码与每个外部BASE/HEAD锚点均为真实变更行，上下文文件可列出。初次验证器ListFiles签名写错编译失败，按Repository接口修正后实际验证成功；没有将失败记输入通过。临时程序及全部Git目录已清理。未改生产代码，不重复全量测试；git diff --check通过。完整模型验收结果待运行，不声称新语料已达标；若据输出调优必须转回归。
+
+### 最终证据与导航修复
+
+v28 隔离验收v2首次运行已归档284文件、逐项SHA256复读验证，详见 evaluation-acceptance-v28-v2.md。两个正确条件风险、四个零告警，其中405下游未读不能认证兼容；6/6 incomplete、296749 tokens，不隐藏原始失败与过强网络断言。v2未用于模型调参。
+
+最终审查发现 AWO-REV-001：发现快速导航更新hash会触发应用路由。改为原生button页内滚动/聚焦，实际Return/Tab验证route保持、草稿保留，类型/构建通过，详见ui-final-qa.md。

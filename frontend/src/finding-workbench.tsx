@@ -51,7 +51,11 @@ export function FindingWorkbench({ findings, reviews, renderFinding }: {
       <small className="muted">独立复核为静态代码复核，不代表运行复现。筛选后未提交草稿仍保留。</small>
     </div>
     {visible.length ? <nav className="panel finding-navigation" aria-label="发现快速导航">
-      {visible.map(f => <a key={f.id} href={`#${anchor(f.id)}`}>{f.title} · {f.file}{f.line > 0 ? `:${f.line}` : ""}</a>)}
+      {visible.map(f => <button key={f.id} type="button" onClick={() => {
+        const target = document.getElementById(anchor(f.id));
+        target?.scrollIntoView({ block: "start" });
+        target?.focus({ preventScroll: true });
+      }}>{f.title} · {f.file}{f.line > 0 ? `:${f.line}` : ""}</button>)}
     </nav> : <div className="empty">没有匹配的发现，请调整或清空筛选。</div>}
     {findings.map(f => <div key={f.id} id={anchor(f.id)} tabIndex={-1} className="finding-target" hidden={!matches(f)}>
       {renderFinding(f, reviewById.get(f.id))}
