@@ -31,6 +31,9 @@ func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, 
 		return 0, false, err
 	}
 	defer tx.Rollback()
+	if err = validateContextAdmission(ctx, tx, snap); err != nil {
+		return 0, false, err
+	}
 	if authorize {
 		if _, err = requireSnapshotRole(ctx, tx, snap, actor, "operator"); err != nil {
 			return 0, false, err
@@ -64,6 +67,9 @@ func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, 
 	}
 	id, err = res.LastInsertId()
 	if err != nil {
+		return 0, false, err
+	}
+	if err = insertRunContextRepositories(ctx, tx, id, snap.AuditPolicy); err != nil {
 		return 0, false, err
 	}
 	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'run.created',?,?)`, actor, fmt.Sprint(id), now()); err != nil {
@@ -161,9 +167,9 @@ func (s *Store) cancelRun(ctx context.Context, id, actor int64, authorize bool) 
 	}
 	defer tx.Rollback()
 	if authorize {
-		var snap Snapshot
-		if err = tx.QueryRowContext(ctx, `SELECT project_id,source_project_id FROM platform_runs WHERE id=?`, id).Scan(&snap.ProjectID, &snap.SourceProjectID); err != nil {
-			return err
+		snap, e := snapshotForRun(ctx, tx, id)
+		if e != nil {
+			return e
 		}
 		if _, err = requireSnapshotRole(ctx, tx, snap, actor, "operator"); err != nil {
 			return err

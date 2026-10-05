@@ -42,6 +42,11 @@ func fail(c *gin.Context, err error) {
 		message = "not found"
 		code = "not_found"
 	}
+	if errors.Is(err, ErrContextRepository) {
+		status = 409
+		message = ErrContextRepository.Error()
+		code = "context_repository_unavailable"
+	}
 	if errors.Is(err, ErrConflict) || errors.Is(err, ErrLastAdmin) {
 		status = 409
 		message = err.Error()
@@ -94,6 +99,9 @@ func (h *HTTP) saveProject(c *gin.Context) {
 	if err := h.Store.SaveProject(c.Request.Context(), p); err != nil {
 		c.JSON(400, gin.H{"error": "invalid project"})
 		return
+	}
+	if h.Runner != nil && !p.Enabled {
+		h.Runner.interruptContextRevoked(p.ID)
 	}
 	if h.Settings != nil {
 		err := h.Store.SyncProjectConfig(c.Request.Context(), h.Settings)
@@ -289,6 +297,8 @@ func (h *HTTP) runs(c *gin.Context) {
 		where += ` AND EXISTS(SELECT 1 FROM platform_project_members m WHERE m.project_id=platform_runs.project_id AND m.user_id=?)`
 		args = append(args, user.ID)
 		where += ` AND (source_project_id=project_id OR EXISTS(SELECT 1 FROM platform_project_members src WHERE src.project_id=platform_runs.source_project_id AND src.user_id=?))`
+		args = append(args, user.ID)
+		where += contextListACL
 		args = append(args, user.ID)
 	}
 	if p := c.Query("project_id"); p != "" {

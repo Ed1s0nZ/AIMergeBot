@@ -17,8 +17,8 @@ func (h *HTTP) requireProject(c *gin.Context, project int, required string) (str
 }
 
 func (h *HTTP) requireRun(c *gin.Context, id int64, required string) (string, bool) {
-	var snap Snapshot
-	if err := h.Store.DB.QueryRowContext(c.Request.Context(), `SELECT project_id,source_project_id FROM platform_runs WHERE id=?`, id).Scan(&snap.ProjectID, &snap.SourceProjectID); err != nil {
+	snap, err := snapshotForRun(c.Request.Context(), h.Store.DB, id)
+	if err != nil {
 		fail(c, err)
 		return "", false
 	}

@@ -124,6 +124,7 @@ func (s *SettingsService) Snapshot() Settings {
 	cfg.WhitelistExtensions = append([]string{}, cfg.WhitelistExtensions...)
 	cfg.Projects = append(cfg.Projects[:0:0], cfg.Projects...)
 	for i := range cfg.Projects {
+		cfg.Projects[i].ContextRepositories = append(cfg.Projects[i].ContextRepositories[:0:0], cfg.Projects[i].ContextRepositories...)
 		if cfg.Projects[i].Enabled != nil {
 			enabled := *cfg.Projects[i].Enabled
 			cfg.Projects[i].Enabled = &enabled
@@ -136,6 +137,11 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
+	for _, project := range c.Projects {
+		if _, err := normalizeContextRepositories(project.ID, project.ContextRepositories); err != nil {
+			return err
+		}
+	}
 	if len(c.VerificationModel) > 128 || strings.ContainsAny(c.VerificationModel, "\r\n\x00") {
 		return fmt.Errorf("invalid verification model name")
 	}
@@ -196,7 +202,7 @@ func (s *SettingsService) SyncProjects(projects []Project) error {
 	next.Projects = []legacy.ProjectConfig{}
 	for _, p := range projects {
 		enabled := p.Enabled
-		next.Projects = append(next.Projects, legacy.ProjectConfig{ID: p.ID, Name: p.Name, Enabled: &enabled})
+		next.Projects = append(next.Projects, legacy.ProjectConfig{ID: p.ID, Name: p.Name, Enabled: &enabled, ContextRepositories: append([]ContextRepository{}, p.ContextRepositories...)})
 	}
 	return s.save(next, true)
 }

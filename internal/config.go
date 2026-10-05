@@ -27,10 +27,16 @@ type Config struct {
 	ReAct               ReActConfig     `yaml:"react"`
 }
 
+type ContextRepositoryConfig struct {
+	ProjectID int    `yaml:"project_id" json:"project_id"`
+	SHA       string `yaml:"sha" json:"sha"`
+}
+
 type ProjectConfig struct {
-	ID      int    `yaml:"id"`
-	Name    string `yaml:"name"`
-	Enabled *bool  `yaml:"enabled,omitempty"`
+	ContextRepositories []ContextRepositoryConfig `yaml:"context_repositories,omitempty"`
+	ID                  int                       `yaml:"id"`
+	Name                string                    `yaml:"name"`
+	Enabled             *bool                     `yaml:"enabled,omitempty"`
 }
 
 type MCPConfig struct {

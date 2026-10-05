@@ -96,6 +96,9 @@ func run() error {
 		}
 	}
 
+	if err = store.ImportContextRepositories(ctx, cfg.Projects); err != nil {
+		return err
+	}
 	repo := &platform.DynamicRepository{Settings: settings}
 	runner := &platform.Runner{Store: store, Repository: repo, Auditor: &platform.DynamicAuditor{Settings: settings, Repository: repo}, Settings: settings, Workers: cfg.AuditWorkers, Timeout: time.Duration(cfg.AuditTimeoutSeconds) * time.Second, Excluded: cfg.WhitelistExtensions}
 	if err = runner.Start(ctx); err != nil {

@@ -187,6 +187,9 @@ func (s *Store) failAndRetry(ctx context.Context, id int64, owner, message strin
 		if err != nil {
 			return 0, err
 		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO platform_run_context_repositories(run_id,project_id,sha) SELECT ?,project_id,sha FROM platform_run_context_repositories WHERE run_id=?`, child, id); err != nil {
+			return 0, err
+		}
 		if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(0,'run.retry_scheduled',?,?)`, fmt.Sprintf("parent=%d child=%d", id, child), now()); err != nil {
 			return 0, err
 		}

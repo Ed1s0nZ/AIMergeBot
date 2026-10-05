@@ -90,6 +90,9 @@ func requireSnapshotRole(ctx context.Context, q queryRower, snap Snapshot, user 
 			return "", err
 		}
 	}
+	if err = requireContextRoles(ctx, q, snap, user); err != nil {
+		return "", err
+	}
 	return role, nil
 }
 
@@ -174,6 +177,9 @@ func (s *Store) SetProjectMember(ctx context.Context, project int, user int64, r
 		return ErrProjectPermission
 	}
 	if role == "" {
+		if err = cancelRevokedContextMember(ctx, tx, project, user); err != nil {
+			return err
+		}
 		_, err = tx.ExecContext(ctx, `DELETE FROM platform_project_members WHERE project_id=? AND user_id=?`, project, user)
 	} else {
 		_, err = tx.ExecContext(ctx, `INSERT INTO platform_project_members(project_id,user_id,role) VALUES(?,?,?) ON CONFLICT(project_id,user_id) DO UPDATE SET role=excluded.role`, project, user, role)

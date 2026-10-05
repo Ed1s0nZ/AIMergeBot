@@ -34,6 +34,9 @@ func (r *Runner) deliveryPreflight(ctx context.Context, d CommentDelivery, run R
 		return false
 	}
 	cfg := r.Settings.Snapshot()
+	if len(contextPolicyItems(run.Snapshot)) > 0 {
+		return false
+	}
 	if run.Status != "succeeded" || run.AuditPolicy == nil || strings.TrimRight(cfg.GitLab.URL, "/") != run.AuditPolicy.RepositoryURL {
 		return false
 	}

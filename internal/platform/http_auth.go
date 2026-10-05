@@ -179,6 +179,8 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.GET("/projects", h.projects)
 	api.POST("/projects", admin, h.saveProject)
 	api.PATCH("/projects/:id", admin, h.saveProject)
+	api.GET("/projects/:id/context-repositories", admin, h.contextRepositories)
+	api.PUT("/projects/:id/context-repositories", admin, h.saveContextRepositories)
 	api.GET("/projects/:id/members", admin, h.projectMembers)
 	api.PUT("/projects/:id/members/:user_id", admin, h.setProjectMember)
 	api.DELETE("/projects/:id/members/:user_id", admin, h.setProjectMember)

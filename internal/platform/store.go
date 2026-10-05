@@ -109,6 +109,9 @@ func (s *Store) migrate() error {
 	if err = migrateProjectAccess(tx); err != nil {
 		return err
 	}
+	if err = migrateContextRepositories(tx); err != nil {
+		return err
+	}
 	for _, query := range []string{
 		`CREATE INDEX IF NOT EXISTS platform_quota_project_running ON platform_runs(status,project_id)`,
 		`CREATE INDEX IF NOT EXISTS platform_quota_user_running ON platform_runs(status,requested_by)`,
@@ -166,6 +169,11 @@ func (s *Store) SaveProject(ctx context.Context, p Project) error {
 	_, err = tx.ExecContext(ctx, `INSERT INTO platform_projects(id,name,enabled) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,enabled=excluded.enabled`, p.ID, p.Name, p.Enabled)
 	if err != nil {
 		return err
+	}
+	if !p.Enabled {
+		if _, err = tx.ExecContext(ctx, `UPDATE platform_runs SET status='cancelled',error='context repository authorization changed',finished_at=? WHERE status IN ('pending','running') AND (EXISTS(SELECT 1 FROM platform_run_context_repositories c WHERE c.run_id=platform_runs.id AND c.project_id=?) OR (project_id=? AND EXISTS(SELECT 1 FROM platform_run_context_repositories c WHERE c.run_id=platform_runs.id)))`, now(), p.ID, p.ID); err != nil {
+			return err
+		}
 	}
 	if err = markProjectSync(tx); err != nil {
 		return err

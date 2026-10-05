@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"encoding/json"
 )
 
 type FindingOccurrence struct {
@@ -45,12 +46,13 @@ func (s *Store) FindingLifecycle(ctx context.Context, run Run) (FindingLifecycle
 		return out, err
 	}
 	defer tx.Rollback()
-	scope := `r.project_id=? AND r.mr_iid=? AND COALESCE(NULLIF(r.source_project_id,0),r.project_id)=? AND r.id<=?`
+	contextJSON, _ := json.Marshal(append([]ContextRepository{}, contextPolicyItems(run.Snapshot)...))
+	scope := `r.project_id=? AND r.mr_iid=? AND COALESCE(NULLIF(r.source_project_id,0),r.project_id)=? AND r.id<=? AND COALESCE(json_extract(r.audit_policy_json,'$.context_repositories'),'[]')=?`
 	source := run.SourceProjectID
 	if source == 0 {
 		source = run.ProjectID
 	}
-	args := []any{run.ID, run.ProjectID, run.MRIID, source, run.ID}
+	args := []any{run.ID, run.ProjectID, run.MRIID, source, run.ID, string(contextJSON)}
 	rows, err := tx.QueryContext(ctx, `WITH matched AS (
  SELECT c.finding_id current_id,c.fingerprint,o.run_id,o.finding_id,r.head_sha,r.status,
  ROW_NUMBER() OVER(PARTITION BY c.finding_id ORDER BY o.run_id DESC) rank,
@@ -130,7 +132,7 @@ func (s *Store) FindingLifecycle(ctx context.Context, run Run) (FindingLifecycle
  SELECT o.run_id,o.finding_id,r.head_sha,r.status,ROW_NUMBER() OVER(PARTITION BY o.fingerprint ORDER BY o.run_id DESC) rank
  FROM platform_finding_occurrences o JOIN platform_runs r ON r.id=o.run_id
  WHERE `+scope+` AND r.id<? AND NOT EXISTS(SELECT 1 FROM platform_finding_occurrences c WHERE c.run_id=? AND c.fingerprint=o.fingerprint))
- SELECT run_id,finding_id,head_sha,status FROM absent WHERE rank=1 ORDER BY run_id DESC,finding_id LIMIT 51`, run.ProjectID, run.MRIID, source, run.ID, run.ID, run.ID)
+ SELECT run_id,finding_id,head_sha,status FROM absent WHERE rank=1 ORDER BY run_id DESC,finding_id LIMIT 51`, run.ProjectID, run.MRIID, source, run.ID, string(contextJSON), run.ID, run.ID)
 	if err != nil {
 		return out, err
 	}

@@ -19,6 +19,14 @@ func (s *Store) SyncProjectConfig(ctx context.Context, settings *SettingsService
 	}
 	projects, err := s.Projects(ctx)
 	if err == nil {
+		for i := range projects {
+			projects[i].ContextRepositories, err = s.ContextRepositories(ctx, projects[i].ID)
+			if err != nil {
+				break
+			}
+		}
+	}
+	if err == nil {
 		err = settings.SyncProjects(projects)
 	}
 	if err != nil {

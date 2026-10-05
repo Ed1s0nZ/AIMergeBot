@@ -9,6 +9,15 @@ openai:
   api_key: ""
   url: "https://api.openai.com/v1"
   model: "gpt-4o-mini"
+# Projects are managed by the workspace. Administrator context links are exported as:
+# projects:
+#   - id: 100
+#     name: team/service
+#     enabled: true
+#     context_repositories:
+#       - project_id: 200
+#         sha: "FULL_FIXED_COMMIT_SHA"
+# Each context project must be registered; branches/URLs/credentials are not accepted.
 projects: []
 enable_polling: false
 enable_webhook: false
