@@ -43,10 +43,13 @@ jobs:
           go vet ./...
       - name: Operations tooling tests
         run: python3 -W error::ResourceWarning -m unittest discover -s scripts -p 'test_*.py' -q
+      - name: Reachable Go dependency vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
       - name: Frontend build
         working-directory: frontend
         run: |
           npm ci
+          npm audit
           npm run typecheck
           npm run build
       - name: Embedded application build

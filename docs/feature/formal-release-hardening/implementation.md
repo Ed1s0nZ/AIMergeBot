@@ -54,3 +54,9 @@ CI采用GitHub Actions push/PR只读contents权限，Go全测/race/vet、Python�
 npm audit --json全前端依赖报告0个已知漏洞（非安全保证）。官方govulncheck实际调用图扫描发现5项/3模块：x/text v0.21.0→v0.39.0（GO-2026-5970）；x/net v0.24.0→至少v0.55.0（GO-2026-5026、4918、GO-2025-3595）；retryablehttp v0.7.2→v0.7.7（GO-2024-2947，GitLabClient.Do路径）。同时报告包级9项、模块级26项当前未检出调用，需另外核对，不能隐藏。按当前正式发布优化授权，优先窄依赖安全升级并重跑调用图扫描/全Go/race/vet。新增源码不执行仓库代码，不发送凭据到漏洞服务；govulncheck读取本地模块并下载公开漏洞数据库。必要Go最低版本变化应记录，部署/CI已有Go1.27。
 
 GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过，Go步骤进行中，尚未宣称成功。最新追加调查异常反例定向测试1.134秒、定向race3.345秒通过。
+
+## F4 / 依赖安全升级
+
+逐步升级与官方govulncheck核对，未把第一次仅清除调用级问题的结果当全依赖无漏洞。最终依赖：jsonparser1.1.2、retryablehttp0.7.7、x/crypto0.56.0、x/net0.57.0、x/text0.41.0、oauth20.27.0、protobuf1.33.0（相应sys0.47.0）。crypto0.56要求net0.57，首轮不相容版本命令失败已识别，随后修正并重新扫描。go mod tidy升级模块最低Go1.26，README同步；部署/Docker/CI已有Go1.27。官方govulncheck v1.8.0实际扫描49模块及Go1.27.1，symbol0、package0；module仅GO-2026-5932无修复的openpgp包，go list -deps ./...确认没有openpgp/ssh导入，保留提示而非声称全部模块0。前端npm audit当前0。CI加入固定版本govulncheck和npm audit持续检查，无真实key。
+
+最终依赖下go test ./...通过（platform33.026秒、evaluation5.712秒），go vet通过。完整platform race90.454秒通过。原e799a08 CI被后续同分支推送正常取消，当前82bbf3f实际run37290432747进行中；下一源码推送会重新CI。另发现入口只限制header/idle，缺少请求体读取deadline，和SQLite驱动内置3.45.0的C依赖不在Go符号漏洞扫描证明内，后续继续核查；不得将首切片误当正式发布完成。
