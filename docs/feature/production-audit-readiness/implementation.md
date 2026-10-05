@@ -391,3 +391,7 @@ Workflow Gate P10，现有R2预算/费用契约与f69e310独立检视为上游�
 ## F4/F5 / PRR-002修复及定向回归
 
 用量汇总拒绝负TotalTokens，计数累加前检查全局及各阶段int64上限；溢出调用记未知、已知合计保持不变，费用估计为空并标明usage_overflow。新增同/跨阶段prompt与completion溢出及负total反例。go test ./internal/platform -run 'Test(ModelUsage|DifferentVerifierPrices)' -count=1通过（1.050秒），既有部分用量和独立复核价格测试保持通过。此修复不代表全分支检视或发布完成，PRR-003健康检查总体deadline仍待修复；真实外部验收及main/1234仍未完成。
+
+## F2/F3 / PRR-003健康检查总体期限
+
+P10，R8有界只读就绪检查与独立检视慢响应反例为上游，允许窄修复。urllib timeout只能限制socket静默，DNS/连接/头/正文没有总期限。把现有HTTP观察移入独立Python子进程，父进程subprocess.run(timeout=...)对整个观察施加期限，超时终止并回收子进程，返回unavailable。保留URL/凭据/协议/redirect/1KiB响应规则，子进程不写文件、不重启服务、不通知。隐藏内部观察参数仅供父进程，正常CLI行为不变，HTTPError继续关闭。测试慢正文和慢头，1秒deadline内不得接受最终ready，容许进程回收与调度余量；正常及失败边界保留。父进程生成的URL只有通过验证后才传入子进程。进程创建/回收有系统调度开销，不宣称硬实时保证。另为PRR-002前端增加usage_overflow说明，避免误显示为缺少价格；不改变API。
