@@ -54,3 +54,7 @@ model_budget新增input_price_per_million、output_price_per_million、currency�
 ## F4/F5 / 切片4实现与验证
 
 verification_model可在系统设置配置且落盘、旧客户端缺失字段保留现值，捕获策略并参与digest；复核阶段使用选择的模型与现有端点/凭据，记录server-owned模型名，图/汇总沿用主模型。新增独立复核计价配置，缺失不同模型单价时详情给出明确未估算原因。CLI冻结选择和价格；Standalone补齐已有verify_findings设置接线，行为与工作台一致。真实Eino本地HTTP测试断言主审/复核请求model路由、失败保持原发现、不同模型不绕过共享阈值、无自动推广以及计价不混用。配置往返/旧客户端/冻结、定向race2.872秒、完整Go(platform22.044秒/evaluation3.677秒)、vet和前端构建1.03秒通过。生产UI与真实模型差异质量尚待本轮后续验收，不把合成HTTP验证说成真实效果。R1真实对象仍未提供；其余项按原清单继续。
+
+## F2/F3 / 切片5：固定快照选文件补审
+
+新增详情GET /runs/:id/scope读取原任务固定快照的变更清单/排除/预算省略，不追随最新MR。POST /runs/:id/followup {files:[paths]}仅operator、原任务终态、项目启用及target/source权限均通过时提交；规范路径、去重排序、1–100文件，必须为固定快照真实变更路径，不能绕过原排除策略。任务AuditPolicy中新增followup_of与selected_files作为不可变范围并参与digest，无新数据库列；复制原非秘密策略，保留原BASE/HEAD/source/diff_version；历史无捕获策略任务拒绝并提示重提。重复原任务/同范围复用活动任务，配额仍由EnqueueUser事务检查。Worker只对选择文件建立diff锚点/分组，但Agent可只读检索全仓库作上下文；未选文件明确为范围外，不宣称全PR覆盖。重试保留策略范围与关联，原结果/复核不更改。评论使用独立任务标识且在正文说明补审范围，避免误当全量结论。新增独立页面面板（加载/空/失败/权限/提交/去重/禁用/响应式），选取失败或预算省略文件再审。Scope清单是输入覆盖说明，不把“纳入输入”作已经深入审计。测试ACL/fork/配额/禁用/活动父任务/无效路径/固定版本/去重、worker过滤/排除/跨文件上下文边界/父证据不变。
