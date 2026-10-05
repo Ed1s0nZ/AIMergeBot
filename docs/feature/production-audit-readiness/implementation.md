@@ -255,3 +255,7 @@ R7先提供只读采证脚本：明确app/gitlab地址、run/project/MR、expect
 ## F2/F3 / 切片10C6单次就绪监控
 
 P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围实现。纯标准库ops-healthcheck.py每次只GET明确endpoint/readyz，HTTPS远端/本机HTTP、不含凭据URL、不跟重定向，响应上限1KiB、超时1–10秒。仅HTTP200且精确JSON status ready算成功，退出0；其他状态/断连/超时/畸形/超限退出1并固定unavailable JSON，不输出URL/异常/正文。不会重启服务或写外部消息，适合现有监控定时调用；生产最终切换后验证真实1234。测试实际本机HTTP成功、503、302、非ready及超限，不把worker就绪解释为远端模型可用。
+
+## F4/F5 / 切片10C6监控实现
+
+实现ops-healthcheck.py单次只读检查与test_ops_healthcheck.py真实本机HTTP测试。200精确ready成功；503、302（未跟随）、非ready、畸形/超限、服务关闭拒绝，非法远端HTTP/凭据/路径/查询与超时范围拒绝。HTTPError响应显式close，ResourceWarning设为error复验通过2项0.56秒，防止周期监控遗留句柄。固定输出/退出码，不读取私有配置，不启动定时任务/写外部消息。operations记录运行及旧版本限制，最终部署后还需实际1234监控证明。

@@ -150,3 +150,11 @@ python3 scripts/gitlab-acceptance-receipt.py \
 ```
 
 输出父目录0700，文件0600且不覆盖，证明只含版本/任务和评论标识、generation/body SHA256，不复制正文或会话。此收据证明一次指定对象的一致性，不证明没有其他重复评论、Webhook触发、更新历史、冲突恢复或真实审计质量。专用MR写入验收需明确授权；可在人工复核更新前后采两份，后续完整程序再验证同评论更新和冲突，不能用这份只读收据冒充完整R7。
+
+### 单次监控命令
+
+```bash
+python3 scripts/ops-healthcheck.py --endpoint http://127.0.0.1:1234 --timeout 3
+```
+
+成功输出ready JSON且退出0；其余输出固定unavailable且退出1。只读取readyz，1KiB响应上限，拒绝重定向与非本机明文HTTP，不输出地址、异常或响应内容。可交给已有监控系统周期执行；本工具不安装定时器、不通知外部人员、不自动重启。Worker就绪不证明GitLab/模型可用，仍应检查实际任务失败率。默认检查1234，新接口在最终版本切换后才可用，旧版本返回unavailable不能误报为新版本成功。
