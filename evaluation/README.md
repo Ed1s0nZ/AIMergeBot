@@ -59,3 +59,5 @@ go run ./cmd/audit-eval --config config.yaml --output /tmp/aimangebot-evaluation
 ## 生产分组诊断
 
 `-grouped` 显式复用生产PlanAuditGroups/AuditGroups及其有界交接，默认仍是旧单组评测。模式写入metadata，恢复不允许混用。`corpus-grouped-v1.json` 用已见Lua机制与24个无害文档修改形成25文件、两个生产组，只检验真实分组保持风险、来源与失败说明，不计未见漏洞识别成绩。使用新输出目录、240秒及原模型/工具/token预算；进程退出0不是各组成功，需检查AuditGroups状态与trace。
+
+`corpus-acceptance-v2.json` 是运行前冻结的6例新语言/新仓库样例（Rust、PHP/Python、C#/Ruby、Java），协议见 [v2隔离验收](../docs/feature/audit-workbench-optimization/acceptance-protocol-v2.md)。外部锚点先经真实Git差异验证；仍是自建小样本、机制有重叠，不代表真实项目或生产准确率。运行一次完整语料、不据结果调优再当未见验收；用独立新目录保留全部失败。

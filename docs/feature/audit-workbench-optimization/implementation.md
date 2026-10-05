@@ -198,3 +198,9 @@ CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata�
 ## 切片21：详情旧快照提示与状态QA
 
 详情500等刷新失败但缓存尚在时，共享ResourceRefreshFailure说明不是最新状态并给出重试；读取/动作错误分开展示，初次加载重试disabled。401/403/404继续原hook清空，未改写入/轮询/授权行为。类型与生产构建967ms通过、git diff --check通过。受控实际RunDetail检查加载/初次500键盘恢复/旧快照500/自动与手动恢复/403清除/队列/unknown评论/空结果，360px无溢出；实际复核内容在刷新失败后保留，fixture204不当数据库保存证据。ui-final-qa.md记录细节与限制，截图SHA256保存到私有本机证据目录，临时页/服务/源码全清理。对应前端状态验收补齐，整体新隔离验收、风险链质量与交付审查仍需完成。
+
+## 隔离验收v2冻结与输入验证
+
+当前v28生产策略保持不改，新增6例Rust保护移除/修复、PHP到Python可控owner及独立认证反证、C#到Ruby显式false兼容、Java无关日志PR与既存exec。类别重叠但源码/语言/仓库未用于此前调优，真值人工独立，双方条件与不运行假设记录到acceptance-protocol-v2.md。SHA256675923cd5ecf2a6831e17e65fe1ea3a53e183c23f3750dcd973d18b9ce35bc70。
+
+临时Go验证器复用实际LoadCorpus/PrepareCase/PrepareContextFixtures/Changes/BuildDiff，6例固定源码与每个外部BASE/HEAD锚点均为真实变更行，上下文文件可列出。初次验证器ListFiles签名写错编译失败，按Repository接口修正后实际验证成功；没有将失败记输入通过。临时程序及全部Git目录已清理。未改生产代码，不重复全量测试；git diff --check通过。完整模型验收结果待运行，不声称新语料已达标；若据输出调优必须转回归。

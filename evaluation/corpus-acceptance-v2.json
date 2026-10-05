@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "kind": "authored-held-out-v2-static-acceptance-not-production-benchmark",
+  "cases": [
+    {
+      "id": "case-401",
+      "expectation": "positive",
+      "base_files": {
+        "documents.rs": "pub struct Request { pub authorization: String, pub document_id: String }\npub fn handle(request: &Request) -> Result<&'static str, u16> {\n    let actor = match request.authorization.as_str() {\n        \"token-alice\" => \"alice\", \"token-bob\" => \"bob\", _ => return Err(401),\n    };\n    let (owner, body) = match request.document_id.as_str() {\n        \"d-a\" => (\"alice\", \"a-private\"), \"d-b\" => (\"bob\", \"b-private\"), _ => return Err(404),\n    };\n    if owner != actor { return Err(403); }\n    Ok(body)\n}\n"
+      },
+      "head_files": {
+        "documents.rs": "pub struct Request { pub authorization: String, pub document_id: String }\npub fn handle(request: &Request) -> Result<&'static str, u16> {\n    let actor = match request.authorization.as_str() {\n        \"token-alice\" => \"alice\", \"token-bob\" => \"bob\", _ => return Err(401),\n    };\n    let (owner, body) = match request.document_id.as_str() {\n        \"d-a\" => (\"alice\", \"a-private\"), \"d-b\" => (\"bob\", \"b-private\"), _ => return Err(404),\n    };\n    Ok(body)\n}\n"
+      },
+      "expected_anchor": {
+        "file": "documents.rs",
+        "side": "base",
+        "line": 9
+      },
+      "rationale": "Removing the owner comparison permits token-bob + document_id=d-a to produce Ok(a-private) rather than Err403. Authentication and existence remain, and the input is exported Request data. External caller must pass a user-controlled document_id; no runtime framework, compiler or exploit execution is assumed proven."
+    },
+    {
+      "id": "case-402",
+      "expectation": "negative",
+      "base_files": {
+        "documents.rs": "pub struct Request { pub authorization: String, pub document_id: String }\npub fn handle(request: &Request) -> Result<&'static str, u16> {\n    let actor = match request.authorization.as_str() {\n        \"token-alice\" => \"alice\", \"token-bob\" => \"bob\", _ => return Err(401),\n    };\n    let (owner, body) = match request.document_id.as_str() {\n        \"d-a\" => (\"alice\", \"a-private\"), \"d-b\" => (\"bob\", \"b-private\"), _ => return Err(404),\n    };\n    Ok(body)\n}\n"
+      },
+      "head_files": {
+        "documents.rs": "pub struct Request { pub authorization: String, pub document_id: String }\npub fn handle(request: &Request) -> Result<&'static str, u16> {\n    let actor = match request.authorization.as_str() {\n        \"token-alice\" => \"alice\", \"token-bob\" => \"bob\", _ => return Err(401),\n    };\n    let (owner, body) = match request.document_id.as_str() {\n        \"d-a\" => (\"alice\", \"a-private\"), \"d-b\" => (\"bob\", \"b-private\"), _ => return Err(404),\n    };\n    if owner != actor { return Err(403); }\n    Ok(body)\n}\n"
+      },
+      "expected_anchor": {
+        "file": "documents.rs",
+        "side": "head",
+        "line": 9
+      },
+      "rationale": "Adding the owner check fixes BASE cross-user disclosure. HEAD requires actor=owner before Ok(body), so do not attribute BASE defect to the new PR. External-caller coverage uncertainty is not a new vulnerability."
+    },
+    {
+      "id": "case-403",
+      "expectation": "positive",
+      "base_files": {
+        "portal.php": "<?php\n$tokens = ['Bearer alpha' => 'alice', 'Bearer beta' => 'bob'];\n$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';\n$actor = $tokens[$authorization] ?? null;\nif ($actor === null) { http_response_code(401); exit; }\n$owner = $actor;\n$client = curl_init('http://records.internal/private-record');\ncurl_setopt($client, CURLOPT_POST, true);\ncurl_setopt($client, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: ' . $authorization]);\ncurl_setopt($client, CURLOPT_POSTFIELDS, json_encode(['owner' => $owner]));\ncurl_setopt($client, CURLOPT_RETURNTRANSFER, true);\n$body = curl_exec($client);\nhttp_response_code(curl_getinfo($client, CURLINFO_RESPONSE_CODE));\necho $body;\ncurl_close($client);\n"
+      },
+      "head_files": {
+        "portal.php": "<?php\n$tokens = ['Bearer alpha' => 'alice', 'Bearer beta' => 'bob'];\n$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';\n$actor = $tokens[$authorization] ?? null;\nif ($actor === null) { http_response_code(401); exit; }\n$owner = $_GET['owner'] ?? $actor;\n$client = curl_init('http://records.internal/private-record');\ncurl_setopt($client, CURLOPT_POST, true);\ncurl_setopt($client, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: ' . $authorization]);\ncurl_setopt($client, CURLOPT_POSTFIELDS, json_encode(['owner' => $owner]));\ncurl_setopt($client, CURLOPT_RETURNTRANSFER, true);\n$body = curl_exec($client);\nhttp_response_code(curl_getinfo($client, CURLINFO_RESPONSE_CODE));\necho $body;\ncurl_close($client);\n"
+      },
+      "expected_anchor": {
+        "file": "portal.php",
+        "side": "head",
+        "line": 6
+      },
+      "rationale": "PHP authenticates the bearer token, but HEAD lets GET owner override the authenticated actor in JSON sent to the listed records.internal service. Downstream reads body owner and returns private string without verifying it against Authorization. alpha+owner=bob selects bob-confidential. Conditional dispatch comes from URL/route/deployment mapping; network isolation is not demonstrated.",
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "records.py": "from flask import Flask, request, jsonify\napp = Flask(__name__)\nrecords = {\"alice\": \"alice-confidential\", \"bob\": \"bob-confidential\"}\n@app.post(\"/private-record\")\ndef private_record():\n    owner = request.get_json()[\"owner\"]\n    if owner not in records:\n        return jsonify(error=\"missing\"), 404\n    return jsonify(record=records[owner])\n",
+            "deployment.conf": "service_name=records.internal\nhandler=records.py\nexposure=internal-service\n"
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-404",
+      "expectation": "negative",
+      "base_files": {
+        "portal.php": "<?php\n$tokens = ['Bearer alpha' => 'alice', 'Bearer beta' => 'bob'];\n$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';\n$actor = $tokens[$authorization] ?? null;\nif ($actor === null) { http_response_code(401); exit; }\n$owner = $actor;\n$client = curl_init('http://records.internal/private-record');\ncurl_setopt($client, CURLOPT_POST, true);\ncurl_setopt($client, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: ' . $authorization]);\ncurl_setopt($client, CURLOPT_POSTFIELDS, json_encode(['owner' => $owner]));\ncurl_setopt($client, CURLOPT_RETURNTRANSFER, true);\n$body = curl_exec($client);\nhttp_response_code(curl_getinfo($client, CURLINFO_RESPONSE_CODE));\necho $body;\ncurl_close($client);\n"
+      },
+      "head_files": {
+        "portal.php": "<?php\n$tokens = ['Bearer alpha' => 'alice', 'Bearer beta' => 'bob'];\n$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';\n$actor = $tokens[$authorization] ?? null;\nif ($actor === null) { http_response_code(401); exit; }\n$owner = $_GET['owner'] ?? $actor;\n$client = curl_init('http://records.internal/private-record');\ncurl_setopt($client, CURLOPT_POST, true);\ncurl_setopt($client, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: ' . $authorization]);\ncurl_setopt($client, CURLOPT_POSTFIELDS, json_encode(['owner' => $owner]));\ncurl_setopt($client, CURLOPT_RETURNTRANSFER, true);\n$body = curl_exec($client);\nhttp_response_code(curl_getinfo($client, CURLINFO_RESPONSE_CODE));\necho $body;\ncurl_close($client);\n"
+      },
+      "expected_anchor": {
+        "file": "portal.php",
+        "side": "head",
+        "line": 6
+      },
+      "rationale": "Same primary diff, but downstream selects owner exclusively from bearer-token mapping and ignores JSON owner. alpha+owner=bob still returns alice-confidential. Inspect this counterevidence; do not report mere selector change as demonstrated bypass.",
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "records.py": "from flask import Flask, request, jsonify\napp = Flask(__name__)\ntokens = {\"Bearer alpha\": \"alice\", \"Bearer beta\": \"bob\"}\nrecords = {\"alice\": \"alice-confidential\", \"bob\": \"bob-confidential\"}\n@app.post(\"/private-record\")\ndef private_record():\n    owner = tokens.get(request.headers.get(\"Authorization\"))\n    if owner not in records:\n        return jsonify(error=\"unauthorized\"), 401\n    return jsonify(record=records[owner])\n",
+            "deployment.conf": "service_name=records.internal\nhandler=records.py\nexposure=internal-service\n"
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-405",
+      "expectation": "negative",
+      "base_files": {
+        "CatalogClient.cs": "using System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\npublic static class CatalogClient {\n    public static async Task<string> QueryAsync(HttpClient http) {\n        var payload = new StringContent(\"{}\", Encoding.UTF8, \"application/json\");\n        var response = await http.PostAsync(\"http://catalog.internal/items\", payload);\n        response.EnsureSuccessStatusCode();\n        return await response.Content.ReadAsStringAsync();\n    }\n}\n"
+      },
+      "head_files": {
+        "CatalogClient.cs": "using System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\npublic static class CatalogClient {\n    public static async Task<string> QueryAsync(HttpClient http) {\n        var payload = new StringContent(\"{\\\"includeArchived\\\":false}\", Encoding.UTF8, \"application/json\");\n        var response = await http.PostAsync(\"http://catalog.internal/items\", payload);\n        response.EnsureSuccessStatusCode();\n        return await response.Content.ReadAsStringAsync();\n    }\n}\n"
+      },
+      "expected_anchor": {
+        "file": "CatalogClient.cs",
+        "side": "head",
+        "line": 6
+      },
+      "rationale": "BASE empty body defaults includeArchived=false in fixed Ruby service. HEAD explicitly sends false, same valid boolean and same selected non-archived records. No changed endpoint, dynamic input or new auth bypass. Caller and runtime gaps remain separate from compatibility conclusion.",
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "catalog.rb": "require 'sinatra'\nrequire 'json'\nITEMS = [{name: 'visible', archived: false}, {name: 'old', archived: true}]\npost '/items' do\n  payload = JSON.parse(request.body.read)\n  include_archived = payload.fetch('includeArchived', false)\n  halt 400 unless include_archived == true || include_archived == false\n  selected = ITEMS.reject { |item| item[:archived] && !include_archived }\n  content_type :json\n  JSON.generate(selected)\nend\n",
+            "deployment.conf": "service_name=catalog.internal\nhandler=catalog.rb\n"
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-406",
+      "expectation": "negative",
+      "base_files": {
+        "CommandServer.java": "import com.sun.net.httpserver.HttpServer;\nimport java.net.InetSocketAddress;\npublic class CommandServer {\n    public static void main(String[] args) throws Exception {\n        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);\n        server.createContext(\"/run\", exchange -> {\n            String command = exchange.getRequestURI().getQuery();\n            System.out.println(\"processing request\");\n            Runtime.getRuntime().exec(command);\n            exchange.sendResponseHeaders(204, -1);\n            exchange.close();\n        });\n        server.start();\n    }\n}\n"
+      },
+      "head_files": {
+        "CommandServer.java": "import com.sun.net.httpserver.HttpServer;\nimport java.net.InetSocketAddress;\npublic class CommandServer {\n    public static void main(String[] args) throws Exception {\n        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);\n        server.createContext(\"/run\", exchange -> {\n            String command = exchange.getRequestURI().getQuery();\n            System.out.println(\"request received\");\n            Runtime.getRuntime().exec(command);\n            exchange.sendResponseHeaders(204, -1);\n            exchange.close();\n        });\n        server.start();\n    }\n}\n"
+      },
+      "expected_anchor": {
+        "file": "CommandServer.java",
+        "side": "head",
+        "line": 8
+      },
+      "rationale": "Only constant log text changes. Runtime.exec(command) and public HTTP input are byte-identical BASE/HEAD: a dangerous historical execution path is present, but no causal PR change. Do not count it as introduced risk or invent a log-input exposure."
+    }
+  ]
+}
