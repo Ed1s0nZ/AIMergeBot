@@ -68,3 +68,7 @@ GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过�
 ## F2/F3 / SQLite运行时更新
 
 官方SQLite发布记录（https://www.sqlite.org/changes.html）及WAL-reset说明（https://www.sqlite.org/wal.html#wal_reset_bug）记录已修复的WAL数据库损坏边界；当前驱动1.14.20内置SQLite3.45.0，Store启用WAL。单Store限制1连接并不构成所有外部观察/备份/多进程情形的证明，不声称已复现损坏。官方模块下载验证驱动1.14.52内置SQLite3.53.4。按既定正式加固窄升级驱动，保留SQLite单实例/原DSN/schema，不引入新数据库；全Go/race、既有数据恢复及SQLite运行版本查询为验收，生产更新先备份。Go govulncheck不覆盖此C依赖，所以单独记录升级证据。慢HTTP请求真实TCP回归0.580秒/vet通过。
+
+## F2/F3 / 独立阶段上下文压缩扩展
+
+独立复核/时序图每项虽仅8模型轮次，批量读取/已有观察初始输入仍可能超过窗口，短步数不能代替上下文限制。复用已验证的官方适配器，各发现独立compression状态，失败只取消该发现子context，保留主审发现；阶段分别verification_compression/diagram_compression，统计写入父任务而导航仅使用对应阶段工具状态。独立复核摘要使用实际verification模型，价格按独立复核价核算；主审/时序摘要用主模型价，不静默混用。完整固定输入/工具配对/原始来源规则不变；真实HTTP验证至少独立复核长批量读取压缩后的fresh来源与用量、失败保留主结果，阶段命名和价格测试覆盖。低复杂度文件187/103行，只挪初始化时机并委托已有适配器，不改公众API。
