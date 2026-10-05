@@ -377,3 +377,7 @@ a65441c干净源码构建至本机0700临时目录，go version -m核对vcs.revi
 ## F2/F3 / PRR-001修复
 
 P10窄范围缺陷修复，冻结检视报告docs/reviews/production-audit-b2e043f.md为上游。平台非force允许重审incomplete是既有业务契约，不为工具改变。验收CLI在首轮converged后若status!=succeeded，记录audit_incomplete_stop及run ID后失败，禁止第二Webhook及任何review/人工编辑；保留初始任务/评论，明确去重未验收。补真实本机HTTP incomplete+sent反例，模拟应用第二提交会新run，断言只有初次Webhook一次写入。原succeeded路径仍验证去重/同note更新/冲突，随后re-review关闭PRR-001并检查门控新风险，不以此批准全126文件。
+
+## F4/F5 / PRR-001修复与区分度验证
+
+CLI首轮converged后新增succeeded门控，incomplete记录停止阶段与未验证去重，禁止第二Webhook及review/人工note改写。平台原有重审incomplete行为未修改。HTTP fixture按incomplete语义在第二提交会新建ID，反例断言只有一次POST；原成功/漂移/无finding/权限失败/无显式授权标志路径保留。receipt+write共10项ResourceWarning=error测试3.403秒exit0。ops说明停止边界，不宣称incomplete已完成去重验收；之前原生succeeded实证仍适用于未变化的成功分支，此次未重复启动原生进程。PRR-001代码和验证已修复，正式re-review报告待下一阶段，整体分支尚未批准。

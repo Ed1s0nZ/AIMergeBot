@@ -91,6 +91,11 @@ def run(args, credentials, record, send=request, pause=time.sleep, clock=time.mo
         return d if d['run']['status'] in ('succeeded', 'incomplete') and s.get('state') == 'sent' and s.get('sent_generation', 0) >= min_generation and s.get('sent_generation') == s.get('desired_generation') else None
 
     first = wait(converged)
+    # Incomplete terminal runs can be resubmitted by the application. Replaying
+    # here would create another model audit rather than prove deduplication.
+    if first['run']['status'] != 'succeeded':
+        record('audit_incomplete_stop', run_id=run_id, deduplication_not_verified=True)
+        raise ValueError('complete audit required for terminal deduplication')
     duplicate = trigger()
     if duplicate != {'id': run_id, 'created': False}:
         raise ValueError('webhook dedup mismatch')

@@ -191,3 +191,5 @@ python3 scripts/gitlab-write-acceptance.py \
 程序向应用重放Webhook，只证明应用事件入口。真实GitLab网络投递还需MR实际事件与GitLab delivery记录对照；本机HTTP合成测试不是实际GitLab验收，更不证明模型准确率。
 
 原生本机联测可运行 `python3 scripts/smoke-worker-recovery.py --binary /absolute/aimangebot --gitlab-write-preview --app-port 19264 --upstream-port 19265`（选择空闲隔离端口）。该模式单独运行，创建合成Webhook/评论，先验证原生租约恢复再运行完整写入CLI，核对一次create、同note更新与人工冲突保留。上游仅localhost，不访问真实配置或GitLab。
+
+写入验收的终态去重阶段要求首轮 `succeeded`。首轮 `incomplete` 即使已经发出评论也会保留证据并停止，记录 `audit_incomplete_stop` / `deduplication_not_verified`；平台允许用户重审不完整任务，故不能靠再次Webhook来无副作用地验证这种终态去重。停止不等于审计结果无效，也不代表去重/更新/冲突已验收，不能盲目重跑。
