@@ -361,3 +361,7 @@ P10发布准备，原有PolicyVersion去重/Worker/重试隔离为上游，允�
 ## F4/F5 / v13策略隔离实现
 
 PolicyVersion升为eino-audit-contract-v13，历史不重写；README说明旧排队任务拒绝与重新提交。新增旧v12任务失败后retry state=policy_changed/无child/证据保留、新提交不同run且捕获v13测试，首次定向0.974秒通过；完整Go平台29.576秒与vet通过。随后补原生Runner旧pending验证，任务failed且固定升级提示，blockingAuditor从未启动；两项升级测试定向race2.996秒通过。此轮应用常量变更尚未重新构建/部署生产，之前c789432原生fixture仍v12，不追认旧演练为v13部署证明。后续需要新二进制升级验收、外部质量/GitLab与main。
+
+## F5 / v13干净二进制原生复验
+
+a65441c干净源码构建至本机0700临时目录，go version -m核对vcs.revision完整匹配、vcs.modified=false；二进制0700及SHA256仅私有proof。19266/19267使用该二进制跑--gitlab-write-preview实际exit0，恢复父检查点一致、替代进程等自然lease失效、恢复子成功；Webhook run5同note更新与人工冲突保留，上游90/91/92模型HTTP=1/3/2。只读SQLite全部任务policy_version精确v13，私有proof补版本/构建摘要0600。新版策略在实际Worker/Eino/评论链路已验证，生产1234尚未替换，main未合并；外部质量与专用GitLab授权仍缺。
