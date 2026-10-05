@@ -108,12 +108,24 @@ func TestDetailStatusDoesNotTransmitSourceAndRechecksPermissions(t *testing.T) {
 	if detail.Version != small.Version {
 		t.Fatal("unchanged detail/version mismatch")
 	}
+	export := request(fmt.Sprintf("/api/v1/runs/%d/sarif", id))
+	if export.Code != 200 || export.Header().Get("Content-Type") != "application/sarif+json" || export.Header().Get("Cache-Control") != "no-store" || !strings.Contains(export.Header().Get("Content-Disposition"), ".sarif") {
+		t.Fatalf("export response: %d %v", export.Code, export.Header())
+	}
+	var exported map[string]any
+	if err = json.Unmarshal(export.Body.Bytes(), &exported); err != nil || exported["version"] != "2.1.0" {
+		t.Fatal("invalid export", err)
+	}
 	if err = s.SetProjectMember(ctx, 1, member.ID, "", admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	revoked := request(fmt.Sprintf("/api/v1/runs/%d/status", id))
 	if revoked.Code == 200 || strings.Contains(revoked.Body.String(), small.Version) {
 		t.Fatal("revoked user received version")
+	}
+	blockedExport := request(fmt.Sprintf("/api/v1/runs/%d/sarif", id))
+	if blockedExport.Code == 200 || strings.Contains(blockedExport.Body.String(), "private-source") {
+		t.Fatal("revoked user could export")
 	}
 	t.Logf("synthetic unchanged payload: full=%d bytes status=%d bytes", full.Body.Len(), status.Body.Len())
 }

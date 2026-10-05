@@ -13,3 +13,6 @@ SQLite自动增列revision NOT NULL DEFAULT 1，原决定、历史和评论状�
 ## 轻量详情版本
 
 新增GET /api/v1/runs/:id/status返回detail_version、status、queue_wait；完整详情也新增detail_version。比较版本相同可以跳过完整读取，版本变化时重读详情。版本是可见状态失效标识，不是源码哈希或安全性证明。每次请求仍必须授权，响应no-store。旧调用方仍可直接读取完整详情。SQLite增量创建项目版本表及触发器，部署前按现有备份流程准备；回退旧服务仍能读取原数据，但失去新版轻量协议，前端遇到旧接口错误会回退完整读取。
+
+
+SARIF 导出新增 GET /runs/:id/sarif（viewer 权限、application/sarif+json、附件响应）。固定提交使用 aimangebot:// 快照 URI 基址，不承诺直接上传 GitHub Code Scanning；没有新数据库迁移。

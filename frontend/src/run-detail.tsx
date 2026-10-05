@@ -1,4 +1,5 @@
 import { FrozenContextRepositories } from "./context-repositories";
+import { SARIFDownload } from "./sarif-download";
 import { PRInvestigationPanel } from "./pr-investigation";
 import { FindingAssociationsPanel } from "./finding-associations";
 import { RetryUsagePanel } from "./retry-usage";
@@ -274,6 +275,7 @@ export function RunDetail({ id }: { id: number }) {
         sub={`RUN #${id} · 项目 ${r.project_id} · ${date(r.created_at)}`}
         action={
           <div className="actions">
+            <SARIFDownload runId={id} />
             {resource.data?.permissions.can_submit && (
               <button disabled={busy} onClick={() => action("retry")}>
                 <RefreshCw size={15} />

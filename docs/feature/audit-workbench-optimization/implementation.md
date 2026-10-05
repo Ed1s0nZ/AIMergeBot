@@ -51,3 +51,12 @@ GitRepository.paths复用每实例Directory+完整SHA清单，最多2项、估�
 检查门槛：HTTP/存储/轮询模块职责分开，新增版本和路由放独立文件；复用现有资源请求取消与错误状态，未新增UI控件。验证：Go全量通过（platform47.335s）、定向race通过3.435s、类型检查与build通过；补充项目隔离摘要/时间等待测试后定向版本与接口测试通过1.579s；git diff --check通过。测试覆盖稳定版本、同长度JSON改动、复核和评论状态、旧数据迁移、撤权和轻量不含源码。
 
 本地浏览器用真实useResource及隔离HTTP样例验证：首次full=1/status=0；未变化后1/1；变更后2/2且显示新版本；轻量失败后3/3成功回退。截图/tmp/aimangebot-status-polling-proof.png为受控样例，临时预览已清理。合成大报告接口测试full251682字节、status124字节；不外推真实报告或总体性能。没有完成全部重试链/历史竞态端到端验证，最终QA仍需补齐。
+
+
+## 切片6：授权 SARIF 导出
+
+GET /runs/:id/sarif 在读取前与发送前检查 viewer 权限，返回 no-store 附件；前端提供下载及失败状态。固定 BASE/HEAD/关联仓库 SHA 用不同 URI 基址表达，删除代码仍定位 BASE，元数据不伪造行号。保留验证等级、覆盖不足及人工复核；静态关系只作为属性和相关位置，不生成代表运行轨迹的 codeFlows。未知关联仓库引用省略并计数，未核实历史结果标记 unverified。
+
+维护门槛：导出映射、HTTP、UI 分模块，复用授权和 API 错误处理。Go 全量通过（platform 43.468s）；SARIF 与权限定向测试通过 1.021s；官方 OASIS SARIF 2.1.0 cos02 Schema 使用 Draft7Validator+FormatChecker 校验实际测试输出通过。Schema SHA256 ad6db49878699b091f3eeb765b6e29e92a34bad4da88664d000c923b549c3a25。前端构建通过，下载 Blob 延迟释放并挂载临时链接。
+
+受控浏览器点击无报错，但两次下载事件均超时，不能声称文件落盘成功；截图 /tmp/aimangebot-sarif-download-proof.png 仅证明入口呈现。临时预览文件和服务已清理。官方 Schema 合规不代表 GitHub Code Scanning 原生上传兼容；虚拟快照 URI 供消费者识别版本。最终 QA 仍需实际下载落盘验证。
