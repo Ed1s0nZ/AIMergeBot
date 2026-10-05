@@ -60,3 +60,7 @@ GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过�
 逐步升级与官方govulncheck核对，未把第一次仅清除调用级问题的结果当全依赖无漏洞。最终依赖：jsonparser1.1.2、retryablehttp0.7.7、x/crypto0.56.0、x/net0.57.0、x/text0.41.0、oauth20.27.0、protobuf1.33.0（相应sys0.47.0）。crypto0.56要求net0.57，首轮不相容版本命令失败已识别，随后修正并重新扫描。go mod tidy升级模块最低Go1.26，README同步；部署/Docker/CI已有Go1.27。官方govulncheck v1.8.0实际扫描49模块及Go1.27.1，symbol0、package0；module仅GO-2026-5932无修复的openpgp包，go list -deps ./...确认没有openpgp/ssh导入，保留提示而非声称全部模块0。前端npm audit当前0。CI加入固定版本govulncheck和npm audit持续检查，无真实key。
 
 最终依赖下go test ./...通过（platform33.026秒、evaluation5.712秒），go vet通过。完整platform race90.454秒通过。原e799a08 CI被后续同分支推送正常取消，当前82bbf3f实际run37290432747进行中；下一源码推送会重新CI。另发现入口只限制header/idle，缺少请求体读取deadline，和SQLite驱动内置3.45.0的C依赖不在Go符号漏洞扫描证明内，后续继续核查；不得将首切片误当正式发布完成。
+
+## F2/F3 / HTTP慢请求边界
+
+源码main.go仅ReadHeaderTimeout和IdleTimeout，对POST body持续滴入没有总读取期限；API异步提交任务，不需要把HTTP连接保留整个模型审计。窄修复为入口统一ReadTimeout30秒、WriteTimeout60秒，保留header10秒/idle60秒。测试真实TCP发送声明长body但只提交首字节，缩短测试读取期限后验证连接内请求超时、正常请求继续可用；同时核对生产超时字段非零。此改动不改变审计Worker期限、用户权限或响应schema。新增main_http.go/test把HTTP构造边界隔离，main.go仅委托；低复杂度，无大模块重构。
