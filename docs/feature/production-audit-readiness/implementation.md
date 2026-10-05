@@ -315,3 +315,11 @@ get_json对HTTPError显式close后原样抛出，main继续固定错误摘要。
 ## F6 / 发布证据清单（准备，未通过）
 
 新增release-readiness.md按原R1–R8逐项区分实际已取得证据与缺口，包含真实质量/权限UI/GitLab授权/最终回归/main/私有备份/1234部署检查。CHANGELOG增加“未发布”条目，README链接清单，明确旧发布记录不代表本轮已部署。仅完成发布准备文档，不宣称F6合并准入或整体完成，不将必要外部证据降为可选。文件差异检查通过，提交前继续秘密扫描。
+
+## F2/F3 / 切片11B专用MR写入验收程序
+
+Workflow Gate P10，R7授权范围及现有Webhook/Review/评论generation/只读receipt为上游，允许先实现程序和本机测试，真实运行仍必须取得人类对专用MR的明确授权。脚本限定app/gitlab/project/MR/full HEAD，显式--allow-test-mr-writes；会话、GitLab token和Webhook token仅环境读取。preflight先GET readyz及MR核对HEAD，检查私有输出目录且拒绝覆盖，开始后保存逐阶段私有证据，失败不隐瞒已发生副作用。不修改仓库、项目配置或凭据，不自动删除评论或覆盖人工编辑。
+
+流程：向应用重放该专用MR的open Webhook→要求created新run（已有去重结果不能冒充创建实证）→等待固定同一HEAD的succeeded/incomplete与sent→重放同事件确认同run且created=false；核对GitLab指定discussion/note及唯一任务标记。明确选定一个有效发现（零发现则停止且保留已创建审计证据），提交测试人工复核false_positive，等待generation递增且同discussion/note更新、正文hash改变。再通过GitLab API在此测试note追加显式验收人工编辑标记，随后改review为pending，等待comment state conflict，核对GitLab正文仍为人工编辑值且note身份不变。保留测试复核/冲突和人工标记，不自动清理或覆盖。每次写之前重新核对当前MR HEAD，漂移立即停止；并发人工编辑的检查与PUT不是原子条件写，必须专用无人并发测试MR，记录此边界。
+
+10秒单请求、总体有界等待、响应2MiB、HTTPS远端/本机HTTP、禁止跟随重定向并关闭HTTPError，固定错误摘要不输出正文/凭据。私有证明0600只保存阶段、ID、generation、SHA/hash、布尔断言，不复制源码/评论/密钥。实际本机HTTP测试覆盖请求顺序、创建/去重/同note更新/冲突保留、漂移停止及失败阶段证据。重放Webhook仅证明应用入口，不证明GitLab网络投递；最终真实GitLab还需专用MR事件投递记录对照，不把重放冒充平台外部投递。
