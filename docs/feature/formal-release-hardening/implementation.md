@@ -48,3 +48,9 @@ CI采用GitHub Actions push/PR只读contents权限，Go全测/race/vet、Python�
 主审通过Eino官方summarization接入ReAct MessageRewriter，可取消子context阻止失败后下一HTTP请求。摘要模型不使用业务JSONObject，callbacks显式替换为compression阶段，SDK预算和检查点共享；Finalize保留固定原始输入、完整服务端调查/发现、观察导航和完整最近工具交换（容量不足时整组摘要，不拆工具配对）。源码trace/cache/账本不删除；摘要没有源码资格。升级策略v14，旧报告不重写。修复所有模型生成/空输出/解析失败结果遗漏Investigations，并增加实际工具调用后的异常反例。React新增阶段中文显示，生成构建资源与源码对应。
 
 实际HTTP长调查五模式：成功继续、HTTP失败、空摘要、usage缺失和token阈值全部通过；摘要请求计数等于compression用量阶段且总数无重复。纯Finalize验证固定输入、调查/反证导航、完整工具配对及超限停止。定向race3.754秒通过；首轮全Go通过platform33.519秒，随后只补调查结果字段和测试需再验证；go vet通过，React构建1.27秒通过。CI actions提交已通过官方仓库git ls-remote核对，固定SHA且contents只读/persist-credentials=false；远端CI尚未运行验证。独立复核/时序图压缩扩展与其余发布队列仍待完成，不将首切片当完整正式发布。
+
+## 新证据 / 依赖漏洞优先修复
+
+npm audit --json全前端依赖报告0个已知漏洞（非安全保证）。官方govulncheck实际调用图扫描发现5项/3模块：x/text v0.21.0→v0.39.0（GO-2026-5970）；x/net v0.24.0→至少v0.55.0（GO-2026-5026、4918、GO-2025-3595）；retryablehttp v0.7.2→v0.7.7（GO-2024-2947，GitLabClient.Do路径）。同时报告包级9项、模块级26项当前未检出调用，需另外核对，不能隐藏。按当前正式发布优化授权，优先窄依赖安全升级并重跑调用图扫描/全Go/race/vet。新增源码不执行仓库代码，不发送凭据到漏洞服务；govulncheck读取本地模块并下载公开漏洞数据库。必要Go最低版本变化应记录，部署/CI已有Go1.27。
+
+GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过，Go步骤进行中，尚未宣称成功。最新追加调查异常反例定向测试1.134秒、定向race3.345秒通过。
