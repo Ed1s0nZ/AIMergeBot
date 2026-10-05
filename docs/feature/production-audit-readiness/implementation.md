@@ -399,3 +399,7 @@ P10，R8有界只读就绪检查与独立检视慢响应反例为上游，允许
 ## F4/F5 / PRR-003整体期限与费用说明
 
 健康检查父进程对独立观察子进程设置subprocess总timeout，超时kill/wait回收并报告unavailable；DNS、HTTP头与正文均在子进程，保留原有重定向/协议/长度/JSON规则。真实本机HTTP慢头和每0.12秒一个字节的慢正文均在1秒期限（含回收允许1.8秒）返回不可用，不再等待最终ready。3项healthcheck测试3.922秒通过，ResourceWarning=error；前端增加usage_overflow中文提示，tsc+Vite生产构建2.56秒通过并同步嵌入资源。整体回归及修复re-review待继续，未把本机慢服务测试当生产监控或完整发布证明。
+
+## F5 / ac9a5b5整体回归及剩余检视
+
+干净源码ac9a5b57823fd97d0cda44398dc7b0f523bb63b6运行go test ./...与go vet ./...均exit0，platform测试60.619秒；Python所有test_*.py共26项9.347秒通过且ResourceWarning=error。上一轮同源码前端构建已通过，没有追加应用修改。主检视继续读取模型预算/费用/重试说明、固定选文件补审、复核与工具观察、报告轮询调用，以及历史评测PrepareCase/路径隔离/commit验证/标签匹配和时序布局；未把阅读有限文件当完整分支审查。独立上下文正在只读检查f69e310→ac9a5b5修复delta（实际agent句柄），结果尚未取得，PRR-002/003正式re-review待完成。外部质量样本和专用GitLab授权缺口保留，main及1234未更新。
