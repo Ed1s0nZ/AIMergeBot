@@ -158,3 +158,14 @@ python3 scripts/ops-healthcheck.py --endpoint http://127.0.0.1:1234 --timeout 3
 ```
 
 成功输出ready JSON且退出0；其余输出固定unavailable且退出1。只读取readyz，1KiB响应上限，拒绝重定向与非本机明文HTTP，不输出地址、异常或响应内容。可交给已有监控系统周期执行；本工具不安装定时器、不通知外部人员、不自动重启。Worker就绪不证明GitLab/模型可用，仍应检查实际任务失败率。默认检查1234，新接口在最终版本切换后才可用，旧版本返回unavailable不能误报为新版本成功。
+
+### 固定文件补审演练
+
+```bash
+python3 scripts/smoke-worker-recovery.py \
+  --binary /your/private/build/aimangebot --metadata-preview \
+  --verification-preview --followup-preview \
+  --app-port 19252 --upstream-port 19253
+```
+
+在原生恢复与元数据审计后，使用真实API提交entry.any补审，验证独立任务有有效结果、固定BASE/HEAD和选中文件、父报告/人工复核不变；选文件任务按覆盖边界标记incomplete，不冒称全量完成。合成模型按请求阶段而非全局序号响应，可重复审计；不代表真实PR准确率。可加--ui-preview保留隔离实例做界面交互，停止演练进程会清理其应用和合成上游，不触及1234。

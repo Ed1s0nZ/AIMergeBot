@@ -42,16 +42,19 @@ def main():
     parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
     parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
     parser.add_argument("--ui-preview", action="store_true", help="Keep fixture online after proof until SIGTERM for browser inspection")
+    parser.add_argument("--followup-preview", action="store_true", help="Verify fixed-file follow-up succeeds and preserves the original; requires metadata")
     parser.add_argument("--budget-crash-preview", action="store_true", help="Verify budget-enabled SIGKILL stops retries for unknown usage; standalone")
     parser.add_argument("--capacity-preview", action="store_true", help="Verify 40 concurrent HTTP submissions against outstanding=4 and running=1")
     parser.add_argument("--backup-preview", action="store_true", help="Verify private backup/restore with the same native binary; requires metadata/lifecycle/comment previews")
     parser.add_argument("--app-port", type=int, default=19234)
     parser.add_argument("--upstream-port", type=int, default=19235)
     args = parser.parse_args()
-    if args.budget_crash_preview and any((args.capacity_preview, args.backup_preview, args.metadata_preview, args.lifecycle_preview, args.group_preview, args.comment_preview, args.verification_preview, args.ui_preview)):
+    if args.budget_crash_preview and any((args.capacity_preview, args.backup_preview, args.metadata_preview, args.lifecycle_preview, args.group_preview, args.comment_preview, args.verification_preview, args.ui_preview, args.followup_preview)):
         parser.error("--budget-crash-preview must run alone")
     if args.backup_preview and not (args.metadata_preview and args.lifecycle_preview and args.comment_preview):
         parser.error("--backup-preview requires --metadata-preview --lifecycle-preview --comment-preview")
+    if args.followup_preview and not args.metadata_preview:
+        parser.error("--followup-preview requires --metadata-preview")
     if args.comment_preview and not args.metadata_preview:
         parser.error("--comment-preview requires --metadata-preview")
     if args.verification_preview and not args.metadata_preview:
@@ -215,6 +218,8 @@ def main():
                 self.send_json({"id": "fixture-group", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
                 return
             if iid == 92:
+                diagram_stage = any(str(m.get("content", "")).startswith("Generate a static sequence diagram") for m in request["messages"] if m.get("role") == "system")
+                primary_observed = any(m.get("role") == "tool" for m in request["messages"])
                 independent = any(str(m.get("content", "")).startswith("Independently review") for m in request["messages"] if m.get("role") == "system")
                 if independent:
                     observations = []
@@ -229,10 +234,10 @@ def main():
                     else:
                         message = {"role": "assistant", "content": json.dumps({"status": "supported", "reason": "固定提交的独立读取确认执行位变化，仅支持条件性风险描述。", "limitations": ["合成模型响应，未验证真实模型准确率或部署可达性。"], "observation_ids": observations}, ensure_ascii=False)}
                         finish = "stop"
-                elif number == 1:
+                elif not diagram_stage and not primary_observed:
                     message = {"role": "assistant", "content": None, "tool_calls": [{"id": "fixture_metadata", "type": "function", "function": {"name": "get_change_metadata", "arguments": json.dumps({"path": "entry.any"})}}]}
                     finish = "tool_calls"
-                elif number == 2:
+                elif not diagram_stage:
                     message = {"role": "assistant", "content": json.dumps({"findings": [metadata_finding], "summary": "合成验证：元数据候选与时序图，不代表实际审计准确率。", "coverage_notes": []}, ensure_ascii=False)}
                     finish = "stop"
                 else:
@@ -407,6 +412,23 @@ def main():
             with lock:
                 assert comment_creates[92] == 1 and comment_updates[92] == 1 and "误报" in comments[92]
             proof.update(comment_run=metadata_run, comment_single_create=True, comment_review_update=True)
+        if args.followup_preview:
+            before = api(f"/runs/{metadata_run}")
+            created = api(f"/runs/{metadata_run}/followup", {"files": ["entry.any"]})
+            followup = created["id"]
+            assert created["created"] and followup != metadata_run
+            wait_for(lambda: row(followup)[0] in ("succeeded", "incomplete"), timeout=15)
+            after = api(f"/runs/{metadata_run}")
+            assert before["run"]["result"] == after["run"]["result"] and before["reviews"] == after["reviews"]
+            child_detail = api(f"/runs/{followup}")
+            assert child_detail["run"]["base_sha"] == before["run"]["base_sha"] and child_detail["run"]["head_sha"] == before["run"]["head_sha"]
+            assert not child_detail["reviews"]
+            assert child_detail["run"]["status"] == "incomplete", "selected scope claimed full completion"
+            assert len(child_detail["run"]["result"]["findings"]) == 1
+            assert any("Selected-file follow-up" in note for note in child_detail["run"]["result"]["coverage_notes"])
+            scope = api(f"/runs/{followup}/scope")
+            assert scope["followup_of"] == metadata_run and scope["selected_files"] == ["entry.any"]
+            proof.update(followup_run=followup, fixed_file_followup_validated=True, selected_scope_marked_incomplete=True, parent_report_and_reviews_preserved=True)
         if args.capacity_preview:
             from ops_capacity_drill import run_capacity_drill
             proof["capacity"] = run_capacity_drill(api, db, wait_for)

@@ -275,3 +275,7 @@ P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围�
 ## F2/F3 / 切片12B补审原生成功fixture
 
 实际浏览器任务5→固定清单entry.any→选择1→按钮启用→新任务9，BASE/HEAD与选择范围正确，原报告保留。但MR92合成响应依赖全局调用序号，第二审计首请求错误返回diagram JSON，真实SDK严格校验报unknown_field失败。不是补审创建失败，不能据此宣称成功审计。改fixture按system阶段/当前tool observation区分主审、独立复核、图，新增--followup-preview完整API成功验证，保留原错误响应拒绝行为。验证父结果/reviews与新任务独立、固定两端/selected_files；此为合成成功流程，不替代真实模型质量。
+
+## F4/F5 / 切片12B补审流程实证
+
+MR92合成模型改按system阶段与本轮tool observation响应，支持多次独立审计，新增--followup-preview。第一轮修正fixture后发现补审status=incomplete且有有效发现/复核/时序图，原“成功必须succeeded”断言不符合选择范围契约。修正断言为终态incomplete+1有效发现+显式范围说明，未改变应用状态来迎合测试。19254/19255完整原生重跑退出0，MR92累计10模型HTTP，任务6固定父5 BASE/HEAD、entry.any selection、父结果/reviews保持、子review空。Followup race6.440秒通过，py_compile/diff检查通过。真实浏览器已验证0选择禁用、1选择启用、创建任务/路由和错误响应拒绝；修复后的成功流程还需浏览器重验。未证明真实质量，main/1234未替换，截图和DB仅本机私有。
