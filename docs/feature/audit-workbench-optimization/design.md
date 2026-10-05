@@ -202,3 +202,9 @@ Maintainability Gate Report：cmd/audit-eval/main.go约300行，窄flag/metadata
 Workflow Gate Report：P10反馈，v27真实两组scope错误/重复coverage已归档；现有分组计划/AgentConfig/coverage API可复用。允许内部CurrentGroup导航（ID/当前组文件，最多16KiB完整JSON），主提示说明总manifest仅导航、只有当前组diff可提交，先前规范finding不重复提交；可读取跨组来源但不能借旧观察授权新发现。普通单组不增加导航。锚点路径不在当前scope时错误明确本组边界，仍不放宽side/line/source校验。synthesis覆盖说明完全相同字符串去重，稳定保留首次顺序、不trim/合并近义/移除不同来源记录。不宣称自动避免语义重复调查。
 
 Maintainability Gate Report：agent/grouped/synthesis约330/180/155行，新纯helper group_navigation.go，不添加大型全局状态。低风险narrow_fix；测试普通单组、16KiB完整导航、真实两组SDK第二组任务明确scope/不得重复、跨组路径拒绝、覆盖顺序与不同字符串保留。元数据scope验证不改，生产预算不改，策略v28。真实多组新轮验证仍需保留上一失败。
+
+## 切片21：详情刷新失败的旧数据提示与最终状态QA
+
+Workflow Gate Report：P9/P10，AC007/012。useResource已在500等可恢复失败保留成功数据、401/403/404清空，详情页目前仅显示原错误，旧快照可能被当最新状态。上游行为/API/共享ErrorBox已具备，允许窄UI修复：已有数据且刷新失败显示旧快照说明和可重试按钮，重试期间disabled；动作错误单独显示，不隐藏读取错误；初次加载重试disabled防重入。权限失败继续清空旧数据，无新端点/权限。
+
+Maintainability Gate Report：详情页590行只组合共享ResourceRefreshFailure组件，原hook逻辑和写入动作不改，低风险narrow_fix。验收受控实际RunDetail加载/500失败旧数据/重试成功/403清空/无发现/队列/评论unknown、360px布局/键盘；类型/构建通过。受控fixture不是线上E2E，后台授权由现有路由回归覆盖。
