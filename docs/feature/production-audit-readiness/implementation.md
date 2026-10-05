@@ -160,3 +160,17 @@ PUT /runs/:id/associations/:association_id {decision:pending|confirmed|rejected,
 增加50候选上限、反向多候选（一个旧问题被多个当前问题匹配）不确定标记、原始重复锚点被清除指纹后省略说明；候选ID同时包含冻结上下文集合，相关来源变更不会复用旧决定。确认/撤回前后实际评论投递记录完全相同，当前风险Review未继承、Fingerprint未修改。最近20任务/1MiB输入/20历史决定边界测试保留最新状态且限制可见，两个并发确认仅一个成功。
 
 完整Go测试通过（platform55.654秒/evaluation14.783秒，含并行race运行），vet通过，定向race15.676秒通过，最终前端构建2.43秒通过。末尾补充指纹省略说明和评论不变断言后相关测试1.338秒通过。README更新操作与限制。浏览器实际交互/视觉验收仍留在最终综合验收，尚不宣称已完成整个R1–R8目标；R7/R8、真实PR/GitLab证据、main及1234部署继续未完成。本片新增表仅追加，不更改旧发现、复核或评论语义。
+
+## F2/F3 / 切片10A私有备份恢复工具
+
+Workflow Gate：P10运维迭代；已有SQLite WAL、实例租约、固定config.yaml、启动项目同步outbox和原生恢复演练是上游。R8已授权，本片补齐可复用私有恢复包，不调整当前1234服务或假装已完成整个运维。依据SQLite官方Backup API（https://www.sqlite.org/backup.html）使用Python标准库sqlite3.Connection.backup，不直接复制活动主DB/WAL文件或用未验证文件副本声称一致。数据库API能提供一致DB快照，但跨config/DB的一致性还需要停止应用写入。
+
+scripts/ops-backup.py提供backup、verify、restore三个子命令。backup显式参数--database、--config、--output、--service-stopped，可选--binary。必须由操作者先停止进程托管及所有使用同一配置/DB的实例/写入者，再声明service-stopped；工具拒绝仍有有效platform_worker_instance租约的源（崩溃后等待最多30秒过期）。该声明和租约检查不证明其他外部进程已停止，不宣称提供全机进程扫描或在线跨文件快照。配置读取前后检查内容hash，任何变化则失败，不接受半途中变更；未来托管阶段提供正确停止顺序。
+
+源必须为明确的普通文件，拒绝文件symlink与缺失来源；不得将输出放在源DB/配置/二进制的父目录内部或覆盖其目录。输出目录必须不存在，用mkdir独占创建0700，只在自建目录写入固定文件名pr_agent.db、config.yaml及可选aimangebot，禁止manifest指定任意路径。DB/配置0600、二进制0700、manifest.json0600。SQLite源以只读mode=ro连接，备份目标使用独立连接；备份完成执行PRAGMA integrity_check，结果必须唯一ok。超时/读取/损坏/租约/配置变化失败清理本次自建目录，不删除任何预先存在目标。完整manifest最后写入且flush/fsync，此前恢复包不被视为可用；不声称整个目录发布是跨文件原子事务。
+
+manifest格式version=1、created_at、files映射固定文件名→{sha256,size}，不保存配置明文、凭据、原始路径、DB表内容或命令输出。verify拒绝缺文件、额外manifest文件项/未知字段版本/不合规hash与size/文件symlink及hash不符；校验DB integrity_check和私有权限。哈希证明内容一致，不证明外部包来源真实性；只恢复受信任的本地私有备份。输出仅状态/文件数量/结果类别，不打印配置、DB记录或可能含密钥的错误正文。
+
+restore先完整verify，再写到不存在的新目录，目标同样独占0700，复制固定文件名，设置正确权限并复核hash/DB完整性后完成。不覆盖已存在目录，不执行备份二进制，不自动启动服务、不自动修改监听地址或清除任务/评论/租约。原服务和原目录保持原样，操作者在停服务窗口按同版本二进制迁移后切换；回滚须数据库+配置+兼容二进制成套恢复，旧跨仓库权限实现不能直接读取新跨仓库结果。源备份保护为本机私有文件，禁止放入GitHub/公共证明目录。
+
+实施：纯标准库独立脚本与unittest（WAL中未checkpoint记录仍被正确备份、有效租约拒绝、缺失/损坏/hash篡改/symlink/权限/未知manifest项、非空或存在目标不覆盖、错误清理、源内容不变、0600/0700、配置秘密不出现在日志），文档记录准确命令及限制。随后10B原生二进制恢复演练，在隔离合成上游/临时配置/私有DB上停止→backup→restore→相同二进制启动，核对账号会话/ACL/固定任务/checkpoint/人工复核/关联历史/评论状态及健康就绪。当前生产不执行破坏性恢复，真实运行期备份安排在最终已授权切换窗口。后续10C进程托管（本机launchd可验证，Linux systemd模板不冒充已部署）、就绪监控、容量及token崩溃证明仍单独完成。
