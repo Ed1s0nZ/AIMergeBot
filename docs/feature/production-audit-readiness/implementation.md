@@ -130,3 +130,19 @@ Submit/Poll捕获、Worker准备与前后权限校验、四个可选关联工具
 原生Git上下文准备新增真实本机smart HTTP测试：管理员所选提交早于远端HEAD，读取仍为选定对象，Git配置不保存fetch凭据，退出后临时对象目录移除。实际Worker队列运行Eino SDK关联读取，检查租约/实时授权与数据库持久化来源，确认仅一条对应工具观察；成功状态为平台`succeeded`，不是分组`completed`。独立复核与汇总分别通过真实SDK本地HTTP请求读取关联源，源SHA及阶段标识保留；复核必须另读主锚点，汇总不暴露发现写工具。
 
 最终完整Go测试通过（platform33.003秒），vet通过。原生准备/实际Worker定向race5.625秒通过，独立复核/汇总定向race3.084秒通过；分页/Poll定向race3.380秒通过。前端产物使用本轮1.33秒通过的构建，README补齐配置入口、工具范围、来源与评论隔离、资源及回滚边界。此阶段代码和自动验证完成；浏览器交互、真实跨仓库PR模型质量及最终部署综合验收明确延后至整体验收，不能凭本地fixture视为已完成。下一阶段推进R6历史移动关联建议，R7/R8及真实样本证据仍保留。
+
+## F2/F3 / 切片9历史移动关联建议
+
+Workflow Gate：P10/F2–F3；现有固定SHA、服务端Git元数据、精确指纹、人工复核和权限交集是上游。R6已获用户授权，允许以独立模块和详情面板实现，不改模型或执行源码。现有指纹含路径，因此移动后不能串起历史；Git重命名依据内容相似度（https://git-scm.com/docs/git-diff-index/2.45.3.html），不将检测结果解释为语义同一或风险依然存在。
+
+GET /runs/:id/associations按需获取移动关联建议及最新人工决定，viewer可读。仅终态当前任务、完整固定SHA、同一target/MR/source且冻结上下文集合/SHA完全相同的较早任务参与。使用当前结果中由服务端保存的有效rename元数据，限定普通文本blob（100644/100755），排除copy、symlink、gitlink和无元数据路径猜测。当前HEAD行发现的新路径对应rename.new_path，较早HEAD行发现的旧路径对应rename.old_path；风险类型、精确证据、触发条件必须相同且两端指纹有效。行号和标题可以不同，不能用模糊关键词或语言专用符号匹配扩大建议。每个候选显示旧/新任务、发现ID、路径、HEAD、当前rename BASE→HEAD依据、限制及人工状态；明确当前MR差异的rename不证明旧HEAD→新HEAD祖先关系或语义等价。重复锚点/多候选均显示不确定，不自动挑选。尚在运行时返回空候选及状态说明。
+
+有界读取最近20个同范围较早任务，扫描每项result_json最多1MiB，超过跳过并显示限制；最多50候选，确定性排序，达到任何边界返回truncated/limitations。建议ID由两端run/finding/固定快照与实际源事实摘要生成，客户端不能指定任意来源/路径或冒充候选。无额外网络、Git执行或模型请求；缺少当前服务端rename元数据时明确不支持推断，而非断言没有历史关联。旧报告不会根据当前项目配置变化改写。
+
+PUT /runs/:id/associations/:association_id {decision:pending|confirmed|rejected,reason,expected_revision}由reviewer操作。reason最多1000字符/4000字节，确认/拒绝必须填写理由，pending可撤回决定但旧记录保留。在同一事务重新读取固定报告、候选、两端完整权限和最新revision；expected_revision=0表示没有已有决定，冲突409要求刷新，不能最后写入者静默覆盖。当前finding最多确认一个旧finding，且同一当前任务内同一旧run/finding不能被多个当前finding确认，冲突显式返回。建议缺失、结果变更、无权限或候选摘要不一致拒绝，不支持任意手工拼接无依据任务。管理员亦遵守冲突/候选验证。
+
+新增platform_finding_association_history追加表保存current_run/current_finding/prior_run/prior_finding/association_id/decision/reason/actor/time；revision为历史自增ID，最新记录为当前态，最多显示20条决定历史。外键、pair索引及查询范围保证只涉及当前两端，不建立传递闭包或自动关联其他任务。确认只是人工历史关联，不改变Finding.Fingerprint、confidence、severity、人工Review或comment body，也不自动复用“fixed/false_positive”。事件日志单独记录关联操作；没有对外评论发送或评论重试。权限撤销后不展示旧理由或关联内容，写入事务再次检查防止读取后权限变化。历史精确指纹面板仍保留，与人工移动关联分开展示，避免把关系确认当风险复核。
+
+实施文件：独立finding_associations.go（候选纯逻辑）、finding_associations_store.go（有界读取/追加决定与迁移）、http_finding_associations.go（契约/权限）；store.go/routes.go窄接线。独立React finding-associations.tsx/css按需加载、空/运行中/限制/错误/刷新/查看两端/填写理由/确认/拒绝/撤回/冲突/只读/响应式状态，使用服务端API类型，不扩大workspace.css。详情当前can_review控制操作，服务端仍是权限权威。README说明精确历史与人工关联区别，CHANGELOG最终合并记录。
+
+验证：真实Git rename/move元数据、路径变化+精确证据匹配、类型/trigger/证据变化不匹配、copy/symlink/gitlink/BASE引用拒绝；重复锚点/多候选和20任务/1MiB/50候选边界明确；target/source/MR/context跨范围无泄漏；确认/拒绝/撤回追加历史、理由/revision冲突、一对一冲突、无有效候选/伪造ID拒绝、权限撤销事务重检、旧Review/Fingerprint/评论队列不变；真实HTTP契约及React构建，完整Go/race/vet。浏览器综合验收保留本轮最终阶段，不把fixture当真实模型效果。新增表向后兼容；旧二进制不会显示人工关联，但跨仓库权限回滚仍需按8A恢复升级前DB。本片不声称追踪所有任意多次移动，未纳入/缺少元数据由限制说明承载。
