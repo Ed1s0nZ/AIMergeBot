@@ -267,3 +267,7 @@ P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围�
 ## F4 / 切片12A设置布局修正
 
 真实19248实例界面已确认缺陷，修正settings.tsx field-row闭合位置并重新生产构建，TypeScript/构建通过1.42秒；新的JS index-H2kC4Rcz替换旧资源。此前整Go回归（缓存结果）、18项Python测试0.899秒及前端typecheck通过。首次npm build误在仓库根执行缺package.json，随后按frontend目录执行成功。真实修复后截图/交互尚未验收，不以构建成功标记F5；旧隔离进程已请求正常停止，下一步使用包含新静态资源的二进制继续实际界面验证。生产1234未替换，真实MR授权仍未收到。
+
+## F5 / 切片12A实际浏览器复验
+
+以aa1f817干净源码重新构建真实二进制至私有/tmp，19250/19251完整metadata/lifecycle/comment/verification原生fixture再次通过，保留UI实例供后续验收。浏览器实际登录合成账号并查看新资源：默认1280视口温度/轮次双列、复核模型独立全宽，预算fieldset不再挤压其他字段；390×844窄屏截图字段正常，DOM scrollWidth=390=innerWidth无横向溢出，随后reset视口。私有截图settings-fixed.jpg保存在本机fixture目录0600，未上传。任务5界面实际显示固定BASE/HEAD、评论同步generation2/2、5次usage未知、分阶段主审/复核/图、独立复核支持/静态限制、元数据note时序图与人工误报状态；展开历史移动关联显示无候选和明确限制。这里只完成设置布局及上述报告显示，尚未操作关联confirm/reject/撤销、跨仓库配置、补审或真实质量样本，保留这些综合验收项。生产1234未变，main未合并。
