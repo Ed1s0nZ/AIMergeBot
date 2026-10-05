@@ -136,3 +136,17 @@ python3 scripts/smoke-worker-recovery.py \
 ```
 
 该选项单独执行：预算100，首响应报告20 tokens，第二请求发送前已持久化pending未知usage，然后真实SIGKILL。立即重启必须被有效租约拒绝，等待原租约到期后重启，保留相同检查点与预算；父任务标记失败且model_usage_unknown，不创建retry子任务，也不重复模型请求。未知消耗不能按零计价或重新领取预算，因此这里主动停止自动重试。此为本机合成SDK/Worker故障实证，不测真实模型质量、账单或生产吞吐量。
+
+## GitLab只读验收采证
+
+`scripts/gitlab-acceptance-receipt.py` 对指定run/project/MR/full HEAD读取readyz、审计详情和GitLab MR/discussion，核对当前MR未漂移、任务已结束、评论sent且desired/sent generation一致、note/discussion对应。只GET，不触发审计或修改MR。凭据提前在当前私有shell环境设置 `AIM_ACCEPT_SESSION`（现有aim_session值）与 `AIM_ACCEPT_GITLAB_TOKEN`，不要写入命令参数、终端历史、脚本或证明；脚本不输出凭据。远端地址要求HTTPS，本机可HTTP，重定向一律拒绝。
+
+```bash
+python3 scripts/gitlab-acceptance-receipt.py \
+  --app-url http://127.0.0.1:1234 --gitlab-url https://gitlab.example.com \
+  --run-id 123 --project-id 456 --mr-iid 7 \
+  --head-sha FULL_LOWERCASE_HEAD_SHA \
+  --output /your/private/acceptance/after.json
+```
+
+输出父目录0700，文件0600且不覆盖，证明只含版本/任务和评论标识、generation/body SHA256，不复制正文或会话。此收据证明一次指定对象的一致性，不证明没有其他重复评论、Webhook触发、更新历史、冲突恢复或真实审计质量。专用MR写入验收需明确授权；可在人工复核更新前后采两份，后续完整程序再验证同评论更新和冲突，不能用这份只读收据冒充完整R7。

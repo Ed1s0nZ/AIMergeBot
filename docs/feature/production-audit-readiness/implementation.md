@@ -247,3 +247,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F2/F3 / 切片11A GitLab只读验收凭据
 
 R7先提供只读采证脚本：明确app/gitlab地址、run/project/MR、expected full HEAD SHA；凭据只从AIM_ACCEPT_SESSION/AIM_ACCEPT_GITLAB_TOKEN环境读取，不进入命令参数/证明。禁止HTTP重定向携带凭据，远端要求HTTPS，本机HTTP例外。读取readyz、完整指定run和GitLab MR/指定discussion；检查固定快照、当前MR HEAD、comment sent generation收敛、discussion/note一致。私有证明只保存run/version/评论标识、generation及body SHA256，不复制源码/评论/用户数据，0600不覆盖。脚本不写GitLab、不触发审计，可在授权的写入测试前后采证；这不是Webhook/同评论更新/冲突端到端全部完成，下一片写入验收只能对明确授权专用MR执行。
+
+## F4/F5 / 切片11A只读GitLab收据工具
+
+新增gitlab-acceptance-receipt.py，只GET readyz/run/MR/discussion，明确目标ID与full SHA、结果terminal、MR当前SHA和评论generation/标识对应。环境变量读取凭据，禁止跨重定向传递，HTTPS远端/本机HTTP限制，2MiB响应上限/10秒超时；只保存私有0600摘要，不覆盖。3项单元测试通过：正确收据不复制正文、任务/MR漂移/未完成/评论未收敛拒绝、地址传输规则。py_compile/diff检查通过。未实际连接用户GitLab/发送评论，完整Webhook/审计/更新/冲突及当前真实对象授权仍待11B，不能将该工具标记整个R7已完成。
