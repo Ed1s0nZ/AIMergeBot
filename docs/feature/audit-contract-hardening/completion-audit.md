@@ -1,13 +1,13 @@
 # 最终验收审计（进行中）
 
-当前结论：尚未完成整个目标。功能实现与分阶段证据已记录；真实模型质量评测因401无有效结果，最终main与1234交付仍未执行。此清单不会用单项测试替代整体完成证明。
+当前结论：尚未完成整个目标。功能实现与分阶段证据已记录；模型连接已恢复，真实评测已暴露并修复多项输出/预算/语义问题，第四轮小型语料已完成逐例人工判定，限制保留，最终main与1234交付仍未执行。此清单不会用单项测试替代整体完成证明。
 
 | 原始要求/不变量 | 当前实现与可核查证据 | 当前判断 |
 | --- | --- | --- |
 | React产品化、登录、成员、项目、任务、复核、设置、日志 | frontend/src；platform auth/routes；platform-modernization/release-readiness；浏览器分阶段截图 | 已实现，最终部署UI复验待执行 |
 | 设置同步项目config.yaml、首次生成、密钥保留/脱敏 | settings、revision、project sync outbox；设置冲突/同步故障/启动恢复测试 | 已实现，最终生产备份与落盘复验待执行 |
 | Eino语言无关Git工具，不执行仓库代码 | GitRepository、agent tools/investigation；只读固定SHA；目录/检索/批量/历史/元数据共14工具 | 已实现；不提供任意跨仓库权限扩展或运行利用证明 |
-| 固定身份与有效配置、base/head/fork、去重 | AuditPolicy、identity migration、enqueue；当前policyv9 | 已实现；旧策略需重新提交，最终迁移检查待执行 |
+| 固定身份与有效配置、base/head/fork、去重 | AuditPolicy、identity migration、enqueue；当前policyv12 | 已实现；旧策略需重新提交，最终迁移检查待执行 |
 | 删除保护、源码锚点、调查/反证/观察来源 | ValidateFindings、canonical registry、observation links；伪造/错误锚点/删除BASE测试 | 已实现；源码支持不等于语义或利用性证明 |
 | 故障/取消保留发现与检查点 | frozen supplemental result、worker fences、恢复脚本真实SIGKILL | 已验证分阶段原生进程，不以单元测试替代崩溃证据 |
 | 有界重试、Retry-After、租约/所有权、不能重复执行 | retry store/transport/worker instance；429/5xx/租约失效/迟到写测试与native proof | 已实现；永久模型错误脱敏已通过实际Eino回归及完整Go/race检查 |
@@ -20,8 +20,8 @@
 | 独立上下文复核与反证，不自动升级/删除 | fresh verifier stage/observations、strict verdict；actual Eino synthetic proof | 已实现；同模型上下文不等于模型多样性或运行复现 |
 | 大PR分组、跨组调查、共享预算及可见缺失 | AuditPlan/AuditGroups/read-only synthesis；25文件native2组/browser | 已实现；最大8组/96KiB，超过明确覆盖不足 |
 | 稳定问题生命周期与人工历史 | exact fingerprint、ambiguity clearing、occurrence/history migration；3HEADnative/browser | 已实现；无模糊语义匹配、无自动继承/自动修复 |
-| 真实模型评测与风险质量，不用fixture数字冒充 | evaluation corpus/CLI/probe；11真实失败+401invalid_api_key诊断与报告 | 未完成有效质量评测，待有效配置 |
-| 文档/变更说明/回滚方案 | implementation逐阶段记录、README；本审计 | release/changelog最终版本仍待更新 |
+| 真实模型评测与风险质量，不用fixture数字冒充 | evaluation corpus/CLI/probe；初轮401失败保留；第二/三轮真实结果与逐例归因已记录，第四轮v12已完成11例与人工判定 | 本轮作者语料达到预期；不代表生产准确率或完整覆盖 |
+| 文档/变更说明/回滚方案 | implementation逐阶段记录、README；本审计 | 已更新待交付CHANGELOG；最终部署记录待执行 |
 | 最终main提交推送 | 开发分支已逐阶段推送 | 未执行最终合并/push；需核对远程main、无遗漏工作 |
 | 1234部署与生产数据保留 | 当前仍运行原main版本 | 待新二进制、SQLite一致备份、配置字节/权限备份、健康/UI/版本复验 |
 
