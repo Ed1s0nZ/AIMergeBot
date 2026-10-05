@@ -174,3 +174,16 @@ func TestPRReferenceErrorsIdentifyRepairAndKeepSourceGate(t *testing.T) {
 		t.Fatal("source repair bypassed gate", out.Error)
 	}
 }
+
+func TestOversizedInvestigationExplainsBytesAndPreservesLedger(t *testing.T) {
+	tools := &auditTools{}
+	_, _ = tools.record(context.Background(), Investigation{ID: "existing", Claim: "original"})
+	out, _ := tools.update(context.Background(), Investigation{ID: "existing", Claim: strings.Repeat("界", 3000), Status: "investigating"})
+	if !strings.Contains(out.Error, "UTF-8 bytes") || !strings.Contains(out.Error, "8000") || tools.ledger["existing"].Claim != "original" {
+		t.Fatal("size failure changed state or hid limit", out.Error)
+	}
+	out, _ = tools.update(context.Background(), Investigation{ID: "existing", Claim: "concise claim", Status: "investigating"})
+	if out.Error != "" || tools.ledger["existing"].Claim != "concise claim" {
+		t.Fatal("repaired update failed", out.Error)
+	}
+}

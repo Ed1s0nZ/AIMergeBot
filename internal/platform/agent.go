@@ -248,7 +248,7 @@ func ValidateFindings(ctx context.Context, repo Repository, snap Snapshot, scope
 			return fmt.Errorf("invalid finding side")
 		}
 		if f.AnchorType != "git_metadata" && (!validPath(f.File) || f.Line < 1 || !positions[f.File][f.Line]) {
-			return fmt.Errorf("finding does not reference a changed snapshot line: %s:%d", f.File, f.Line)
+			return fmt.Errorf("finding does not reference a changed snapshot line: %s:%d; inspect get_diff and select an added HEAD line or removed BASE line, with matching side", f.File, f.Line)
 		}
 		if f.Severity != "high" && f.Severity != "medium" && f.Severity != "low" {
 			return fmt.Errorf("invalid severity")
@@ -282,7 +282,7 @@ func ValidateFindings(ctx context.Context, repo Repository, snap Snapshot, scope
 			}
 			lines := strings.Split(text, "\n")
 			if f.Line > len(lines) || !strings.Contains(lines[f.Line-1], f.Evidence) {
-				return fmt.Errorf("finding evidence does not match snapshot: %s:%d", f.File, f.Line)
+				return fmt.Errorf("finding evidence does not match snapshot: %s:%d; re-read the exact side and line and copy its source snippet without the numbered-line prefix", f.File, f.Line)
 			}
 		}
 		identity := fmt.Sprintf("%s:%s:%s:%d:%s:%s", snap.HeadSHA, f.Side, f.File, f.Line, f.Type, f.Title)

@@ -127,3 +127,14 @@ v20同配置4例结果未满足负对照：102模型不查看已配置的billing
 综合阶段增加investigations，仍受原64KiB输入预算。主交接与综合在组装前后检查实际阶段的固定来源及授权，取消/撤权不传既有事实；复用既有contextSource的ID/SHA一致性和可选Authorize约定，显式预授权本地来源兼容，生产回调继续检查当前权限。未经授权/不存在来源不视作已准备。没有新UI/API字段和DB迁移，策略v22。
 
 回归曾两次暴露综合授权边界问题：先用了e容器而不是parent实际来源，修正后仍错误地要求预授权本地fixture必有回调。现统一复用已有固定来源规则，不改变合法路径期望断言。最终组/授权源码阶段定向通过4.416s；race通过6.786s；Go全量通过（platform47.127s）；新增投影期间撤权测试通过0.580s；git diff --check通过。覆核深复制、12KiB完整JSON、失败来源不定位、前/后撤权无事实、旧ID不当新源与实际后续组收包。未进行真实模型多组质量评测，省略/真实网络/最终QA仍需核验；单位负对照语义误报问题仍未解决。
+
+
+## SARIF 下载落盘补验
+
+此前两次浏览器 download 事件超时保留为观察事实；现针对预期文件名查到实际 /Users/worker/Downloads/aimangebot-run-7.sarif 与 aimangebot-run-7 (1).sarif，mtime 2026-10-06T02:35:20.279363 / 02:35:50.090744，与两次受控操作吻合。两文件解码JSON均等于当时受控HTTP样例输出，并用原官方Schema Draft7Validator+FormatChecker校验通过；两文件SHA256均ade285b4b97b184fd3c11833203836a87c1d9ea28379d0430f4f1d9d7db62512。下载文件/官方Schema/摘要另存 /Users/worker/.codex/evaluation-artifacts/aimangebot/sarif-download-20261006，未改用户下载原件。补验说明实际落盘成功，事件未返回不等同下载失败。仍是受控组件样例，生产授权由既有真实路由测试证明，不声称已线上部署。
+
+## 切片14：预期契约对比与执行错误修复指引
+
+主调查和独立复核加入预期契约/具体输入/BASE与HEAD可观察结果对比，不默认BASE正确，不把相对变化本身当损害。v23实际同配置4例运行揭示102调查超8000字节反复更新、103锚点与来源关联修复失败，均耗尽步骤，未证明质量提升。647184报告token；原始证据SHA256归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/cross-v23-20261006，evaluation-cross-v23.md保留状态/归因，不把退出0或零发现记成功。
+
+据执行证据修正错误：调查超限报实际UTF8字节数和8000字节上限，建议精简重复源码和事实；空claim、ID长度分别解释。工具描述同步限制；finding关联错误包含缺失观察ID和调查ID、指明先更新关联；锚点错误指明HEAD新增/BASE删除与精确侧/行重新读取。所有门槛保持，不加模型/工具预算，不回显额外源码。策略v24。定向Oversized/PRReference/Verification/Group测试通过3.429s，Go全量通过（platform43.948s），git diff --check通过。超限失败保持原ledger，精简修复后可更新。新轮实际行为仍待评测；语义负对照、验收样本隔离与最终QA未完成。

@@ -66,7 +66,7 @@ func (t *auditTools) validateFindingLinks(f Finding) error {
 	matched := false
 	for _, id := range f.ObservationIDs {
 		if !evidence[id] {
-			return fmt.Errorf("finding observation is not linked to investigation")
+			return fmt.Errorf("finding observation %q is not linked to investigation %q; update that investigation with the successful source ID before submission, or use a source ID already linked there", id, f.InvestigationID)
 		}
 		for _, tr := range t.trace {
 			if tr.ObservationID == id {
