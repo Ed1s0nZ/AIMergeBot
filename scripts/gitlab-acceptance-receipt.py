@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import sys
 import urllib.parse
+import urllib.error
 import urllib.request
 
 
@@ -26,7 +27,12 @@ def base_url(value):
 
 def get_json(base, path, headers):
     opener = urllib.request.build_opener(NoRedirect())
-    with opener.open(urllib.request.Request(base + path, headers=headers), timeout=10) as response:
+    try:
+        response = opener.open(urllib.request.Request(base + path, headers=headers), timeout=10)
+    except urllib.error.HTTPError as error:
+        error.close()
+        raise
+    with response:
         data = response.read(2 * 1024 * 1024 + 1)
         if len(data) > 2 * 1024 * 1024:
             raise ValueError("response too large")

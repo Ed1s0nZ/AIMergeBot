@@ -303,3 +303,7 @@ MR92合成模型改按system阶段与本轮tool observation响应，支持多次
 ## F2/F3 / 切片11A2采证HTTP异常资源
 
 P10窄范围验收工具维护，已有11A只读GET/凭据隔离/响应上限为上游，允许实现，无新增产品决策。检查发现get_json成功响应用with关闭，但HTTPError（含禁止跟随的302）不进入with，需显式关闭错误响应后重新抛出；保持统一main错误输出，不打印正文/凭据。新增实际本机HTTP测试覆盖成功、302只发一次、503、非法JSON与2MiB超限；直接断言HTTPError响应closed，并以ResourceWarning为error复验。仅涉及脚本和测试，不访问真实GitLab、不发送评论，不将此项算完整R7。
+
+## F4/F5 / 切片11A2采证错误响应关闭
+
+get_json对HTTPError显式close后原样抛出，main继续固定错误摘要。真实本机HTTP覆盖正确JSON、302未跟随且错误响应closed、503响应closed、非法JSON与2MiB超限。4项receipt测试以ResourceWarning=error执行0.538秒通过，diff检查通过。测试凭据明确synthetic-fixture-token，仅传本机测试服务器；未访问用户GitLab。保持只读收据范围，R7端到端授权验收仍待完成。

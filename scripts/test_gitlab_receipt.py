@@ -1,7 +1,10 @@
 import copy
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
 from pathlib import Path
+import threading
 import unittest
+import urllib.error
 
 spec = importlib.util.spec_from_file_location("receipt", Path(__file__).with_name("gitlab-acceptance-receipt.py"))
 module = importlib.util.module_from_spec(spec)
@@ -35,6 +38,42 @@ class ReceiptTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.base_url(url)
         self.assertEqual(module.base_url("http://127.0.0.1:1234/"), "http://127.0.0.1:1234")
+
+    def test_real_http_errors_closed_and_redirect_not_followed(self):
+        state = {"status": 200, "body": b'{"ok":true}', "paths": []}
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                state["paths"].append(self.path)
+                self.send_response(state["status"])
+                self.send_header("Location", "/redirected")
+                self.end_headers()
+                self.wfile.write(state["body"])
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        endpoint = f"http://127.0.0.1:{server.server_port}"
+        try:
+            self.assertEqual(module.get_json(endpoint, "/selected", {}), {"ok": True})
+            for status in (302, 503):
+                state.update(status=status)
+                before = len(state["paths"])
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    module.get_json(endpoint, "/selected", {"PRIVATE-TOKEN": "synthetic-fixture-token"})
+                self.assertTrue(caught.exception.closed)
+                self.assertEqual(state["paths"][before:], ["/selected"])
+            for body in (b"invalid json", b" " * (2 * 1024 * 1024 + 1)):
+                state.update(status=200, body=body)
+                with self.assertRaises(ValueError):
+                    module.get_json(endpoint, "/selected", {})
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
 
 if __name__ == "__main__":
