@@ -42,4 +42,16 @@ python3 scripts/ops-backup.py restore \
 python3 -m unittest discover -s scripts -p test_ops_backup.py -v
 ```
 
-这些隔离fixture测试覆盖 WAL 数据、源文件保持、私有权限、租约拒绝、配置变化、哈希/损坏/manifest路径及不覆盖恢复，不能替代实际部署停服、恢复启动和业务数据演练。原生二进制恢复演练、进程托管、就绪监控和容量实证仍在本轮交付中完善；当前文档不将它们标记为已完成。
+这些隔离fixture测试覆盖 WAL 数据、源文件保持、私有权限、租约拒绝、配置变化、哈希/损坏/manifest路径及不覆盖恢复，不能替代实际部署停服、恢复启动和业务数据演练。原生二进制恢复演练可用以下命令执行；进程托管、就绪监控和容量实证仍在本轮交付中完善。
+
+
+```bash
+go build -o /your/private/build/aimangebot .
+python3 scripts/smoke-worker-recovery.py \
+  --binary /your/private/build/aimangebot \
+  --metadata-preview --lifecycle-preview --comment-preview \
+  --verification-preview --backup-preview \
+  --app-port 19236 --upstream-port 19237
+```
+
+使用空闲非生产端口及任务自建私有构建目录。演练仅连接本机合成GitLab/模型，实际启动应用、SIGKILL、等待原租约过期、停止写入、执行备份CLI、恢复到新目录，再用同一二进制启动。验证原账号会话与受限成员ACL、固定审计结果/检查点、人工复核/关联历史、评论状态保存，且模型/评论请求不重复。模型响应与关联移动报告是明确标记的合成fixture，不是实际PR审计质量证据。最终清理所有演练进程，私有源目录和恢复包保留本机；不要提交或上传这些目录。

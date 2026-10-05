@@ -192,3 +192,12 @@ ops-backup.py的backup/verify/restore三个命令使用Python标准库，源SQLi
 停掉所有本演练的应用进程并等待退出，关闭SQLite测试连接，确认公共健康不可用。通过实际ops-backup.py CLI对临时DB/config创建并验证恢复包，再通过restore写到另一新目录；备份父目录独立于源目录，0700，本片不要求可选二进制入包，使用同一已验证构建二进制启动恢复目录。源与恢复包均保留本机私有，不上传内容。以逻辑业务表有序hash核对任务固定版本/result/trace/策略、用户/会话/ACL、人工Review/追加历史、关联历史、评论状态；Worker实例owner/lease必然变化不作相同断言。恢复后同一admin/member会话访问API，任务、检查点、人工风险复核及关联决定内容必须相同，受限成员ACL仍有效。确认合成上游模型/评论调用计数不增加，避免恢复重复对外操作。原目录保留且不再启动。
 
 恢复进程纳入既有finally清理，证明JSON只输出断言布尔/数量与合成场景，文件0600，目录0700，不打印凭据或DB内容。演练仍约需真实租约等待40秒，等待工具必须使用原句柄并保持状态更新。命令为go build到任务自建临时目录，再运行smoke-worker-recovery.py --backup-preview --metadata-preview --lifecycle-preview --comment-preview（独立复核可加--verification-preview）；禁止生产1234/8080和真实GitLab/模型。当前1234不停止。本片完成后继续10C托管/就绪/容量及R7，不能以这次隔离恢复宣称实际生产迁移已验收。
+
+
+## F4/F5 / 切片10B原生恢复实证
+
+新增ops_restore_drill.py，接入smoke-worker-recovery --backup-preview；原生HTTP创建成员/ACL/会话及人工关联记录，真实CLI备份/校验/恢复与同一二进制启动，核对业务表hash、报告/检查点、人工Review、关联决定、既有会话权限和对外操作计数。恢复进程纳入finally清理，配置与证明0600，目录0700。修复演练生命周期合成模型按请求总次数响应的问题：依据独立复核/时序图阶段与新鲜tool observation返回各自协议；无真实漏洞的生命周期合成文本由复核fixture拒绝，metadata候选仍支持条件性说明。第一轮因fixture错误未完成，修正后完整重跑，不修改应用逻辑迁就fixture。
+
+2026-10-05原生构建SHA256 036f311a486a61b310f4eff2545e2242ce71d6131d86cdc0f1d1ffb84af8c613，在19236/19237隔离端口执行metadata/lifecycle/comment/verification/backup全部场景，进程退出0。实际SIGKILL后等待原租约、检查点保持、恢复子任务成功；MR92模型5次、MR94模型9次；备份CLI三步成功、恢复前后9张业务表hash一致，admin/member原Cookie会话与viewer ACL保留，风险复核和关联追加历史保留，模型与评论请求零新增。9项备份单元测试再次通过0.119秒。私有证明位于本机临时目录，不上传源DB/config/包。1234生产未调整。
+
+合成持久化移动报告仅证明恢复历史保存，不证明实际Git/Agent质量。R8尚需10C托管/就绪/容量，R2启用预算崩溃及R7实际GitLab验收、R1真实样本、浏览器综合验证、最终main和部署继续保留未完成。

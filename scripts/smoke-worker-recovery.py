@@ -42,9 +42,12 @@ def main():
     parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
     parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
     parser.add_argument("--ui-preview", action="store_true", help="Keep fixture online after proof until SIGTERM for browser inspection")
+    parser.add_argument("--backup-preview", action="store_true", help="Verify private backup/restore with the same native binary; requires metadata/lifecycle/comment previews")
     parser.add_argument("--app-port", type=int, default=19234)
     parser.add_argument("--upstream-port", type=int, default=19235)
     args = parser.parse_args()
+    if args.backup_preview and not (args.metadata_preview and args.lifecycle_preview and args.comment_preview):
+        parser.error("--backup-preview requires --metadata-preview --lifecycle-preview --comment-preview")
     if args.comment_preview and not args.metadata_preview:
         parser.error("--comment-preview requires --metadata-preview")
     if args.verification_preview and not args.metadata_preview:
@@ -166,7 +169,18 @@ def main():
                 moved = '"head_sha":"' + "d" * 40 + '"' in content
                 absent = '"head_sha":"' + "e" * 40 + '"' in content
                 line = 2 if moved else 1
-                if number in (1, 3):
+                systems = [str(m.get("content", "")) for m in request["messages"] if m.get("role") == "system"]
+                independent = any(m.startswith("Independently review") for m in systems)
+                diagram = any(m.startswith("Generate a static sequence diagram") for m in systems)
+                observations = [json.loads(m["content"]).get("observation_id") for m in request["messages"] if m.get("role") == "tool"]
+                observations = [o for o in observations if o]
+                if independent and observations:
+                    message = {"role": "assistant", "content": json.dumps({"status": "rejected", "reason": "合成文本不构成漏洞，仅用于历史与恢复演练。", "limitations": ["合成响应不验证真实模型准确率。"], "observation_ids": observations}, ensure_ascii=False)}
+                    finish = "stop"
+                elif diagram:
+                    message = {"role": "assistant", "content": json.dumps({"participants": [{"id": "caller", "label": "合成调用方"}, {"id": "source", "label": "合成文件"}], "steps": [{"from": "caller", "to": "source", "label": "固定版本的合成文本，仅用于演练", "kind": "note", "certainty": "cited", "risk": True, "evidence": [{"side": "head", "file": "a.any", "line": line, "snippet": "change"}]}], "limitations": ["未执行代码，不代表真实漏洞。"]}, ensure_ascii=False)}
+                    finish = "stop"
+                elif not observations and not absent:
                     message = {"role": "assistant", "content": None, "tool_calls": [{"id": "fixture_lifecycle_read", "type": "function", "function": {"name": "read_file", "arguments": json.dumps({"path": "a.any", "start": line, "end": line})}}]}
                     finish = "tool_calls"
                 else:
@@ -246,16 +260,17 @@ def main():
     threading.Thread(target=upstream.serve_forever, daemon=True).start()
     config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "verify_findings": args.verification_preview, "generate_sequence_diagrams": args.metadata_preview}
     (root / "config.yaml").write_text(json.dumps(config))  # JSON is valid YAML.
+    (root / "config.yaml").chmod(0o600)
     env = dict(os.environ, AIM_ADMIN_USERNAME="recovery-fixture-admin", AIM_ADMIN_PASSWORD="recovery-fixture-password")
     processes, logs = [], []
     base_url = f"http://localhost:{args.app_port}"
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     db = None
 
-    def start(name):
+    def start(name, directory=None):
         log = open(root / (name + ".log"), "w")
         logs.append(log)
-        process = subprocess.Popen([binary], cwd=root, env=env, stdout=log, stderr=log)
+        process = subprocess.Popen([binary], cwd=directory or root, env=env, stdout=log, stderr=log)
         processes.append(process)
         return process
 
@@ -361,7 +376,7 @@ def main():
                 else:
                     assert not detail["run"]["result"]["findings"] and not detail["reviews"]
                     assert detail["finding_lifecycle"]["not_reobserved"][0]["run_id"] == lifecycle_runs[1]
-            assert calls[94] == 5
+            assert calls[94] == (9 if args.verification_preview else 7 if args.metadata_preview else 5)
             proof.update(lifecycle_runs=lifecycle_runs, recurring_fingerprint_preserved=True, human_decision_not_copied=True, absence_not_auto_fixed=True, preview_url=base_url+f"/#/runs/{lifecycle_runs[1]}")
         if args.comment_preview:
             wait_for(lambda: api(f"/runs/{metadata_run}")["comment_sync"]["state"] == "sent")
@@ -370,7 +385,15 @@ def main():
             with lock:
                 assert comment_creates[92] == 1 and comment_updates[92] == 1 and "误报" in comments[92]
             proof.update(comment_run=metadata_run, comment_single_create=True, comment_review_update=True)
+        if args.backup_preview:
+            from ops_restore_drill import run_backup_drill
+            def upstream_counts():
+                with lock:
+                    return {"model": dict(calls), "creates": dict(comment_creates), "updates": dict(comment_updates)}
+            proof["backup_restore"] = run_backup_drill(root=root, binary=binary, db=db, api=api, start=start, processes=processes, healthy=healthy, wait_for=wait_for, base_url=base_url, lifecycle_runs=lifecycle_runs, crash_parent=crash_parent, metadata_run=metadata_run, upstream_counts=upstream_counts)
+            db = None  # The helper closed the source before restoring.
         (root / "proof.json").write_text(json.dumps(proof, ensure_ascii=False, indent=2))
+        (root / "proof.json").chmod(0o600)
         print(json.dumps(proof, ensure_ascii=False), flush=True)
         if args.ui_preview:
             while True:
