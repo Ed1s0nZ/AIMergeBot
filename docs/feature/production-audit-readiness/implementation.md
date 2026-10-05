@@ -259,3 +259,7 @@ P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围�
 ## F4/F5 / 切片10C6监控实现
 
 实现ops-healthcheck.py单次只读检查与test_ops_healthcheck.py真实本机HTTP测试。200精确ready成功；503、302（未跟随）、非ready、畸形/超限、服务关闭拒绝，非法远端HTTP/凭据/路径/查询与超时范围拒绝。HTTPError响应显式close，ResourceWarning设为error复验通过2项0.56秒，防止周期监控遗留句柄。固定输出/退出码，不读取私有配置，不启动定时任务/写外部消息。operations记录运行及旧版本限制，最终部署后还需实际1234监控证明。
+
+## F2/F3 / 切片12A真实界面排版修复
+
+隔离原生实例19248/19249已完成metadata/lifecycle/comment/verification基础场景，真实浏览器登录并检查设置截图。发现独立复核字段和预算fieldset错误嵌入温度/轮次field-row，触发横向flex压缩成竖列。修复行容器的闭合位置，将独立复核与预算作为fields直接子级，利用既有fieldset全宽规则，不改业务API/值。先build/typecheck，再真实浏览器重验模型布局；此问题不能靠Go或TS成功证明视觉正确。其他跨仓库/历史关联/补审响应式与最终main仍需综合验收。
