@@ -307,3 +307,7 @@ P10窄范围验收工具维护，已有11A只读GET/凭据隔离/响应上限为
 ## F4/F5 / 切片11A2采证错误响应关闭
 
 get_json对HTTPError显式close后原样抛出，main继续固定错误摘要。真实本机HTTP覆盖正确JSON、302未跟随且错误响应closed、503响应closed、非法JSON与2MiB超限。4项receipt测试以ResourceWarning=error执行0.538秒通过，diff检查通过。测试凭据明确synthetic-fixture-token，仅传本机测试服务器；未访问用户GitLab。保持只读收据范围，R7端到端授权验收仍待完成。
+
+## F5 / 切片12F模型预算与独立价格界面持久化
+
+隔离19258实际浏览器设置页：API Key留空，复核模型synthetic-independent-review、token阈值12000、CNY、主输入/输出2.5/5、启用独立复核价格3/6。复核价格从disabled切为可编辑，保存显示成功且无未保存更改，整页reload八个字段全部保留。仅对私有config.yaml上述八个键/值作精确行断言，不输出其他配置，全部通过。私有settings-persisted.jpg 0600。未调用该合成模型、不声称外部模型支持/实际计费验证，生产1234真实配置不变；设置保存/刷新/落盘界面验收完成，真实质量与GitLab以及最终main/部署仍保留。
