@@ -1,3 +1,4 @@
+import { ResourceRefreshFailure } from "./resource-feedback";
 import { FindingWorkbench } from "./finding-workbench";
 import { FrozenContextRepositories } from "./context-repositories";
 import { SARIFDownload } from "./sarif-download";
@@ -263,7 +264,7 @@ export function RunDetail({ id }: { id: number }) {
         <ErrorBox error={resource.error} />
         <Empty>
           {resource.loading ? "加载任务…" : "无法加载任务"}
-          <button onClick={resource.load}>重试</button>
+          <button disabled={resource.loading} onClick={resource.load}>重试</button>
         </Empty>
       </>
     );
@@ -303,7 +304,8 @@ export function RunDetail({ id }: { id: number }) {
           </div>
         }
       />
-      <ErrorBox error={error || resource.error} />
+      <ErrorBox error={error} />
+      <ResourceRefreshFailure error={resource.error} loading={resource.loading} onRetry={resource.load} />
       <section className="panel snapshot">
         <Badge value={r.status} />
         {r.source_project_id !== r.project_id && (
