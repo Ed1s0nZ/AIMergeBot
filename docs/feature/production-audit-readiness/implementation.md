@@ -365,3 +365,7 @@ PolicyVersion升为eino-audit-contract-v13，历史不重写；README说明旧�
 ## F5 / v13干净二进制原生复验
 
 a65441c干净源码构建至本机0700临时目录，go version -m核对vcs.revision完整匹配、vcs.modified=false；二进制0700及SHA256仅私有proof。19266/19267使用该二进制跑--gitlab-write-preview实际exit0，恢复父检查点一致、替代进程等自然lease失效、恢复子成功；Webhook run5同note更新与人工冲突保留，上游90/91/92模型HTTP=1/3/2。只读SQLite全部任务policy_version精确v13，私有proof补版本/构建摘要0600。新版策略在实际Worker/Eino/评论链路已验证，生产1234尚未替换，main未合并；外部质量与专用GitLab授权仍缺。
+
+## 外部样本可用性与演练清理
+
+通过现有GitHub CLI只读查询当前origin仓库Ed1s0nZ/AIMergeBot全部状态PR，第一页per_page20结果为空数组，不能从该仓库选历史PR冒充R1实证。未修改外部对象，未发送评论。已请求授权历史PR/本机固定base-head样本及专用GitLab MR写入授权，无需密钥；缺口仍保留。已完成界面验收的19258合成服务父进程以精确PID92525正常SIGTERM，原工具句柄47463确认exit0，清理自己的应用子进程；私有证据目录保留，未触碰1234。当前真实外部验收资料未收到，不能将全部目标标记完成。
