@@ -182,3 +182,9 @@ Workflow Gate Report：P10，AC002/003/011；实际验收203主阶段忽略下�
 主阶段结束后按成功、固定SHA、evidence_eligible源码trace记录每个配置源的实际读取状态：未读取只说明相关性未知，不说不存在/安全；不可用由预检记录，候选及原覆盖说明不删，独立复核后来读取不追溯把主调查标成已读。不推断仓库语义、不抓取目录自动全量审计。
 
 Maintainability Gate Report：agent.go约330行只增加预检调用/覆盖投影调用，新实现独立context_navigation.go纯投影+工具复用；context_repository_tools.go约145行保留权限责任。低风险narrow_fix，无需大重构；测试首次SDK提示与模型请求前checkpoint、源码读取资格（失败/列表/旧SHA不算）、无源不改提示、撤权/取消不发模型、同配置来源完整保留。策略v26。此改动依据已见验收失败，corpus-acceptance-v1自此转回归，不再称当前策略隔离验收，后续补新验收版本。
+
+## 切片18：服务器风险链记录缺口
+
+Workflow Gate Report：P10，AC005/006/007；既有PRContext字段和UI空态已具备，v26实际结果虽有事实仍缺双方来源与逐边关系。实施允许：候选合并/校验后，由服务器逐finding检查结构化PR记录是否有before/after来源、逐边关系；没有不推断安全或完整，而加入coverage_notes。推测关系即使模型unresolved_edges为空仍提示未核实。无PRContext单列未记录，不自动创建关系、不从名称推断路径、不删除候选或改独立复核。UI已有coverage缺口面板使用同API，无新增契约。
+
+Maintainability Gate Report：agent.go仅增加单调用，新纯投影pr_context_coverage.go及定向测试，低风险narrow_fix。验收missing/nil/partial/full/inferred、已有来源事实不替换、JSON独立支持不等同风险链完整，Go回归通过。metadata-only发现不自动要求运行路径关系，说明只用于line风险链；metadata仍要求PR前后事实来源。策略v27。同已见回归样例诊断不能称新隔离验收。
