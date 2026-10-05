@@ -142,7 +142,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	if ctx.Err() == nil {
 		cfg := e.Config
 		tokens := 4096
-		model, err := eo.NewChatModel(ctx, &eo.ChatModelConfig{APIKey: cfg.APIKey, BaseURL: cfg.BaseURL, Model: cfg.Model, Temperature: &cfg.Temperature, MaxTokens: &tokens, HTTPClient: upstreamHTTPClient("model")})
+		model, err := eo.NewChatModel(ctx, &eo.ChatModelConfig{APIKey: cfg.APIKey, BaseURL: cfg.BaseURL, Model: cfg.Model, Temperature: &cfg.Temperature, MaxTokens: &tokens, HTTPClient: upstreamHTTPClient("model"), ResponseFormat: &eo.ChatCompletionResponseFormat{Type: eo.ChatCompletionResponseFormatTypeJSONObject}})
 		if err != nil {
 			result.CoverageNotes = append(result.CoverageNotes, "Grouped supplemental model unavailable")
 		} else {

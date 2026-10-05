@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,14 @@ func TestPermanentModelErrorsDoNotExposeProviderBodyOrRetry(t *testing.T) {
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
+				var request struct {
+					ResponseFormat struct {
+						Type string `json:"type"`
+					} `json:"response_format"`
+				}
+				if json.NewDecoder(r.Body).Decode(&request) != nil || request.ResponseFormat.Type != "json_object" {
+					t.Error("model request lacks JSON transport contract")
+				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(status)
 				fmt.Fprint(w, `{"error":{"message":"secret-provider-body sk-private-fixture-key","type":"invalid_request_error","code":"invalid_api_key"}}`)

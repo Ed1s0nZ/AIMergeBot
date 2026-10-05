@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/cloudwego/eino/compose"
 	modelopenai "github.com/meguminnnnnnnnn/go-openai"
 	"net"
 	"os"
@@ -232,6 +233,9 @@ func run() error {
 }
 
 func classifyError(err error) (string, int) {
+	if errors.Is(err, compose.ErrExceedMaxSteps) {
+		return "agent_step_budget", 0
+	}
 	var response *platform.AuditResponseError
 	if errors.As(err, &response) {
 		return "model_response_" + response.Code, 0
