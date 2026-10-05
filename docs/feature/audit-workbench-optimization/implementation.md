@@ -25,3 +25,11 @@ Investigation.pr_context保存变更概述、BASE/HEAD行为、带观察ID的入
 前端PRInvestigationPanel复用于发现及调查记录，空值显示未记录，区分来源陈述与未知边，可通过既有证据按钮展开工具轨迹。React文本渲染，不执行模型HTML。Go全量测试通过（platform 43.488s），PRContext定向测试通过（1.221s），npm run typecheck与npm run build通过，git diff --check通过。嵌入前端资源与源码一起更新。
 
 本地Vite隔离样例通过浏览器验证：Enter展开，BASE/HEAD与入口/防护/未知关系可见，点击观察按钮展开对应轨迹；历史空态显示正确。截图/tmp/aimangebot-pr-impact-proof.png为界面样例，不是实际审计结果。临时预览文件及服务已清理。尚未完成窄屏验证或真实模型填充率评测，也没有完整逐边风险链与跨组专用交接；不能标记全部REQ-003/005完成。
+
+## 切片4：复核版本保护与草稿恢复
+
+platform_reviews新增revision，历史记录迁移初始1，迁移幂等。Store和HTTP写入必须携带expected_revision：0表示无记录，正数表示读到的版本。条件插入/更新影响行数0回滚为冲突，不写历史、事件或评论任务；400缺失版本，409陈旧版本，权限先检查。前端未编辑时同步新决定；草稿冲突保留并阻止提交，用户明确加载最新或保留草稿采用新版本。提交时禁用编辑。测试fixture现显式读取版本，不提供生产绕过路径。
+
+验证：Go全量通过（platform 53.825s）；复核及HTTP隔离定向race通过（5.948s）；定向版本测试通过；前端类型检查和最终build通过。测试覆盖首次并发、陈旧更新、评论generation不变、缺失条件、旧表迁移/历史保留及API400/409/204。早期全量失败为旧HTTP fixture未传版本，已迁移后重跑。
+
+本地真实组件浏览器样例验证草稿保留、禁用提交、保留草稿恢复、加载最新及未编辑表单同步。截图/tmp/aimangebot-review-conflict-proof.png为受控样例，非生产操作；预览文件和服务已清理。未进行真实多人账号线上E2E，未部署。窄屏和网络错误的完整验证仍留在最终QA。

@@ -91,6 +91,9 @@ func (s *Store) migrate() error {
 			return err
 		}
 	}
+	if err = migrateReviewRevision(tx); err != nil {
+		return err
+	}
 	if err = migrateAuditIdentity(tx); err != nil {
 		return err
 	}

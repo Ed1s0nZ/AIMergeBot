@@ -186,7 +186,7 @@ func TestAuditHTTPWorkflowAndFilters(t *testing.T) {
 		t.Fatal("result missing", err)
 	}
 	f := payload.Run.Result.Findings[0]
-	review := request("PUT", fmt.Sprintf("/api/v1/runs/%d/findings/%s/review", response.ID, f.ID), `{"status":"false_positive","reason":"guard exists"}`)
+	review := request("PUT", fmt.Sprintf("/api/v1/runs/%d/findings/%s/review", response.ID, f.ID), `{"status":"false_positive","reason":"guard exists","expected_revision":0}`)
 	if review.Code != 204 {
 		t.Fatal(review.Body.String())
 	}

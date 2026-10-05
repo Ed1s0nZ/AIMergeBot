@@ -222,7 +222,7 @@ func (s *Store) Recover(ctx context.Context) error {
 }
 
 func (s *Store) Reviews(ctx context.Context, id int64) ([]Review, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT run_id,finding_id,status,reason,actor,updated_at FROM platform_reviews WHERE run_id=? ORDER BY finding_id`, id)
+	rows, err := s.DB.QueryContext(ctx, `SELECT run_id,finding_id,status,reason,actor,updated_at,revision FROM platform_reviews WHERE run_id=? ORDER BY finding_id`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (s *Store) Reviews(ctx context.Context, id int64) ([]Review, error) {
 	items := []Review{}
 	for rows.Next() {
 		var r Review
-		if err = rows.Scan(&r.RunID, &r.FindingID, &r.Status, &r.Reason, &r.Actor, &r.UpdatedAt); err != nil {
+		if err = rows.Scan(&r.RunID, &r.FindingID, &r.Status, &r.Reason, &r.Actor, &r.UpdatedAt, &r.Revision); err != nil {
 			return nil, err
 		}
 		items = append(items, r)
@@ -286,10 +286,26 @@ func (s *Store) saveReview(ctx context.Context, r Review, authorize bool) error 
 	if current == 0 {
 		return sql.ErrNoRows
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_reviews(run_id,finding_id,status,reason,actor,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(run_id,finding_id) DO UPDATE SET status=excluded.status,reason=excluded.reason,actor=excluded.actor,updated_at=excluded.updated_at`, r.RunID, r.FindingID, r.Status, r.Reason, r.Actor, now())
+	if r.ExpectedRevision == nil || *r.ExpectedRevision < 0 {
+		return ErrReviewRevision
+	}
+	var saved sql.Result
+	if *r.ExpectedRevision == 0 {
+		saved, err = tx.ExecContext(ctx, `INSERT INTO platform_reviews(run_id,finding_id,status,reason,actor,updated_at,revision) VALUES(?,?,?,?,?,?,1) ON CONFLICT(run_id,finding_id) DO NOTHING`, r.RunID, r.FindingID, r.Status, r.Reason, r.Actor, now())
+	} else {
+		saved, err = tx.ExecContext(ctx, `UPDATE platform_reviews SET status=?,reason=?,actor=?,updated_at=?,revision=revision+1 WHERE run_id=? AND finding_id=? AND revision=?`, r.Status, r.Reason, r.Actor, now(), r.RunID, r.FindingID, *r.ExpectedRevision)
+	}
 	if err != nil {
 		return err
 	}
+	changed, err := saved.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if changed != 1 {
+		return ErrReviewConflict
+	}
+	r.Revision = *r.ExpectedRevision + 1
 	detail, _ := json.Marshal(r)
 	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'finding.reviewed',?,?)`, r.Actor, string(detail), now()); err != nil {
 		return err

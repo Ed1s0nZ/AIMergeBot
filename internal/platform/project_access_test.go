@@ -177,12 +177,15 @@ func TestProjectHTTPIsolationAndRoleTransitions(t *testing.T) {
 		t.Fatal("viewer permissions wrong")
 	}
 	reviewPath := fmt.Sprintf("/api/v1/runs/%d/findings/f1/review", runs[0])
-	check("PUT", reviewPath, `{"status":"accepted","reason":"fixture"}`, memberToken, 403)
+	check("PUT", reviewPath, `{"status":"accepted","reason":"fixture","expected_revision":0}`, memberToken, 403)
 	check("POST", "/api/v1/runs", `{"project_id":1,"mr_iid":1}`, memberToken, 403)
 	if err = s.SetProjectMember(ctx, 1, member.ID, "reviewer", admin.ID); err != nil {
 		t.Fatal(err)
 	}
-	check("PUT", reviewPath, `{"status":"accepted","reason":"fixture"}`, memberToken, 204)
+	check("PUT", reviewPath, `{"status":"accepted","reason":"fixture","expected_revision":0}`, memberToken, 204)
+	check("PUT", reviewPath, `{"status":"accepted"}`, memberToken, 400)
+	check("PUT", reviewPath, `{"status":"fixed","expected_revision":0}`, memberToken, 409)
+	check("PUT", reviewPath, `{"status":"fixed","expected_revision":1}`, memberToken, 204)
 	check("POST", "/api/v1/runs/1/cancel", `{}`, memberToken, 403)
 	if err = s.SetProjectMember(ctx, 1, member.ID, "operator", admin.ID); err != nil {
 		t.Fatal(err)

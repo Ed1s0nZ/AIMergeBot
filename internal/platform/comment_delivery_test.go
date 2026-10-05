@@ -28,14 +28,14 @@ func TestCommentDeliveryScheduledWithReviewTransaction(t *testing.T) {
 		}
 	}
 	check(1, "pending")
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f", Status: "accepted", Actor: 1}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f", Status: "accepted", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	check(2, "pending")
 	if _, err = s.DB.Exec(`UPDATE platform_comment_delivery SET state='unknown' WHERE run_id=?`, id); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f", Status: "fixed", Actor: 1}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f", Status: "fixed", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	check(3, "unknown") // A new review cannot clear an ambiguous prior POST.
@@ -82,7 +82,7 @@ func TestCommentDeliveryGenerationRaceAndOwnerFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f", Status: "accepted", Actor: 1}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f", Status: "accepted", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	if err = s.prepareCommentBody(ctx, d, "hash1"); err != nil {
@@ -115,7 +115,7 @@ func TestCommentDeliveryGenerationRaceAndOwnerFence(t *testing.T) {
 	if err != nil || recovered.State != "unknown" {
 		t.Fatalf("ambiguous takeover %+v %v", recovered, err)
 	}
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f", Status: "fixed", Actor: 1}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f", Status: "fixed", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	if err = s.acknowledgeComment(ctx, recovered, "discussion", 12, 7, "hash2"); err != nil {

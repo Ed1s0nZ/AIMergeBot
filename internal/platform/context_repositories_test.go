@@ -171,7 +171,7 @@ func TestContextRetryDependenciesCommentIsolationAndGrantReplacement(t *testing.
 	if err != nil || delivery.State != "blocked" || !strings.Contains(delivery.LastError, "permission intersection") {
 		t.Fatal("cross-source report queued public comment", err)
 	}
-	if err = s.SaveReview(ctx, Review{RunID: child, FindingID: "f", Status: "accepted", Actor: admin.ID}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: child, FindingID: "f", Status: "accepted", Actor: admin.ID})); err != nil {
 		t.Fatal(err)
 	}
 	delivery, err = s.CommentDelivery(ctx, child)
@@ -245,7 +245,7 @@ func TestContextHistoryNeverBridgesDifferentRepositorySets(t *testing.T) {
 	ctx := context.Background()
 	f := Finding{ID: "first", File: "file.any", Side: "head", Line: 1, Type: "risk", Evidence: "danger(input)", Trigger: "input"}
 	first := lifecycleRun(t, s, snap, []Finding{f}, "succeeded")
-	if err := s.SaveReview(ctx, Review{RunID: first.ID, FindingID: f.ID, Status: "accepted", Reason: "private related-source conclusion", Actor: admin.ID}); err != nil {
+	if err := s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: first.ID, FindingID: f.ID, Status: "accepted", Reason: "private related-source conclusion", Actor: admin.ID})); err != nil {
 		t.Fatal(err)
 	}
 	snap.HeadSHA = strings.Repeat("d", 40)

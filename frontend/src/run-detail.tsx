@@ -31,7 +31,7 @@ import {
 } from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
-function FindingCard({
+export function FindingCard({
   finding,
   review,
   runId,
@@ -48,6 +48,25 @@ function FindingCard({
     [reason, setReason] = useState(review?.reason || ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [baseline, setBaseline] = useState({
+    revision: review?.revision || 0,
+    status: review?.status || "pending",
+    reason: review?.reason || "",
+  });
+  const [conflict, setConflict] = useState(false);
+  const dirty = status !== baseline.status || reason !== baseline.reason;
+  const latestRevision = review?.revision || 0;
+  useEffect(() => {
+    if (busy || latestRevision <= baseline.revision) return;
+    if (dirty) {
+      setConflict(true);
+    } else {
+      const latest = { revision: latestRevision, status: review?.status || "pending", reason: review?.reason || "" };
+      setBaseline(latest);
+      setStatus(latest.status);
+      setReason(latest.reason);
+    }
+  }, [latestRevision, review?.status, review?.reason, baseline.revision, dirty, busy]);
   return (
     <article className="panel finding">
       <div className="finding-heading">
@@ -92,16 +111,23 @@ function FindingCard({
           className="review-form"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (busy || conflict) return;
             setBusy(true);
             setError("");
             try {
               await api(
                 `/runs/${runId}/findings/${finding.id}/review`,
-                write("PUT", { status, reason }),
+                write("PUT", { status, reason, expected_revision: baseline.revision }),
               );
+              setBaseline({ revision: baseline.revision + 1, status, reason });
+              setConflict(false);
               onSaved();
             } catch (e) {
               setError((e as Error).message);
+              if (e instanceof APIError && e.status === 409) {
+                setConflict(true);
+                onSaved();
+              }
               if (e instanceof APIError && [403, 404].includes(e.status))
                 onSaved();
             } finally {
@@ -111,6 +137,7 @@ function FindingCard({
         >
           <select
             aria-label="复核状态"
+            disabled={busy}
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -122,12 +149,24 @@ function FindingCard({
           </select>
           <input
             aria-label="复核原因"
+            disabled={busy}
             placeholder="记录复核依据…"
             maxLength={4000}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
-          <button disabled={busy}>保存复核</button>
+          <button disabled={busy || conflict}>保存复核</button>
+          {conflict && <div role="alert">
+            <p>复核已被更新，草稿已保留。最新决定：{statuses[review?.status || "pending"] || review?.status} · {review?.reason || "未填写原因"}</p>
+            <button type="button" disabled={busy || latestRevision <= baseline.revision} onClick={() => {
+              const latest = { revision: latestRevision, status: review?.status || "pending", reason: review?.reason || "" };
+              setBaseline(latest); setStatus(latest.status); setReason(latest.reason); setConflict(false); setError("");
+            }}>加载最新决定</button>
+            <button type="button" disabled={busy || latestRevision <= baseline.revision} onClick={() => {
+              setBaseline({ revision: latestRevision, status: review?.status || "pending", reason: review?.reason || "" }); setConflict(false); setError("");
+            }}>保留草稿，采用最新版本</button>
+            <button type="button" disabled={busy} onClick={onSaved}>刷新最新决定</button>
+          </div>}
         </form>
       ) : (
         <p className="muted">当前项目为查看权限，复核需管理员授权。</p>

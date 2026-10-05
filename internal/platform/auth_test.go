@@ -88,7 +88,7 @@ func TestRunStateAndReviewIsolation(t *testing.T) {
 	if err = s.Finish(ctx, id, "succeeded", "", result, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f1", Status: "false_positive", Reason: "guard exists", Actor: 1}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f1", Status: "false_positive", Reason: "guard exists", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	retry, created, err := s.Enqueue(ctx, snap, 1, true)

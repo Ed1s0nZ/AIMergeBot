@@ -110,10 +110,12 @@ type ToolTrace struct {
 }
 
 type Review struct {
-	RunID     int64  `json:"run_id"`
-	FindingID string `json:"finding_id"`
-	Status    string `json:"status"`
-	Reason    string `json:"reason"`
-	Actor     int64  `json:"actor"`
-	UpdatedAt string `json:"updated_at"`
+	Revision         int64  `json:"revision"`
+	ExpectedRevision *int64 `json:"expected_revision,omitempty"`
+	RunID            int64  `json:"run_id"`
+	FindingID        string `json:"finding_id"`
+	Status           string `json:"status"`
+	Reason           string `json:"reason"`
+	Actor            int64  `json:"actor"`
+	UpdatedAt        string `json:"updated_at"`
 }

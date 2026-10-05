@@ -111,7 +111,7 @@ func TestDisabledRequesterCannotExecuteQueuedRunOrWriteReview(t *testing.T) {
 	if err = s.SetProjectMember(ctx, 1, member.ID, "viewer", admin.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SaveReviewUser(ctx, Review{RunID: id, FindingID: "f1", Actor: member.ID, Status: "accepted"}); !errors.Is(err, ErrProjectPermission) {
+	if err = s.SaveReviewUser(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f1", Actor: member.ID, Status: "accepted"})); !errors.Is(err, ErrProjectPermission) {
 		t.Fatal("viewer wrote review through store", err)
 	}
 	reviews, err := s.Reviews(ctx, id)

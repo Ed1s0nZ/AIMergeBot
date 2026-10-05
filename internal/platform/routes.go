@@ -283,6 +283,14 @@ func (h *HTTP) review(c *gin.Context) {
 	req.FindingID = c.Param("finding_id")
 	req.Actor = currentUser(c).ID
 	if err := h.Store.SaveReviewUser(c.Request.Context(), req); err != nil {
+		if errors.Is(err, ErrReviewConflict) {
+			c.JSON(409, gin.H{"error": "复核已被更新，请读取最新决定后重试", "code": "review_conflict"})
+			return
+		}
+		if errors.Is(err, ErrReviewRevision) {
+			c.JSON(400, gin.H{"error": "expected_revision 必须为非负整数", "code": "review_revision_required"})
+			return
+		}
 		fail(c, err)
 		return
 	}

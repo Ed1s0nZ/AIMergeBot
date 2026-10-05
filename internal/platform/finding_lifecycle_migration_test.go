@@ -25,7 +25,7 @@ func TestLifecycleProjectionAndReviewReceiptsAreTransactional(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, status := range []string{"accepted", "fixed"} {
-		if err = s.SaveReview(ctx, Review{RunID: id, FindingID: f.ID, Status: status, Reason: "human decision", Actor: 1}); err != nil {
+		if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: f.ID, Status: status, Reason: "human decision", Actor: 1})); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -57,7 +57,7 @@ func TestLifecycleProjectionAndReviewReceiptsAreTransactional(t *testing.T) {
 	if count != 0 {
 		t.Fatal("removed finding occurrence retained")
 	}
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: f.ID, Status: "fixed", Actor: 1}); err == nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: f.ID, Status: "fixed", Actor: 1})); err == nil {
 		t.Fatal("removed finding accepted review")
 	}
 }
@@ -77,7 +77,7 @@ func TestLifecycleBackfillPreservesHistoricalResultBytes(t *testing.T) {
 	if err = s.Finish(ctx, id, "succeeded", "", AuditResult{Findings: []Finding{f}, Summary: "historic", CoverageNotes: []string{}}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SaveReview(ctx, Review{RunID: id, FindingID: f.ID, Status: "accepted", Actor: 1}); err != nil {
+	if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: f.ID, Status: "accepted", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	var original, trace string

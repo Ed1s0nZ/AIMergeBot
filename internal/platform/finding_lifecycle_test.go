@@ -36,7 +36,7 @@ func TestFindingLifecycleRetainsHistoryWithoutCopyingDecisionOrCertifyingFix(t *
 	snap := Snapshot{ProjectID: 1, SourceProjectID: 1, MRIID: 1, BaseSHA: strings.Repeat("a", 40), HeadSHA: strings.Repeat("b", 40)}
 	f := Finding{ID: "first", File: "file.any", Side: "head", Line: 2, Type: "risk", Evidence: "danger(input)", Trigger: "untrusted input"}
 	first := lifecycleRun(t, s, snap, []Finding{f}, "succeeded")
-	if err := s.SaveReview(ctx, Review{RunID: first.ID, FindingID: f.ID, Status: "fixed", Reason: "human conclusion on old version", Actor: 1}); err != nil {
+	if err := s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: first.ID, FindingID: f.ID, Status: "fixed", Reason: "human conclusion on old version", Actor: 1})); err != nil {
 		t.Fatal(err)
 	}
 	snap.HeadSHA = strings.Repeat("c", 40)
@@ -67,7 +67,7 @@ func TestFindingLifecycleHistoryBoundsAndScopeDefense(t *testing.T) {
 	f := Finding{ID: "first", File: "file.any", Side: "head", Type: "risk", Evidence: "danger(input)", Trigger: "untrusted input"}
 	first := lifecycleRun(t, s, snap, []Finding{f}, "succeeded")
 	for i := 0; i < 23; i++ {
-		if err := s.SaveReview(ctx, Review{RunID: first.ID, FindingID: f.ID, Status: "pending", Reason: "bounded receipt", Actor: 1}); err != nil {
+		if err := s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: first.ID, FindingID: f.ID, Status: "pending", Reason: "bounded receipt", Actor: 1})); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -101,7 +101,7 @@ func TestFindingLifecycleTotalResponseBudget(t *testing.T) {
 	run := lifecycleRun(t, s, snap, findings, "succeeded")
 	for _, f := range findings {
 		for i := 0; i < 20; i++ {
-			if err := s.SaveReview(ctx, Review{RunID: run.ID, FindingID: f.ID, Status: "pending", Reason: "bounded receipt", Actor: 1}); err != nil {
+			if err := s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: run.ID, FindingID: f.ID, Status: "pending", Reason: "bounded receipt", Actor: 1})); err != nil {
 				t.Fatal(err)
 			}
 		}

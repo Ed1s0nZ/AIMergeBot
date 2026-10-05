@@ -190,7 +190,7 @@ func TestGitLabDeliveryCreateReconcileAndReviewUpdate(t *testing.T) {
 				t.Fatalf("delivery %+v %v", d, err)
 			}
 			// Trusted system review fixture avoids adding unrelated ACL setup.
-			if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f", Status: "false_positive", Reason: "synthetic guard", Actor: 0}); err != nil {
+			if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f", Status: "false_positive", Reason: "synthetic guard", Actor: 0})); err != nil {
 				t.Fatal(err)
 			}
 			mu.Lock()
@@ -244,7 +244,7 @@ func TestGitLabDeliveryCreateReconcileAndReviewUpdate(t *testing.T) {
 			}
 			body += " human edit"
 			mu.Unlock()
-			if err = s.SaveReview(ctx, Review{RunID: id, FindingID: "f", Status: "fixed", Actor: 0}); err != nil {
+			if err = s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: id, FindingID: "f", Status: "fixed", Actor: 0})); err != nil {
 				t.Fatal(err)
 			}
 			deliver()

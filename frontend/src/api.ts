@@ -204,6 +204,7 @@ export type Run = {
   }[];
 };
 export type Review = {
+	 revision: number;
   finding_id: string;
   status: string;
   reason: string;

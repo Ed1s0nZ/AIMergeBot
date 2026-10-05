@@ -139,7 +139,7 @@ func TestAssociationDecisionsAppendHistoryAndNeverInheritRiskReview(t *testing.T
 	if err := s.SetProjectMember(ctx, 1, member.ID, "reviewer", admin.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.SaveReview(ctx, Review{RunID: old.ID, FindingID: "old", Status: "fixed", Reason: "old version only", Actor: admin.ID}); err != nil {
+	if err := s.SaveReview(ctx, reviewAtCurrentRevision(t, s, ctx, Review{RunID: old.ID, FindingID: "old", Status: "fixed", Reason: "old version only", Actor: admin.ID})); err != nil {
 		t.Fatal(err)
 	}
 	list, err := s.FindingAssociations(ctx, current.ID, member.ID)
