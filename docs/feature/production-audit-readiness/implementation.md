@@ -421,3 +421,11 @@ Workflow Gate P10，上游为R2/R7静态审计契约与上述实际模型结果�
 ## F4/F5 / 静态覆盖提示词澄清
 
 主Agent提示词明确coverage_notes具体缺失含义，静态不执行和单文件大小本身放方法/触发限制；真实缺失调用、配置、保护证据仍必须说明。没有后处理删除notes、没有改变工具错误或服务端incomplete判定，原测试结果保持。定向Eino/覆盖/跨源时序与独立复核测试6.215秒通过；真实GitLab复测与评论链路尚未通过，随后使用干净新构建验证。
+
+## F5 / 用户GitLab专用模拟项目实测
+
+已授权目标为用户指定namespace下private项目aimangebot-e2e-test（https://gitlab.com/1-group2395641/aimangebot-e2e-test），MR1/2均不合并、不执行代码。三次真实DeepSeek+真实GitLab+原生Worker固定Git审计（MR1、MR2、64990bd重测MR2）各产生1个真实校验发现，独立复核supported；MR1曾错误提交未变更行，保留工具失败覆盖；MR2两轮仍将静态方法/仓库小描述为coverage_notes，状态incomplete、没有评论投递。提示词澄清未使真实模型自动达到succeeded，不能宣称该模型行为已完全修复。等待评论不可能收敛后精确停止工具子进程，应用正常退出，原始私有证据保留；未改变状态或删除覆盖说明。
+
+随后独立隔离实例使用64990bd干净二进制、真实GitLab固定MR2对象与仓库读取，模型响应明确为synthetic transport fixture（假凭据、仅本机模型HTTP，不发送真实模型API Key）。模型复核/时序阶段在该评论专项关闭，因此不证明模型能力；正常Eino结果解析/证据校验→真实Worker→GitLab流程。写入验收程序exit0：新run→重复Webhook相同run且created=false→真实discussion/note首次创建→人工复核后同note更新generation1→2→通过GitLab显式人工编辑→第二复核使desired3/sent2且state=conflict，GitLab正文保持人工编辑内容、标记唯一。MR2保留专用测试评论和人工冲突证据，未自动清理/覆盖。测试服务和本机模型server正常清理。私有proof/配置/DB/日志均不入Git；生产1234未升级。
+
+这是应用入口重放Webhook的实际GitLab读写集成，不证明GitLab从公网主动投递至本机（127.0.0.1无公网入口）。模拟仓库加真实模型仅验证这几个设定案例，不是授权历史PR准确率、误报/漏报统计或跨仓库大PR质量评测。当前已满足用户新授权的凭据配置、模拟项目/MR创建及上述链路实际测试，整体main/生产部署及原验收缺口仍需继续处理。
