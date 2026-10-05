@@ -92,3 +92,7 @@ AuditGit当前只有96KiB整体BuildDiff，未使用已有PlanAuditGroups/单文
 ## F2/F3 / 跨组汇总上下文边界
 
 跨组汇总同样是ReAct模型节点：初始输入可达64KiB，随后只读调查仍可增加历史。统一接入官方适配器，fresh来源及父统计保持隔离，阶段synthesis_compression按主模型价格，失败只保留原分组摘要/发现并追加覆盖限制。每次汇总独立状态和10秒已有期限不变；不得因为摘要获得创建/升级发现能力。真实HTTP长工具输出成功/失败、摘要计数和原发现不变为验收；前端增加阶段中文标签。
+
+## F2/F3 / 命令行终态与退出码
+
+现有文档要求覆盖停止的CLI非零退出，但分组/汇总的覆盖缺口返回Run.Status=incomplete、error=nil，main仅判断error，会退出0。修正实现符合已记录契约：stdout仍完整JSON；失败/error退出1，incomplete退出2，succeeded/skipped退出0。调用方据退出码区分未完成而非把它当安全证明；有发现但审计完成仍退出0，不引入漏洞严重性策略。实际构建CLI+固定Git+HTTP模型验证成功、覆盖缺口和模型失败3种退出码，保留非零stdout结果。这是终态传播修复，不修改报告字段或Git写入权限。
