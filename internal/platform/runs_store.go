@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-const PolicyVersion = "eino-audit-contract-v18"
+const PolicyVersion = "eino-audit-contract-v19"
 
 var ErrConflict = errors.New("operation conflicts with current state")
 

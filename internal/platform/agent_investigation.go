@@ -40,6 +40,9 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 		if err := t.validateObservationIDs(a.CounterObservationIDs); err != nil {
 			return toolOutput{}, err
 		}
+		if err := t.validatePRSnapshotLinks(a.PRContext); err != nil {
+			return toolOutput{}, err
+		}
 		if err := validatePRContext(a); err != nil {
 			return toolOutput{}, err
 		}

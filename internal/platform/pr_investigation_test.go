@@ -82,3 +82,74 @@ func TestPRContextRejectsKnowledgeObservationAndPreservesLedger(t *testing.T) {
 		t.Fatal("invalid update changed ledger")
 	}
 }
+
+func TestPRRiskRelationshipsRequireLinkedSources(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		edit func(*PRInvestigationContext)
+	}{
+		{"foreign", func(p *PRInvestigationContext) { p.Relationships[0].ObservationIDs = []string{"foreign"} }},
+		{"no_source", func(p *PRInvestigationContext) { p.Relationships[0].ObservationIDs = nil }},
+		{"false_certainty", func(p *PRInvestigationContext) { p.Relationships[0].Certainty = "runtime_proven" }},
+		{"empty_endpoint", func(p *PRInvestigationContext) { p.Relationships[0].From = "" }},
+		{"oversize", func(p *PRInvestigationContext) { p.Relationships[0].Relation = strings.Repeat("长", 501) }},
+		{"unlinked_before", func(p *PRInvestigationContext) { p.BeforeObservationIDs = []string{"foreign"} }},
+		{"unlinked_impact", func(p *PRInvestigationContext) { p.Impact[0].ObservationIDs = []string{"foreign"} }},
+		{"unlinked_counterexample", func(p *PRInvestigationContext) { p.Counterexamples[0].ObservationIDs = []string{"foreign"} }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := riskRelationshipFixture()
+			if err := validatePRContext(Investigation{PRContext: p, ObservationIDs: []string{"source"}}); err != nil {
+				t.Fatal(err)
+			}
+			tc.edit(p)
+			if validatePRContext(Investigation{PRContext: p, ObservationIDs: []string{"source"}}) == nil {
+				t.Fatal("invalid risk chain accepted")
+			}
+		})
+	}
+	p := riskRelationshipFixture()
+	copy := clonePRContext(p)
+	p.Relationships[0].ObservationIDs[0] = "mutation"
+	p.Impact[0].Statement = "mutation"
+	p.BeforeObservationIDs[0] = "mutation"
+	if copy.Relationships[0].ObservationIDs[0] != "source" || copy.Impact[0].Statement == "mutation" || copy.BeforeObservationIDs[0] != "source" {
+		t.Fatal("risk chain not deeply copied")
+	}
+	copy.Relationships[0].Certainty = "inferred"
+	if err := validatePRContext(Investigation{PRContext: copy, ObservationIDs: []string{"source"}}); err != nil {
+		t.Fatal(err)
+	}
+}
+func riskRelationshipFixture() *PRInvestigationContext {
+	p := validPRContext("source")
+	p.BeforeObservationIDs = []string{"source"}
+	p.AfterObservationIDs = []string{"source"}
+	p.Impact = []InvestigationFact{{Statement: "Unauthorized state change candidate", ObservationIDs: []string{"source"}}}
+	p.Counterexamples = []InvestigationFact{{Statement: "Caller requires an authenticated user, ownership remains unknown", ObservationIDs: []string{"source"}}}
+	p.Relationships = []InvestigationRelationship{{From: "API dispatch", To: "State update", Relation: "Dispatch argument maps order ID", Certainty: "cited", ObservationIDs: []string{"source"}}}
+	return p
+}
+
+func TestPRSnapshotLinksRejectWrongSideAndContextRepository(t *testing.T) {
+	tools := &auditTools{trace: []ToolTrace{
+		{Name: "read_file", ObservationID: "head", Arguments: `{"base":false}`, Output: `{"text":"head"}`},
+		{Name: "read_file", ObservationID: "base", Arguments: `{"base":true}`, Output: `{"text":"base"}`},
+		{Name: "read_repository_file", ObservationID: "context", Output: `{"repository_id":2,"text":"context"}`},
+		{Name: "get_diff", ObservationID: "diff", Output: `{"text":"diff"}`},
+	}}
+	if err := tools.validatePRSnapshotLinks(&PRInvestigationContext{BeforeObservationIDs: []string{"base"}, AfterObservationIDs: []string{"head"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"head", "context", "unknown"} {
+		if tools.validatePRSnapshotLinks(&PRInvestigationContext{BeforeObservationIDs: []string{id}}) == nil {
+			t.Fatal("wrong BASE reference", id)
+		}
+	}
+	if tools.validatePRSnapshotLinks(&PRInvestigationContext{AfterObservationIDs: []string{"base"}}) == nil {
+		t.Fatal("wrong HEAD reference")
+	}
+	if err := tools.validatePRSnapshotLinks(&PRInvestigationContext{BeforeObservationIDs: []string{"diff"}, AfterObservationIDs: []string{"diff"}}); err != nil {
+		t.Fatal(err)
+	}
+}

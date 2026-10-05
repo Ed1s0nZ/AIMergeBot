@@ -109,6 +109,11 @@ export type FindingVerification = {
   head_sha: string;
 };
 export type PRInvestigationContext = {
+  before_observation_ids?: string[];
+  after_observation_ids?: string[];
+  impact?: { statement: string; observation_ids: string[] }[];
+  counterexamples?: { statement: string; observation_ids: string[] }[];
+  relationships?: { from: string; to: string; relation: string; certainty: "cited" | "inferred"; observation_ids: string[] }[];
   change_summary: string;
   before: string;
   after: string;

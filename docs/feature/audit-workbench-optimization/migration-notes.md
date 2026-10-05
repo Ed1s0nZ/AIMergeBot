@@ -18,3 +18,5 @@ SQLite自动增列revision NOT NULL DEFAULT 1，原决定、历史和评论状�
 SARIF 导出新增 GET /runs/:id/sarif（viewer 权限、application/sarif+json、附件响应）。固定提交使用 aimangebot:// 快照 URI 基址，不承诺直接上传 GitHub Code Scanning；没有新数据库迁移。
 
 重复读取保护令策略版本升为 eino-audit-contract-v18；旧任务继续保存其原策略，依既有策略一致性检查不按新契约自动重试。没有数据库字段变化，新的审计使用 v18。
+
+PR 风险链扩展可选字段，旧 JSON 可继续读取；新的字段包含来源观察链接与逐边静态确定性，不表示运行复现。审计策略升为 eino-audit-contract-v19，仍沿用既有策略一致性/重试检查，不新增数据库迁移。
