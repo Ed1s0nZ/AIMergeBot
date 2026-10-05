@@ -45,3 +45,7 @@ go run ./cmd/audit-eval --config config.yaml --output /tmp/aimangebot-evaluation
 自建 case 可额外提供 `context_repositories: [{"repository_id":2,"files":{"svc.py":"..."}}]`，最多8项，ID不得与主仓库1重复。上下文生成独立固定 Git 提交，正常 Eino 上下文工具只能读取显式列出的 ID/SHA；结束 receipt 保存 `context_repositories`，供核对来源。文件校验和隔离规则与主仓库相同，不执行源码、不克隆网络仓库、不向模型提供期望或判定理由。
 
 当前扩展只接受自建上下文，真实历史 Git case 不接受该字段。准备器回归只证明固定对象和输入边界；跨仓库检测质量必须在标注的正负对照案例上实际运行并人工核验。
+
+`corpus-cross-repository-v1.json` 是4例、2组成对的自建跨语言场景（TypeScript调用Python、Go调用Ruby）。每组主仓库BASE/HEAD完全相同，关联仓库分别含导致风险的契约或保留保护的契约；检验下游单位转换和动态SQL标识符校验。deployment.conf提供服务名映射，不证明实际网络隔离；跨租户SQL场景明确依赖“用户不能绕过主入口直接访问内部服务”的外部部署假设。所有假设写入外部rationale并在人工评分时核对，不将该文件传给模型。
+
+使用 `--corpus evaluation/corpus-cross-repository-v1.json` 和独立新输出目录。无需安装这些语言的运行时；此评测只读固定源码，不执行样例。它不代表实际跨项目部署，也不是独立公开benchmark。原始receipt/coverage/失败保留，逐项判定必须核对是否读取相关上下文来源，不能只按锚点给分。

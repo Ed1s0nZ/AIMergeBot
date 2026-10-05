@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "kind": "authored-cross-repository-regression-not-production-benchmark",
+  "cases": [
+    {
+      "id": "case-101",
+      "expectation": "positive",
+      "base_files": {
+        "checkout.ts": "export async function checkout(amountDollars: number, account: string) {\n  if (!Number.isFinite(amountDollars) || amountDollars <= 0 || amountDollars > 1000) throw new Error(\"amount\");\n  const amount = Math.round(amountDollars * 100);\n  const response = await fetch(\"http://billing.internal/debit\", {\n    method: \"POST\", headers: {\"Content-Type\": \"application/json\"},\n    body: JSON.stringify({account, amount})\n  });\n  if (!response.ok) throw new Error(\"billing\");\n  return response.json();\n}\n"
+      },
+      "head_files": {
+        "checkout.ts": "export async function checkout(amountDollars: number, account: string) {\n  if (!Number.isFinite(amountDollars) || amountDollars <= 0 || amountDollars > 1000) throw new Error(\"amount\");\n  const amount = amountDollars;\n  const response = await fetch(\"http://billing.internal/debit\", {\n    method: \"POST\", headers: {\"Content-Type\": \"application/json\"},\n    body: JSON.stringify({account, amount})\n  });\n  if (!response.ok) throw new Error(\"billing\");\n  return response.json();\n}\n"
+      },
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "billing.py": "from decimal import Decimal\nfrom flask import Flask, request, jsonify\napp = Flask(__name__)\nbalances = {\"member\": Decimal(\"1000.00\")}\n@app.post(\"/debit\")\ndef debit():\n    payload = request.get_json()\n    account = payload[\"account\"]\n    amount = Decimal(str(payload[\"amount\"])) / Decimal(\"100\")\n    if account not in balances or amount <= 0 or amount > balances[account]:\n        return jsonify(error=\"invalid debit\"), 400\n    balances[account] -= amount\n    return jsonify(debited_dollars=str(amount), balance_dollars=str(balances[account]))\n",
+            "deployment.conf": "service_name=billing.internal\nhandler=billing.py\nexposure=internal-service\n"
+          }
+        }
+      ],
+      "expected_anchor": {
+        "file": "checkout.ts",
+        "side": "head",
+        "line": 3
+      },
+      "rationale": "The primary caller accepts dollars and previously converts to cents. The only listed billing.internal /debit implementation divides amount by100 before reducing a dollar balance. HEAD sends dollars as cents, so checkout(100, member) debits1 dollar instead of100. Trigger assumes this configured service is the dispatch destination; no runtime behavior claimed."
+    },
+    {
+      "id": "case-102",
+      "expectation": "negative",
+      "base_files": {
+        "checkout.ts": "export async function checkout(amountDollars: number, account: string) {\n  if (!Number.isFinite(amountDollars) || amountDollars <= 0 || amountDollars > 1000) throw new Error(\"amount\");\n  const amount = Math.round(amountDollars * 100);\n  const response = await fetch(\"http://billing.internal/debit\", {\n    method: \"POST\", headers: {\"Content-Type\": \"application/json\"},\n    body: JSON.stringify({account, amount})\n  });\n  if (!response.ok) throw new Error(\"billing\");\n  return response.json();\n}\n"
+      },
+      "head_files": {
+        "checkout.ts": "export async function checkout(amountDollars: number, account: string) {\n  if (!Number.isFinite(amountDollars) || amountDollars <= 0 || amountDollars > 1000) throw new Error(\"amount\");\n  const amount = amountDollars;\n  const response = await fetch(\"http://billing.internal/debit\", {\n    method: \"POST\", headers: {\"Content-Type\": \"application/json\"},\n    body: JSON.stringify({account, amount})\n  });\n  if (!response.ok) throw new Error(\"billing\");\n  return response.json();\n}\n"
+      },
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "billing.py": "from decimal import Decimal\nfrom flask import Flask, request, jsonify\napp = Flask(__name__)\nbalances = {\"member\": Decimal(\"1000.00\")}\n@app.post(\"/debit\")\ndef debit():\n    payload = request.get_json()\n    account = payload[\"account\"]\n    amount = Decimal(str(payload[\"amount\"]))\n    if account not in balances or amount <= 0 or amount > balances[account]:\n        return jsonify(error=\"invalid debit\"), 400\n    balances[account] -= amount\n    return jsonify(debited_dollars=str(amount), balance_dollars=str(balances[account]))\n",
+            "deployment.conf": "service_name=billing.internal\nhandler=billing.py\nexposure=internal-service\n"
+          }
+        }
+      ],
+      "expected_anchor": {
+        "file": "checkout.ts",
+        "side": "head",
+        "line": 3
+      },
+      "rationale": "Same primary diff, but the listed /debit handler interprets amount directly as dollars. HEAD fixes the earlier multiplication; the current path debits requested dollars. Do not report the unchanged/BASE over-debit as a newly introduced HEAD flaw. Deployment maps billing.internal to this handler."
+    },
+    {
+      "id": "case-103",
+      "expectation": "positive",
+      "base_files": {
+        "gateway.go": "package gateway\nimport (\n \"bytes\"\n \"encoding/json\"\n \"fmt\"\n \"io\"\n \"net/http\"\n)\nfunc Search(tenant, field, value string) ([]byte, error) {\n if field != \"name\" && field != \"email\" { return nil, fmt.Errorf(\"field\") }\n payload, err := json.Marshal(map[string]string{\"tenant\": tenant, \"field\": field, \"value\": value})\n if err != nil { return nil, err }\n res, err := http.Post(\"http://directory.internal/search\", \"application/json\", bytes.NewReader(payload))\n if err != nil { return nil, err }\n defer res.Body.Close()\n if res.StatusCode != 200 { return nil, fmt.Errorf(\"search\") }\n return io.ReadAll(res.Body)\n}\n"
+      },
+      "head_files": {
+        "gateway.go": "package gateway\nimport (\n \"bytes\"\n \"encoding/json\"\n \"fmt\"\n \"io\"\n \"net/http\"\n)\nfunc Search(tenant, field, value string) ([]byte, error) {\n payload, err := json.Marshal(map[string]string{\"tenant\": tenant, \"field\": field, \"value\": value})\n if err != nil { return nil, err }\n res, err := http.Post(\"http://directory.internal/search\", \"application/json\", bytes.NewReader(payload))\n if err != nil { return nil, err }\n defer res.Body.Close()\n if res.StatusCode != 200 { return nil, fmt.Errorf(\"search\") }\n return io.ReadAll(res.Body)\n}\n"
+      },
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "directory.rb": "require 'sinatra'\nrequire 'json'\nrequire 'sqlite3'\nDB = SQLite3::Database.new('directory.db')\npost '/search' do\n  payload = JSON.parse(request.body.read)\n  tenant = payload.fetch('tenant')\n  value = payload.fetch('value')\n  field = payload.fetch('field')\n  rows = DB.execute(\"SELECT name, email FROM people WHERE tenant_id = ? AND #{field} = ?\", [tenant, value])\n  content_type :json\n  JSON.generate(rows)\nend\n",
+            "deployment.conf": "service_name=directory.internal\nhandler=directory.rb\nexposure=internal-service\n"
+          }
+        }
+      ],
+      "expected_anchor": {
+        "file": "gateway.go",
+        "side": "base",
+        "line": 10
+      },
+      "rationale": "Gateway passes a trusted authenticated tenant and a user-selected search field/value to the configured internal directory service; external clients cannot reach that internal service directly (deployment assumption, not verified networking). BASE restricts field to name/email. HEAD removes the restriction; Ruby interpolates field into SQL while binding tenant/value. Field `name OR 1=1 OR name` keeps two bound parameters yet broadens tenant predicate through OR precedence. Added tainted flow is PR causal; the private service cannot be independently treated as public. No code executed."
+    },
+    {
+      "id": "case-104",
+      "expectation": "negative",
+      "base_files": {
+        "gateway.go": "package gateway\nimport (\n \"bytes\"\n \"encoding/json\"\n \"fmt\"\n \"io\"\n \"net/http\"\n)\nfunc Search(tenant, field, value string) ([]byte, error) {\n if field != \"name\" && field != \"email\" { return nil, fmt.Errorf(\"field\") }\n payload, err := json.Marshal(map[string]string{\"tenant\": tenant, \"field\": field, \"value\": value})\n if err != nil { return nil, err }\n res, err := http.Post(\"http://directory.internal/search\", \"application/json\", bytes.NewReader(payload))\n if err != nil { return nil, err }\n defer res.Body.Close()\n if res.StatusCode != 200 { return nil, fmt.Errorf(\"search\") }\n return io.ReadAll(res.Body)\n}\n"
+      },
+      "head_files": {
+        "gateway.go": "package gateway\nimport (\n \"bytes\"\n \"encoding/json\"\n \"fmt\"\n \"io\"\n \"net/http\"\n)\nfunc Search(tenant, field, value string) ([]byte, error) {\n payload, err := json.Marshal(map[string]string{\"tenant\": tenant, \"field\": field, \"value\": value})\n if err != nil { return nil, err }\n res, err := http.Post(\"http://directory.internal/search\", \"application/json\", bytes.NewReader(payload))\n if err != nil { return nil, err }\n defer res.Body.Close()\n if res.StatusCode != 200 { return nil, fmt.Errorf(\"search\") }\n return io.ReadAll(res.Body)\n}\n"
+      },
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "directory.rb": "require 'sinatra'\nrequire 'json'\nrequire 'sqlite3'\nDB = SQLite3::Database.new('directory.db')\npost '/search' do\n  payload = JSON.parse(request.body.read)\n  tenant = payload.fetch('tenant')\n  value = payload.fetch('value')\n  columns = {'name' => 'name', 'email' => 'email'}\n  field = columns[payload.fetch('field')]\n  halt 400, 'invalid field' unless field\n  rows = DB.execute(\"SELECT name, email FROM people WHERE tenant_id = ? AND #{field} = ?\", [tenant, value])\n  content_type :json\n  JSON.generate(rows)\nend\n",
+            "deployment.conf": "service_name=directory.internal\nhandler=directory.rb\nexposure=internal-service\n"
+          }
+        }
+      ],
+      "expected_anchor": {
+        "file": "gateway.go",
+        "side": "base",
+        "line": 10
+      },
+      "rationale": "Same removed caller field restriction but Ruby maps field through a fixed name/email dictionary and rejects all other values before SQL construction. The downstream protection is present in the fixed context and prevents the hypothesized injection. DB binding alone is not the relevant identifier guard. No production accuracy inference."
+    }
+  ]
+}

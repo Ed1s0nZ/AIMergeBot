@@ -2,7 +2,9 @@ package evaluation
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -41,6 +43,37 @@ func TestContextFixturesRejectBeforeMutation(t *testing.T) {
 		entries, _ := os.ReadDir(root)
 		if len(entries) != 0 {
 			t.Fatal("mutation before validation")
+		}
+	}
+}
+
+func TestCrossRepositoryCorpusPairsNeedContextEvidence(t *testing.T) {
+	corpus, _, err := LoadCorpus("../../evaluation/corpus-cross-repository-v1.json")
+	if err != nil || len(corpus.Cases) != 4 {
+		t.Fatal("cross corpus", err)
+	}
+	for i := 0; i < len(corpus.Cases); i += 2 {
+		positive, negative := corpus.Cases[i], corpus.Cases[i+1]
+		if positive.Expectation != "positive" || negative.Expectation != "negative" {
+			t.Fatal("pair labels")
+		}
+		a, _ := json.Marshal(positive.BaseFiles)
+		b, _ := json.Marshal(negative.BaseFiles)
+		h, _ := json.Marshal(positive.HeadFiles)
+		j, _ := json.Marshal(negative.HeadFiles)
+		if string(a) != string(b) || string(h) != string(j) {
+			t.Fatal("paired PR differs; context is no longer decisive")
+		}
+	}
+	for _, c := range corpus.Cases {
+		root := t.TempDir()
+		_, _, err := PrepareContextFixtures(context.Background(), root, c)
+		if err != nil {
+			t.Fatal(c.ID, err)
+		}
+		_, _, err = BuildRepository(context.Background(), filepath.Join(root, "primary"), c)
+		if err != nil {
+			t.Fatal(c.ID, err)
 		}
 	}
 }
