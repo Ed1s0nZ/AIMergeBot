@@ -331,3 +331,7 @@ Workflow Gate P10，R7授权范围及现有Webhook/Review/评论generation/只�
 4项真实本机HTTP测试2.341秒通过（ResourceWarning=error）：完整五次写入/同note更新/人工冲突保留、HEAD漂移阻止第一写、零finding不写review、403错误响应closed且停止。py_compile通过。此测试服务器模拟平台/GitLab状态，不是实际应用Worker/GitLab端到端，不替代已有原生合成集成或未来专用真实MR。真实授权未收到，未运行外部写入。R7可复用程序已实现，原生平台联测和真实专用MR验收仍待后续。
 
 补充显式写入标志缺失时零网络请求检查；receipt与write共9项测试2.854秒通过（write共5项）。未扩大真实写入授权。
+
+## F2/F3 / 切片11C原生写入程序联测
+
+P10验收阶段，11B程序及现有原生恢复fixture为上游，允许窄范围联测。smoke-worker-recovery新增--gitlab-write-preview，拒绝与会占用MR92的metadata等其他preview混用，预算崩溃模式也互斥；保持既有恢复先验。仅此模式启用合成Webhook token与评论，fixture MR响应补真实GitLab receipt需要的project_id/sha。使用现有合成登录session启动验收CLI子进程，目标MR92固定b SHA；脚本凭据只传子进程环境，证明JSONL0600不输出。核对原生run/投递数据库conflict、upstream一次create/两次PUT（应用更新与显式人工编辑），命令退出成功。无需构建新应用代码，使用已经编译含readyz的隔离二进制；失败保留私有目录。此证明是真实应用/Eino/Worker对合成上游，不是用户GitLab投递/模型质量。
