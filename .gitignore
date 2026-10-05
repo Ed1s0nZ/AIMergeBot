@@ -9,3 +9,5 @@ frontend/dist/
 *.log
 *.tsbuildinfo
 /aimangebot
+__pycache__/
+*.py[cod]
