@@ -211,3 +211,7 @@ Workflow Gate：P10运行可靠性，现有HTTP健康接口、实例租约/心�
 ## F4/F5 / 切片10C1就绪实现与检查
 
 新增readiness.go和readiness_test.go，注册匿名GET /readyz；返回固定ready/unavailable且no-store，当前workerRunState保存不可变owner，SQL验证实例有效归属，使用请求派生2秒ctx，不调用外部服务、不访问配置秘密。healthz保留。测试未启动、缺租约、正确归属、过期、owner替换、Worker取消、请求已取消、DB关闭、nil依赖以及固定无敏感响应。定向race最终1.638秒通过；完整go test ./...通过（platform34.883秒，evaluation3.903秒），go vet ./...通过。文档明确旧生产尚无新接口，最终发布后才生效。本片尚无原生就绪/launchd托管实证或容量结果，继续10C2与其余验收。
+
+## F2/F3 / 切片10C2服务配置生成
+
+P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz契约已就绪。生成工具仅创建不存在的私有输出文件，不安装/卸载服务，不读取或复制配置内容。launchd plist采用绝对ProgramArguments/WorkingDirectory、RunAtLoad、KeepAlive.SuccessfulExit=false、ThrottleInterval=35（大于30秒租约）、Umask=077和私有目录日志。systemd模板采用指定非root用户/组、绝对ExecStart/WorkingDirectory、Restart=on-failure/RestartSec=35、TimeoutStopSec=45、UMask=0077和NoNewPrivileges。路径与标识限制明确，systemd路径需转义百分号/引号/反斜杠，禁止控制字符；不提供含凭据环境变量。已有DB部署不需要bootstrap凭据。操作文档解释新库需先私下bootstrap，退出0不重启，异常才自动重启，备份前必须bootout/stop禁止自动重启。本片先生成/验证，下一片隔离launchd真实异常重启与readyz proof，Linux配置不虚称已运行验证。
