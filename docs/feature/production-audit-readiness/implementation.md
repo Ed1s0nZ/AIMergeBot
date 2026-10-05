@@ -373,3 +373,7 @@ a65441c干净源码构建至本机0700临时目录，go version -m核对vcs.revi
 ## 发布清单同步与分支秘密检查
 
 当前5440f03工作区干净，origin/main仍bcaeae2；总差异126文件。发布清单将已通过的综合回归/升级检查与R2/R5/R6回归状态同步，未提前勾选外部质量、最终人工检视或部署。扫描125个ACMR最终文件及origin/main..HEAD所有提交补丁：凭据形态及从本机私有配置读取的已知秘密均未发现，控制台仅摘要，不输出秘密值；不等于所有未知秘密均能识别。私有config/.env/DB/binary继续ignore。真实样本与专用MR授权仍未收到，没有可领取的真实评测任务；main/部署仍未执行，整体未完成。
+
+## F2/F3 / PRR-001修复
+
+P10窄范围缺陷修复，冻结检视报告docs/reviews/production-audit-b2e043f.md为上游。平台非force允许重审incomplete是既有业务契约，不为工具改变。验收CLI在首轮converged后若status!=succeeded，记录audit_incomplete_stop及run ID后失败，禁止第二Webhook及任何review/人工编辑；保留初始任务/评论，明确去重未验收。补真实本机HTTP incomplete+sent反例，模拟应用第二提交会新run，断言只有初次Webhook一次写入。原succeeded路径仍验证去重/同note更新/冲突，随后re-review关闭PRR-001并检查门控新风险，不以此批准全126文件。
