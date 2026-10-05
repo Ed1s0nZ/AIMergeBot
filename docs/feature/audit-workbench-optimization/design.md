@@ -94,3 +94,13 @@ SQLite platform_detail_versions(project_id PRIMARY KEY,revision NOT NULL)按项�
 首次/显式刷新始终完整读取；活跃任务每2秒先检查轻量版本，相同不加载完整详情，不同则load。状态请求不重叠，切换任务或组件销毁取消，过时响应不触发另一任务刷新。失败触发既有完整读取恢复；401/403/404完整读取清空旧内容。项目内其他任务变化可保守失效，暂不声称所有并发负载均有相同收益。旧详情调用方不受影响；触发器迁移幂等，增加计数不修改历史数据。
 
 测试：版本稳定、同长度JSON修改失效、复核/评论/重试及历史变化、角色撤销、无源码轻量响应、时间相关queue_wait、迁移幂等及前端真实轮询次数。没有测量字节与调用前不报告传输收益数字。
+
+## 切片6：授权SARIF 2.1.0导出
+
+新增GET /api/v1/runs/:id/sarif，沿用完整快照viewer权限，读取后再次授权，返回application/sarif+json附件，no-store；不上传第三方、不读取/执行新源码。纯BuildSARIF(Run,[]Review)模块生成tool.driver、规则、results、invocations和properties。规则按风险类型稳定排序与ID；severity映射high/error、medium/warning、low/note。fingerprint仅保留已有值，不伪造跨版本身份。
+
+位置用仓库相对URI及originalUriBaseIds区分BASE、HEAD和授权关联仓库固定SHA；基址aimangebot://repository/<id>/commit/<sha>/仅为快照标识，不是可执行下载地址。删除锚点保持BASE，不强行移到HEAD；Git元数据位置不生成line0 region。已保存时序引用作为relatedLocations，未知/非法来源忽略并记录数量；所有推断步骤及PR未知关系保存在properties，不生成codeFlows，因为当前没有运行/程序分析证明完整路径。
+
+结果properties包含验证状态、触发条件、修复建议、观察ID与PR上下文；false_positive人工决定可导出external suppression，空理由用明确默认说明。运行properties保留状态、固定提交、策略、覆盖缺口；executionSuccessful仅表示审计运行完成，不表示无漏洞。历史或缺失验证明确unverified；默认无runtime reproduction。
+
+UI在详情增加下载按钮，通过既有api权限错误处理，JSON序列化为Blob后本地下载，立即释放object URL；忙时禁用，失败显示错误。加载/空/权限状态仍沿用详情，不新增上传。验证官方JSON schema、BASE删除、元数据、跨仓库与不确定关系、权限撤销/未登录/导出错误；不宣称特定托管平台原生上传兼容。
