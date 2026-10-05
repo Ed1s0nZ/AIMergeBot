@@ -84,3 +84,13 @@ HTTP继续原PUT路径，读取Review带revision。前端记录读取基准版�
 GitRepository增加私有清单缓存，每实例最多2个提交清单，总估算容量8MiB（路径字节及slice/string开销），按Directory与完整SHA隔离，FIFO淘汰。paths先验证取消和完整提交，再串行加载同键；失败不缓存、返回切片复制，调用者不能改共享状态。超出单项容量明确报错，不以截断冒充完整清单。对象生命周期随准备仓库实例释放，无全局缓存/后台任务/磁盘索引。固定对象无需TTL；Directory变更不能复用旧清单。
 
 该缓存仅降低Git ls-tree读取，不缓存访问权限；上下文工具的读取前后授权继续每次执行。BASE和HEAD按真实SHA分开，相同SHA允许复用。取消包括命中缓存时必须拒绝。上限独立于已有源码缓存，文档说明额外内存；不提升策略版本（工具契约和输出不变）。验证实际Git子进程计数、并发同提交只读一次、不同提交/仓库隔离、返回值不可修改缓存、淘汰/超限与取消。性能结论只限实测操作次数，不外推端到端速度。
+
+## 切片5B：轻量详情版本查询
+
+新增GET /api/v1/runs/:id/status，返回detail_version、status、queue_wait，无result/trace/history。每次沿用requireRun授权，取消/撤权返回既有错误。完整详情新增detail_version，在读取报告之前取得版本：若读取期间变化，下次轮询会保守刷新，不将较早报告标成较新版本。
+
+SQLite platform_detail_versions(project_id PRIMARY KEY,revision NOT NULL)按项目累计。runs的INSERT/UPDATE/DELETE及reviews/comment_delivery/review_history/occurrences/association_history/run_context_repositories对应写入通过触发器同事务递增所属项目。projects/members/users/context配置变动递增全局project_id=0，避免缓存权限/相关历史可见性变化。版本计算加入run ID、user ID、角色、项目及全局计数、评论开关、队列等待原因/时间。队列状态每次用轻量Run属性重新计算，不能依赖DB变化发现时间流逝。计数只用于摘要，输出SHA256不暴露计数或其他项目资料。
+
+首次/显式刷新始终完整读取；活跃任务每2秒先检查轻量版本，相同不加载完整详情，不同则load。状态请求不重叠，切换任务或组件销毁取消，过时响应不触发另一任务刷新。失败触发既有完整读取恢复；401/403/404完整读取清空旧内容。项目内其他任务变化可保守失效，暂不声称所有并发负载均有相同收益。旧详情调用方不受影响；触发器迁移幂等，增加计数不修改历史数据。
+
+测试：版本稳定、同长度JSON修改失效、复核/评论/重试及历史变化、角色撤销、无源码轻量响应、时间相关queue_wait、迁移幂等及前端真实轮询次数。没有测量字节与调用前不报告传输收益数字。
