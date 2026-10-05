@@ -58,3 +58,7 @@ verify_findings: true
 # 0 disables; provider usage is known after each request (one request may exceed).
 model_budget:
   max_tokens: 0
+  # Empty currency disables estimates. Set your provider-specific prices.
+  currency: ""
+  input_price_per_million: 0
+  output_price_per_million: 0

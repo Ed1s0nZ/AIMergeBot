@@ -226,7 +226,12 @@ func (h *HTTP) run(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	c.JSON(200, gin.H{"finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
+	budget := ModelBudgetSettings{}
+	if r.AuditPolicy != nil {
+		budget = r.AuditPolicy.ModelBudget
+	}
+	usage := SummarizeModelUsage(r.Trace, budget, (r.Status == "succeeded" || r.Status == "incomplete") && r.Error == "")
+	c.JSON(200, gin.H{"usage": usage, "finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)

@@ -13,7 +13,10 @@ var ErrModelTokenBudget = errors.New("model token stopping threshold reached")
 var ErrModelUsageUnknown = errors.New("model usage unavailable; further budgeted calls stopped")
 
 type ModelBudgetSettings struct {
-	MaxTokens int `yaml:"max_tokens" json:"max_tokens"`
+	MaxTokens             int     `yaml:"max_tokens" json:"max_tokens"`
+	InputPricePerMillion  float64 `yaml:"input_price_per_million" json:"input_price_per_million"`
+	OutputPricePerMillion float64 `yaml:"output_price_per_million" json:"output_price_per_million"`
+	Currency              string  `yaml:"currency" json:"currency"`
 }
 type modelBudgetKey struct{}
 type modelTokenBudget struct {

@@ -97,7 +97,7 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 				parent.checkpoint()
 			}
 			return c
-		}).Build()
+		}).OnErrorFn(modelFailureCallback(parent, "verification", e.Config.Model)).Build()
 		proposed := *f
 		proposed.Verification = nil
 		proposed.SequenceDiagram = nil

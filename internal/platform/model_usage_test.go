@@ -1,0 +1,55 @@
+package platform
+
+import (
+	"math"
+	"testing"
+)
+
+func TestModelUsageKnownAndUnknown(t *testing.T) {
+	trace := []ToolTrace{{Name: "read_file"}, {Name: "model", UsageReported: true, PromptTokens: 100, CompletionTokens: 20}, {Name: "model", Stage: "verification", UsageReported: true, PromptTokens: 50, CompletionTokens: 10}, {Name: "model", Stage: "diagram", Error: "failed"}}
+	prices := ModelBudgetSettings{Currency: "CNY", InputPricePerMillion: 2, OutputPricePerMillion: 8, MaxTokens: 1000}
+	u := SummarizeModelUsage(trace, prices, true)
+	if u.Calls != 3 || u.UnknownCalls != 1 || u.Complete || u.PromptTokens != 150 || u.CompletionTokens != 30 || len(u.Stages) != 3 || u.MaxTokens != 1000 {
+		t.Fatalf("bad usage %+v", u)
+	}
+	if u.EstimatedCost == nil || math.Abs(*u.EstimatedCost-0.00054) > 1e-12 {
+		t.Fatal("bad known partial estimate")
+	}
+	u = SummarizeModelUsage(trace[:3], prices, true)
+	if !u.Complete || u.UnknownCalls != 0 {
+		t.Fatal("complete reports not recognized")
+	}
+	u = SummarizeModelUsage(trace[:3], prices, false)
+	if u.Complete {
+		t.Fatal("running audit falsely complete")
+	}
+	u = SummarizeModelUsage(nil, prices, true)
+	if u.Complete || u.EstimatedCost != nil {
+		t.Fatal("empty audit fabricated zero bill")
+	}
+	u = SummarizeModelUsage(trace, ModelBudgetSettings{}, true)
+	if u.EstimatedCost != nil || u.Currency != "" {
+		t.Fatal("historical unpriced usage assigned current pricing")
+	}
+	for _, tr := range []ToolTrace{{Name: "model"}, {Name: "model", UsageReported: true}, {Name: "model", UsageReported: true, PromptTokens: -1, CompletionTokens: 10}} {
+		u = SummarizeModelUsage([]ToolTrace{tr}, prices, true)
+		if u.Complete || u.UnknownCalls != 1 || u.EstimatedCost != nil {
+			t.Fatal("invalid usage accepted")
+		}
+	}
+}
+func TestModelBudgetPriceValidation(t *testing.T) {
+	for _, v := range []float64{-1, 1000001, math.NaN(), math.Inf(1)} {
+		if validateModelBudget(ModelBudgetSettings{InputPricePerMillion: v}) == nil {
+			t.Fatal("invalid price accepted")
+		}
+	}
+	if validateModelBudget(ModelBudgetSettings{Currency: "unknown"}) == nil {
+		t.Fatal("currency accepted")
+	}
+	for _, currency := range []string{"", "USD", "CNY"} {
+		if validateModelBudget(ModelBudgetSettings{Currency: currency}) != nil {
+			t.Fatal(currency)
+		}
+	}
+}

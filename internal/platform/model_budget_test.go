@@ -92,6 +92,9 @@ model_budget:
 		t.Fatal(err)
 	}
 	next.ModelBudget.MaxTokens = 100000
+	next.ModelBudget.Currency = "USD"
+	next.ModelBudget.InputPricePerMillion = 2
+	next.ModelBudget.OutputPricePerMillion = 8
 	if err = svc.Save(next); err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +103,7 @@ model_budget:
 		t.Fatal(err)
 	}
 	cfg := reloaded.Snapshot()
-	if cfg.ModelBudget.MaxTokens != 100000 || cfg.OpenAI.APIKey != "synthetic-local-only" {
+	if cfg.ModelBudget.MaxTokens != 100000 || cfg.ModelBudget.Currency != "USD" || cfg.ModelBudget.InputPricePerMillion != 2 || cfg.ModelBudget.OutputPricePerMillion != 8 || cfg.OpenAI.APIKey != "synthetic-local-only" {
 		t.Fatal("budget or secret retention lost")
 	}
 	if policyDigest(before) == policyDigest(capturePolicy(cfg)) {

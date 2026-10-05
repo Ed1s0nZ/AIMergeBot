@@ -24,21 +24,23 @@ import (
 )
 
 type metadata struct {
-	MaxTokens      int     `json:"max_tokens"`
-	OnlyCase       string  `json:"only_case,omitempty"`
-	CorpusDigest   string  `json:"corpus_digest"`
-	CodeRevision   string  `json:"code_revision"`
-	Model          string  `json:"model"`
-	EndpointDigest string  `json:"endpoint_digest"`
-	Policy         string  `json:"policy"`
-	MaxSteps       int     `json:"max_steps"`
-	MaxToolCalls   int     `json:"max_tool_calls"`
-	Temperature    float32 `json:"temperature"`
-	TimeoutSeconds int     `json:"timeout_seconds"`
-	Verify         bool    `json:"verify_findings"`
-	Diagrams       bool    `json:"generate_diagrams"`
+	MaxTokens      int                          `json:"max_tokens"`
+	ModelBudget    platform.ModelBudgetSettings `json:"model_budget"`
+	OnlyCase       string                       `json:"only_case,omitempty"`
+	CorpusDigest   string                       `json:"corpus_digest"`
+	CodeRevision   string                       `json:"code_revision"`
+	Model          string                       `json:"model"`
+	EndpointDigest string                       `json:"endpoint_digest"`
+	Policy         string                       `json:"policy"`
+	MaxSteps       int                          `json:"max_steps"`
+	MaxToolCalls   int                          `json:"max_tool_calls"`
+	Temperature    float32                      `json:"temperature"`
+	TimeoutSeconds int                          `json:"timeout_seconds"`
+	Verify         bool                         `json:"verify_findings"`
+	Diagrams       bool                         `json:"generate_diagrams"`
 }
 type receipt struct {
+	Usage                 platform.ModelUsage  `json:"usage"`
 	ErrorClass            string               `json:"error_class,omitempty"`
 	HTTPStatus            int                  `json:"http_status,omitempty"`
 	ID                    string               `json:"id"`
@@ -132,7 +134,7 @@ func run() error {
 	if calls <= 0 || calls > 80 {
 		calls = 80
 	}
-	meta := metadata{cfg.ModelBudget.MaxTokens, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
+	meta := metadata{cfg.ModelBudget.MaxTokens, cfg.ModelBudget, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
 	if *resume {
 		raw, e := os.ReadFile(filepath.Join(*output, "metadata.json"))
 		if e != nil {
@@ -202,8 +204,9 @@ func run() error {
 		} else if auditErr == nil && len(result.CoverageNotes) > 0 {
 			status = "incomplete"
 		}
+		usageComplete := auditErr == nil && caseCtx.Err() == nil
 		cancel()
-		record := receipt{ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
+		record := receipt{Usage: platform.SummarizeModelUsage(trace, cfg.ModelBudget, usageComplete), ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
 		for _, f := range result.Findings {
 			if f.File == c.ExpectedAnchor.File && f.Side == c.ExpectedAnchor.Side && f.Line == c.ExpectedAnchor.Line {
 				record.ExpectedAnchorMatched = true

@@ -135,8 +135,8 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
-	if c.ModelBudget.MaxTokens < 0 || c.ModelBudget.MaxTokens > 10000000 {
-		return fmt.Errorf("model_budget.max_tokens must be 0–10000000")
+	if err := validateModelBudget(c.ModelBudget); err != nil {
+		return err
 	}
 	defaultAuditQuotas(&c.AuditQuotas)
 	if err := validateAuditQuotas(c.AuditQuotas); err != nil {

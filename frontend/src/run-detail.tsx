@@ -1,3 +1,4 @@
+import { ModelUsagePanel } from "./model-usage";
 import { FindingHistoryPanel } from "./finding-history";
 import { VerificationEvidence } from "./finding-verification";
 import {
@@ -20,6 +21,7 @@ import {
   type ProjectPermissions,
  type CommentSync,
  type FindingLifecycle,
+ type ModelUsage,
 } from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
@@ -135,6 +137,7 @@ function FindingCard({
 export function RunDetail({ id }: { id: number }) {
   const resource = useResource<{
       run: Run;
+      usage?: ModelUsage;
       reviews: Review[];
       finding_lifecycle?: FindingLifecycle;
       permissions: ProjectPermissions;
@@ -320,6 +323,7 @@ export function RunDetail({ id }: { id: number }) {
           </div>
         )}
       </section>
+      <ModelUsagePanel usage={resource.data?.usage} />
       <FindingHistoryPanel lifecycle={resource.data?.finding_lifecycle} findings={r.result.findings} />
       <div className="section-heading">
         <h2>

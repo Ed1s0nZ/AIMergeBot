@@ -212,7 +212,7 @@ export type Settings = {
   enable_polling: boolean;
   enable_webhook: boolean;
   enable_mr_comment: boolean;
-  model_budget: { max_tokens: number };
+  model_budget: { max_tokens: number; input_price_per_million: number; output_price_per_million: number; currency: string };
   scan_existing_mrs: boolean;
   webhook_token: string;
   audit_workers: number;
@@ -243,3 +243,5 @@ export type FindingHistory = {
  occurrences_truncated: boolean; reviews_truncated: boolean;
 };
 export type FindingLifecycle = { history_truncated: boolean; current: FindingHistory[]; not_reobserved: FindingOccurrence[]; not_reobserved_truncated: boolean };
+
+export type ModelUsage = {calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number;complete:boolean;estimated_cost:number|null;currency?:string;max_tokens:number;stages:{stage:string;calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number}[]};

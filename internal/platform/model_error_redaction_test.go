@@ -34,7 +34,15 @@ func TestPermanentModelErrorsDoNotExposeProviderBodyOrRetry(t *testing.T) {
 			auditor := &EinoAuditor{Repository: runRepo{}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL + "/v1", Model: "synthetic-redaction"}}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			_, _, err := auditor.Audit(ctx, Snapshot{ProjectID: 1, MRIID: 1, BaseSHA: "base", HeadSHA: "head"}, DiffScope{})
+			_, trace, err := auditor.Audit(ctx, Snapshot{ProjectID: 1, MRIID: 1, BaseSHA: "base", HeadSHA: "head"}, DiffScope{})
+			usage := SummarizeModelUsage(trace, ModelBudgetSettings{}, false)
+			if usage.Calls != 1 || usage.UnknownCalls != 1 || usage.Complete {
+				t.Fatalf("failed provider request missing usage uncertainty: %+v", usage)
+			}
+			rawTrace, _ := json.Marshal(trace)
+			if strings.Contains(string(rawTrace), "secret-provider-body") {
+				t.Fatal("provider body in usage trace")
+			}
 			if err == nil {
 				t.Fatal("permanent upstream failure treated as success")
 			}

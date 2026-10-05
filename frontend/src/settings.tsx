@@ -272,7 +272,7 @@ export function SystemSettings() {
                     }
                   />
                 </label>
-              <ModelBudgetSettingsFields value={s.model_budget || {max_tokens:0}} onChange={model_budget=>setSettings({...s,model_budget})} />
+              <ModelBudgetSettingsFields value={s.model_budget || {max_tokens:0,input_price_per_million:0,output_price_per_million:0,currency:""}} onChange={model_budget=>setSettings({...s,model_budget})} />
               </div>
             </div>
           </section>

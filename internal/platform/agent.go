@@ -86,7 +86,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 			tools.checkpoint()
 		}
 		return c
-	}).Build()
+	}).OnErrorFn(modelFailureCallback(tools, "primary", cfg.Model)).Build()
 	msg, err := agent.Generate(ctx, []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
 	if err != nil {
 		note := "Primary model generation failed"
@@ -165,7 +165,7 @@ func (e *EinoAuditor) supplement(ctx context.Context, snap Snapshot, result *Aud
 				tools.mu.Unlock()
 			}
 			return c
-		}).Build()
+		}).OnErrorFn(modelFailureCallback(tools, "diagram", cfg.Model)).Build()
 		e.generateSequences(ctx, result, tools, registered, model, graphCB)
 	} else {
 		for i := range result.Findings {
