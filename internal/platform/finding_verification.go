@@ -58,6 +58,7 @@ func parseVerification(raw string) (verificationInput, error) {
 func validateVerification(input verificationInput, snap Snapshot, f Finding, trace []ToolTrace) (*FindingVerification, error) {
 	seen := map[string]bool{}
 	anchor := false
+	inspected := map[int]bool{}
 	for _, id := range input.ObservationIDs {
 		if seen[id] {
 			return nil, fmt.Errorf("duplicate verifier observation")
@@ -74,6 +75,7 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 			}
 			found = true
 			if output.RepositoryID != 0 {
+				inspected[output.RepositoryID] = true
 				continue
 			}
 			if f.AnchorType == "git_metadata" {
@@ -102,5 +104,7 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 	if input.Status == "supported" && !anchor {
 		return nil, fmt.Errorf("support verdict lacks freshly read primary anchor")
 	}
-	return &FindingVerification{Status: input.Status, Reason: input.Reason, Limitations: append([]string{}, input.Limitations...), ObservationIDs: append([]string{}, input.ObservationIDs...), BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}, nil
+	verified := &FindingVerification{Status: input.Status, Reason: input.Reason, Limitations: append([]string{}, input.Limitations...), ObservationIDs: append([]string{}, input.ObservationIDs...), BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
+	gateContextVerification(verified, snap, inspected)
+	return verified, nil
 }

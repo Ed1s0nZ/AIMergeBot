@@ -22,3 +22,5 @@ SARIF 导出新增 GET /runs/:id/sarif（viewer 权限、application/sarif+json�
 PR 风险链扩展可选字段，旧 JSON 可继续读取；新的字段包含来源观察链接与逐边静态确定性，不表示运行复现。审计策略升为 eino-audit-contract-v19，仍沿用既有策略一致性/重试检查，不新增数据库迁移。
 
 来源修复提示与逐项独立复核约束令策略升为 eino-audit-contract-v20；来源门槛、工具字段与存储模型不变，旧策略任务依既有版本一致性规则处理。
+
+关联仓库独立复核覆盖门槛令策略升为 eino-audit-contract-v21。独立状态可能变为inconclusive，既有UI/API已支持；服务器可在模型最多8条限制后增加一条来源覆盖说明。主发现保留，不以缺来源自动判误报或安全。无数据库迁移。
