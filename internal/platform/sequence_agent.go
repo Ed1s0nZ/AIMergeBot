@@ -43,7 +43,7 @@ func (e *EinoAuditor) generateSequences(ctx context.Context, result *AuditResult
 			reads = append(reads, v)
 		}
 	}
-	graphAgent, err := react.NewAgent(phase, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: reads}, MaxStep: agentGraphSteps(8)})
+	infos, err := compressionToolInfos(phase, reads)
 	if err != nil {
 		for i := range result.Findings {
 			result.Findings[i].SequenceDiagram = unavailableSequence("时序图 Agent 初始化失败")
@@ -67,7 +67,23 @@ func (e *EinoAuditor) generateSequences(ctx context.Context, result *AuditResult
 			Finding  Finding  `json:"finding"`
 		}{tools.snap, *f})
 		observations := tools.sequenceObservations(*f)
-		message, callErr := graphAgent.Generate(perFinding, []*schema.Message{{Role: schema.System, Content: sequencePrompt}, {Role: schema.User, Content: string(payload) + "\nUntrusted observations:\n" + observations}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
+		initial := []*schema.Message{{Role: schema.System, Content: sequencePrompt}, {Role: schema.User, Content: string(payload) + "\nUntrusted observations:\n" + observations}}
+		compression, initErr := newAuditCompression(perFinding, e.Config, tools, infos, initial, stop, compressionOptions{Stage: "diagram_compression", Owner: tools})
+		if initErr != nil {
+			f.SequenceDiagram = unavailableSequence("时序图上下文初始化失败，审计发现已保留")
+			stop()
+			continue
+		}
+		graphAgent, initErr := react.NewAgent(perFinding, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: reads}, MessageRewriter: compression.rewrite, MaxStep: agentGraphSteps(8)})
+		if initErr != nil {
+			f.SequenceDiagram = unavailableSequence("时序图 Agent 初始化失败，审计发现已保留")
+			stop()
+			continue
+		}
+		message, callErr := graphAgent.Generate(perFinding, initial, ea.WithComposeOptions(compose.WithCallbacks(cb)))
+		if compression.err != nil {
+			callErr = compression.err
+		}
 		if callErr != nil || message == nil {
 			f.SequenceDiagram = unavailableSequence("时序图生成失败或超时，审计发现已保留")
 			stop()

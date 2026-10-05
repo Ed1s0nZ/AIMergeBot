@@ -76,13 +76,9 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	}
 	metadata, _ := json.Marshal(snap)
 	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}
-	infos := []*schema.ToolInfo{}
-	for _, registeredTool := range registered {
-		info, infoErr := registeredTool.Info(ctx)
-		if infoErr != nil {
-			return AuditResult{}, nil, infoErr
-		}
-		infos = append(infos, info)
+	infos, err := compressionToolInfos(ctx, registered)
+	if err != nil {
+		return AuditResult{}, nil, err
 	}
 	compression, err := newAuditCompression(ctx, cfg, tools, infos, initial, stopPrimary)
 	if err != nil {

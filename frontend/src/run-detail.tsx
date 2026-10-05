@@ -493,8 +493,8 @@ export function RunDetail({ id }: { id: number }) {
             >
               <summary>
                 {t.name}
-                {t.stage === "compression"
-                  ? " · 上下文压缩"
+                {t.stage === "compression" || t.stage === "verification_compression" || t.stage === "diagram_compression"
+                  ? ` · ${t.stage === "verification_compression" ? "复核上下文压缩" : t.stage === "diagram_compression" ? "时序图上下文压缩" : "上下文压缩"}`
                   : t.stage === "diagram"
                   ? " · 时序图生成"
                   : t.stage === "verification"

@@ -373,6 +373,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	status, message := "succeeded", ""
 	if err != nil {
 		status, message = "failed", err.Error()
+		if auditCoverageStop(err) {
+			status = "incomplete"
+		}
 	}
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		status, message = "incomplete", "task timeout exceeded"

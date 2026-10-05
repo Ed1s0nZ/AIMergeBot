@@ -60,7 +60,7 @@ require (
 require (
 	github.com/cloudwego/eino v0.9.21
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
-	github.com/mattn/go-sqlite3 v1.14.20
+	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/meguminnnnnnnnn/go-openai v0.1.2
 	golang.org/x/crypto v0.56.0
 )

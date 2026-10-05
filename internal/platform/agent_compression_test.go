@@ -45,6 +45,13 @@ func TestCompressionFinalizePreservesAuthorityAndPairs(t *testing.T) {
 	if err != nil || len(out) != 3 {
 		t.Fatal("large exchange was split or preserved", err)
 	}
+	c.initial = []*schema.Message{{Role: schema.System, Content: "policy"}, {Role: schema.User, Content: strings.Repeat("x", 80*1024)}}
+	response.Content = strings.Repeat("x", 30*1024)
+	out, err = c.finalize(ctx, append(append([]*schema.Message{}, c.initial...), call, response), &schema.Message{Content: strings.Repeat("s", 8*1024)})
+	if err != nil || len(out) != 3 {
+		t.Fatal("optional tail exceeded total capacity instead of being summarized", err)
+	}
+	c.initial = initial
 	tools.ledger["huge"] = Investigation{Claim: strings.Repeat("x", 49*1024)}
 	if _, err = c.finalize(ctx, initial, &schema.Message{Content: "navigation"}); !errors.Is(err, ErrContextCompression) {
 		t.Fatal("ledger silently omitted", err)

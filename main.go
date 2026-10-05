@@ -114,7 +114,7 @@ func run() error {
 	api := &platform.HTTP{Store: store, Runner: runner, Settings: settings}
 	api.Register(router)
 	web.Register(router)
-	server := &http.Server{Addr: cfg.Listen, Handler: router, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
+	server := newHTTPServer(cfg.Listen, router)
 	serveErrors := make(chan error, 1)
 	go func() { log.Printf("AIMergeBot listening on %s", cfg.Listen); serveErrors <- server.ListenAndServe() }()
 	var serveErr error

@@ -96,7 +96,7 @@ func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, termin
 				continue
 			}
 			input, output := settings.InputPricePerMillion, settings.OutputPricePerMillion
-			if stage.Stage == "verification" {
+			if stage.Stage == "verification" || stage.Stage == "verification_compression" {
 				if settings.VerificationPricingConfigured {
 					input = settings.VerificationInputPricePerMillion
 					output = settings.VerificationOutputPricePerMillion

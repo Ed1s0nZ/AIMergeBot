@@ -74,6 +74,9 @@ func AuditGit(ctx context.Context, location, base, head, token string, cfg Setti
 	run.Result, run.Trace, e = auditor.Audit(ctx, snap, scope)
 	if e != nil {
 		run.Status = "failed"
+		if auditCoverageStop(e) {
+			run.Status = "incomplete"
+		}
 		run.Error = e.Error()
 		return run, e
 	}

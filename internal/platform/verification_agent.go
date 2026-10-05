@@ -102,12 +102,6 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 			stop()
 			continue
 		}
-		agent, err := react.NewAgent(perFinding, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: readOnlyTools(perFinding, registered)}, MaxStep: agentGraphSteps(8)})
-		if err != nil {
-			f.Verification = unavailableVerification(parent.snap, "独立复核 Agent 初始化失败。", "unavailable")
-			stop()
-			continue
-		}
 		cb := callbacks.NewHandlerBuilder().OnEndFn(func(c context.Context, _ *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
 			if data, ok := output.(*em.CallbackOutput); ok {
 				tr := ToolTrace{Name: "model", Stage: "verification", Arguments: modelName + " · " + f.ID}
@@ -130,7 +124,32 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 			Snapshot Snapshot `json:"snapshot"`
 			Finding  Finding  `json:"finding"`
 		}{parent.snap, proposed})
-		message, callErr := agent.Generate(perFinding, []*schema.Message{{Role: schema.System, Content: verificationPrompt}, {Role: schema.User, Content: string(payload)}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
+		initial := []*schema.Message{{Role: schema.System, Content: verificationPrompt}, {Role: schema.User, Content: string(payload)}}
+		reads := readOnlyTools(perFinding, registered)
+		infos, err := compressionToolInfos(perFinding, reads)
+		if err != nil {
+			f.Verification = unavailableVerification(parent.snap, "独立复核工具初始化失败。", "unavailable")
+			stop()
+			continue
+		}
+		cfg := e.Config
+		cfg.Model = modelName
+		compression, err := newAuditCompression(perFinding, cfg, fresh, infos, initial, stop, compressionOptions{Stage: "verification_compression", Owner: parent})
+		if err != nil {
+			f.Verification = unavailableVerification(parent.snap, "独立复核上下文初始化失败。", "unavailable")
+			stop()
+			continue
+		}
+		agent, err := react.NewAgent(perFinding, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: reads}, MessageRewriter: compression.rewrite, MaxStep: agentGraphSteps(8)})
+		if err != nil {
+			f.Verification = unavailableVerification(parent.snap, "独立复核 Agent 初始化失败。", "unavailable")
+			stop()
+			continue
+		}
+		message, callErr := agent.Generate(perFinding, initial, ea.WithComposeOptions(compose.WithCallbacks(cb)))
+		if compression.err != nil {
+			callErr = compression.err
+		}
 		fresh.mu.Lock()
 		trace := append([]ToolTrace{}, fresh.trace...)
 		calls := fresh.calls

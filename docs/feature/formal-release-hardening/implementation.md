@@ -76,3 +76,11 @@ GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过�
 ## F2/F3 / 覆盖停止的终态一致性
 
 实际检查发现Runner/独立Git入口将任何Agent error一概标failed，与已设计的压缩容量停止=incomplete不一致。压缩不可用、模型token阈值及用量未知都是覆盖停止，应返回incomplete并保留发现/调查/coverage；CLI仍返回非零error，不伪装成功，也不自动重试以突破预算。外部传输失败沿原有限重试，用户取消和全任务超时沿原规则。窄分类helper供Runner/standalone复用；真实持久Runner验证三种停止终态/部分调查/无retry子任务，接口schema不变。
+
+## F4/F5 / 独立阶段、HTTP与SQLite验证
+
+实际HTTP独立复核/时序图成功和失败4模式通过（1.104秒）：带转义字符的大源码返回触发官方压缩，随后新读主锚点，fresh观察核验保持；失败仅终止该发现子context，保留主审。compression阶段用量写入父trace，使用正确实际模型且请求数无重复；不同复核价和未配置复核价回归通过。持久Runner三种覆盖停止/incomplete/部分发现及调查/无retry-child检查1.222秒通过。源码异常返回账本、所有模型阶段固定输入和原观察不删除。HTTP真实TCP慢body及正常后续请求0.580秒/vet通过；SQLite运行时3.53.4、WAL、项目/会话重开及integrity_check测试已进入全回归。当前go test ./...全部通过（root0.534、platform30.099、evaluation3.394秒），go vet通过；React构建889ms通过。需要该切片最终race/CI、隔离运行验证与main/生产交付。
+
+CI push对纯docs/README/CHANGELOG跳过，PR仍完整验证，减少阶段记录提交打断同源码CI；workflow/source变化仍触发，不借此绕过源码验证。只读发布核查另确认standalone Git入口未复用Worker分组计划，超过96KiB时只能返回空输入，后续应实现同固定Git分组与覆盖契约；它不在上述已完成声明内。
+
+完整platform race91.788秒通过；其后Finalize补充总容量不足时整组省略可选最近交换（保留原始证据）、计数序列化失败保守停止，定向回归1.297秒通过；新增80KiB固定输入+30KiB完整工具交换反例，不能因可选历史而使可压缩的任务失败。阶段与价格/终态/SQLite定向race和vet随后验证。远端e9cb5af实际CI37291948186已全部success，证明该快照（此前源码/依赖）；不将它冒充当前未提交切片CI结果。
