@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -26,6 +27,7 @@ type AgentConfig struct {
 	Progress               func(AuditResult, []ToolTrace) error
 	APIKey, BaseURL, Model string
 	MaxSteps               int
+	MaxTokens              int
 	Temperature            float32
 	MaxToolCalls           int
 	VerifyFindings         bool
@@ -41,6 +43,7 @@ type EinoAuditor struct {
 
 func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope) (AuditResult, []ToolTrace, error) {
 	cfg := e.Config
+	ctx = withModelBudget(ctx, cfg.MaxTokens)
 	if cfg.APIKey == "" || cfg.Model == "" {
 		return AuditResult{}, nil, fmt.Errorf("model credentials and model are required")
 	}
@@ -63,7 +66,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err != nil {
 		return AuditResult{}, nil, err
 	}
-	agent, err := react.NewAgent(ctx, &react.AgentConfig{ToolCallingModel: model, ToolsConfig: compose.ToolsNodeConfig{Tools: registered}, MaxStep: agentGraphSteps(cfg.MaxSteps)})
+	agent, err := react.NewAgent(ctx, &react.AgentConfig{ToolCallingModel: budgetModel(model), ToolsConfig: compose.ToolsNodeConfig{Tools: registered}, MaxStep: agentGraphSteps(cfg.MaxSteps)})
 	if err != nil {
 		return AuditResult{}, nil, err
 	}
@@ -86,7 +89,14 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	}).Build()
 	msg, err := agent.Generate(ctx, []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
 	if err != nil {
-		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Audit interrupted; validated submissions retained", CoverageNotes: []string{"Primary model generation failed"}}, tools.trace, err
+		note := "Primary model generation failed"
+		if errors.Is(err, ErrModelTokenBudget) {
+			note = "Model token stopping threshold reached; accepted findings retained"
+		}
+		if errors.Is(err, ErrModelUsageUnknown) {
+			note = "Model token usage unavailable; further budgeted requests stopped"
+		}
+		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Audit interrupted; validated submissions retained", CoverageNotes: []string{note}}, tools.trace, err
 	}
 	if msg == nil || msg.Content == "" {
 		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Empty final response; validated submissions retained", CoverageNotes: []string{"Primary model returned no summary"}}, tools.trace, fmt.Errorf("empty model response")
@@ -126,7 +136,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if cfg.PrimaryOnly {
 		return result, tools.trace, nil
 	}
-	e.supplement(ctx, snap, &result, tools, registered, model, progressError)
+	e.supplement(ctx, snap, &result, tools, registered, budgetModel(model), progressError)
 
 	return result, tools.trace, nil
 }

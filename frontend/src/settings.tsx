@@ -1,3 +1,4 @@
+import { ModelBudgetSettingsFields } from "./model-budget-settings";
 import { AuditQuotaSettingsFields } from "./audit-quota-settings";
 import { GitAuditSettingsFields } from "./git-audit-settings";
 import { useEffect, useState } from "react";
@@ -271,6 +272,7 @@ export function SystemSettings() {
                     }
                   />
                 </label>
+              <ModelBudgetSettingsFields value={s.model_budget || {max_tokens:0}} onChange={model_budget=>setSettings({...s,model_budget})} />
               </div>
             </div>
           </section>

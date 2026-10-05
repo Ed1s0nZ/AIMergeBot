@@ -212,6 +212,7 @@ export type Settings = {
   enable_polling: boolean;
   enable_webhook: boolean;
   enable_mr_comment: boolean;
+  model_budget: { max_tokens: number };
   scan_existing_mrs: boolean;
   webhook_token: string;
   audit_workers: number;

@@ -53,3 +53,8 @@ audit_quotas:
 
 # 在独立上下文中重新读取来源并检查反证；不执行仓库代码
 verify_findings: true
+
+# Shared across primary audit, groups, verification and diagrams.
+# 0 disables; provider usage is known after each request (one request may exceed).
+model_budget:
+  max_tokens: 0

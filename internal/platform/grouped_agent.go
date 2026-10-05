@@ -45,6 +45,7 @@ func mergeAuditGroup(base AuditResult, group AuditResult, id string) AuditResult
 }
 
 func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan AuditPlan) (AuditResult, []ToolTrace, error) {
+	ctx = withModelBudget(ctx, e.Config.MaxTokens)
 	result := AuditResult{Findings: []Finding{}, CoverageNotes: append([]string{}, plan.Notes...), ExcludedFiles: append([]string{}, plan.Excluded...), Summary: "Grouped static audit"}
 	for _, g := range plan.Groups {
 		result.AuditGroups = append(result.AuditGroups, AuditGroupProgress{ID: g.ID, Files: g.Files, Status: "unprocessed"})
@@ -150,9 +151,9 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 			if err != nil {
 				result.CoverageNotes = append(result.CoverageNotes, "Grouped supplemental tools unavailable")
 			} else {
-				e.synthesizeGroups(ctx, snap, &result, tools, string(manifest), remaining, model)
+				e.synthesizeGroups(ctx, snap, &result, tools, string(manifest), remaining, budgetModel(model))
 				tools.sequenceCheckpoint(result)
-				e.supplement(ctx, snap, &result, tools, registered, model, "")
+				e.supplement(ctx, snap, &result, tools, registered, budgetModel(model), "")
 			}
 		}
 	}

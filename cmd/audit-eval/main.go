@@ -24,6 +24,7 @@ import (
 )
 
 type metadata struct {
+	MaxTokens      int     `json:"max_tokens"`
 	OnlyCase       string  `json:"only_case,omitempty"`
 	CorpusDigest   string  `json:"corpus_digest"`
 	CodeRevision   string  `json:"code_revision"`
@@ -131,7 +132,7 @@ func run() error {
 	if calls <= 0 || calls > 80 {
 		calls = 80
 	}
-	meta := metadata{*onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
+	meta := metadata{cfg.ModelBudget.MaxTokens, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
 	if *resume {
 		raw, e := os.ReadFile(filepath.Join(*output, "metadata.json"))
 		if e != nil {
@@ -186,7 +187,7 @@ func run() error {
 		}
 		scope := platform.BuildDiff(changes, nil, 96*1024)
 		scope.Notes = append(scope.Notes, notes...)
-		auditor := &platform.EinoAuditor{Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
+		auditor := &platform.EinoAuditor{Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
 			return save(filepath.Join(caseDir, "checkpoint.json"), map[string]any{"result": result, "trace": trace})
 		}}}
 		fmt.Printf("%s started\n", c.ID)

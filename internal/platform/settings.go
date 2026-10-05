@@ -41,11 +41,12 @@ func defaultGitAudit(c *GitAuditSettings) {
 var ErrSettingsConflict = errors.New("settings changed; reload current configuration before saving")
 
 type Settings struct {
-	Revision                 uint64           `yaml:"config_revision" json:"config_revision"`
-	VerifyFindings           bool             `yaml:"verify_findings" json:"verify_findings"`
-	GenerateSequenceDiagrams bool             `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
-	AuditQuotas              AuditQuotas      `yaml:"audit_quotas" json:"audit_quotas"`
-	GitAudit                 GitAuditSettings `yaml:"git_audit" json:"git_audit"`
+	ModelBudget              ModelBudgetSettings `yaml:"model_budget" json:"model_budget"`
+	Revision                 uint64              `yaml:"config_revision" json:"config_revision"`
+	VerifyFindings           bool                `yaml:"verify_findings" json:"verify_findings"`
+	GenerateSequenceDiagrams bool                `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
+	AuditQuotas              AuditQuotas         `yaml:"audit_quotas" json:"audit_quotas"`
+	GitAudit                 GitAuditSettings    `yaml:"git_audit" json:"git_audit"`
 	legacy.Config            `yaml:",inline"`
 	PublicURL                string   `yaml:"public_url" json:"public_url"`
 	TrustedProxies           []string `yaml:"trusted_proxies" json:"trusted_proxies"`
@@ -134,6 +135,9 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
+	if c.ModelBudget.MaxTokens < 0 || c.ModelBudget.MaxTokens > 10000000 {
+		return fmt.Errorf("model_budget.max_tokens must be 0–10000000")
+	}
 	defaultAuditQuotas(&c.AuditQuotas)
 	if err := validateAuditQuotas(c.AuditQuotas); err != nil {
 		return err
@@ -287,7 +291,7 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 		return Settings{}, err
 	}
 	current := s.Snapshot()
-	cfg := Settings{AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, VerifyFindings: current.VerifyFindings, TrustedProxies: current.TrustedProxies}
+	cfg := Settings{ModelBudget: current.ModelBudget, AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, VerifyFindings: current.VerifyFindings, TrustedProxies: current.TrustedProxies}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {
@@ -352,6 +356,6 @@ func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope)
 	if model == "" {
 		model = cfg.OpenAI.Model
 	}
-	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
+	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
 	return a.Audit(ctx, s, scope)
 }
