@@ -42,11 +42,14 @@ def main():
     parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
     parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
     parser.add_argument("--ui-preview", action="store_true", help="Keep fixture online after proof until SIGTERM for browser inspection")
+    parser.add_argument("--budget-crash-preview", action="store_true", help="Verify budget-enabled SIGKILL stops retries for unknown usage; standalone")
     parser.add_argument("--capacity-preview", action="store_true", help="Verify 40 concurrent HTTP submissions against outstanding=4 and running=1")
     parser.add_argument("--backup-preview", action="store_true", help="Verify private backup/restore with the same native binary; requires metadata/lifecycle/comment previews")
     parser.add_argument("--app-port", type=int, default=19234)
     parser.add_argument("--upstream-port", type=int, default=19235)
     args = parser.parse_args()
+    if args.budget_crash_preview and any((args.capacity_preview, args.backup_preview, args.metadata_preview, args.lifecycle_preview, args.group_preview, args.comment_preview, args.verification_preview, args.ui_preview)):
+        parser.error("--budget-crash-preview must run alone")
     if args.backup_preview and not (args.metadata_preview and args.lifecycle_preview and args.comment_preview):
         parser.error("--backup-preview requires --metadata-preview --lifecycle-preview --comment-preview")
     if args.comment_preview and not args.metadata_preview:
@@ -249,7 +252,7 @@ def main():
                     time.sleep(60)  # Simulate a model request in flight at the crash.
                 message = {"role": "assistant", "content": json.dumps({"findings": [], "summary": "合成模型：仅验证任务恢复，不代表实际代码审计。", "coverage_notes": []}, ensure_ascii=False)}
                 finish = "stop"
-            self.send_json({"id": "fixture-completion", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
+            self.send_json({"id": "fixture-completion", "object": "chat.completion", "model": "synthetic-recovery", "usage": {"prompt_tokens": 16, "completion_tokens": 4, "total_tokens": 20}, "choices": [{"index": 0, "message": message, "finish_reason": finish}]})
 
         def do_PUT(self):
             match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)/discussions/synthetic-(90|91|92|93|94)/notes/(90|91|92|93|94)", self.path)
@@ -266,6 +269,8 @@ def main():
     upstream = ThreadingHTTPServer(("127.0.0.1", args.upstream_port), Fixture)
     threading.Thread(target=upstream.serve_forever, daemon=True).start()
     config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "verify_findings": args.verification_preview, "generate_sequence_diagrams": args.metadata_preview}
+    if args.budget_crash_preview:
+        config["model_budget"] = {"max_tokens": 100}
     if args.capacity_preview:
         config["audit_quotas"] = {"outstanding_global": 4, "running_project": 1, "running_user": 1}
     (root / "config.yaml").write_text(json.dumps(config))  # JSON is valid YAML.
@@ -306,6 +311,14 @@ def main():
         wait_for(primary_ready)
         db = sqlite3.connect(root / "pr_agent.db", timeout=5)
         api("/auth/login", {"username": env["AIM_ADMIN_USERNAME"], "password": env["AIM_ADMIN_PASSWORD"]})
+        if args.budget_crash_preview:
+            from ops_budget_crash_drill import run_budget_crash_drill
+            proof = run_budget_crash_drill(api, db, calls, start, primary, healthy, wait_for, root)
+            receipt = root / "proof.json"
+            receipt.write_text(json.dumps(proof, indent=2))
+            receipt.chmod(0o600)
+            print(json.dumps(proof))
+            return
         rate_parent = api("/runs", {"project_id": 1, "mr_iid": 90})["id"]
         wait_for(lambda: row(rate_parent)[0] == "failed")
         rate_child = row(rate_parent)[3]

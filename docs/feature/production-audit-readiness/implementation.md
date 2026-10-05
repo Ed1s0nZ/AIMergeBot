@@ -239,3 +239,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F2/F3 / 切片10C5启用预算原生崩溃
 
 新增互斥--budget-crash-preview，复用固定合成MR91/真实二进制/临时DB，max_tokens=100，首轮真实SDK返回usage20并读取文件，第二模型请求等待响应。确认checkpoint中已知20和发送前pending usage未知记录后SIGKILL；立即新进程不得取得有效租约，等待原SQL租约自然到期再启动。必须保留相同trace/result、将父任务failed且retry_info.state=model_usage_unknown、不生成子任务、上游请求仍2（不重发未知消耗），原预算仍100。该策略停止自动恢复以避免未知请求重新获得预算，不声称未收到响应的消耗为0。finally清理全部自己的进程，私有证明0600。其他已知余额/阈值/跨retry的验证由现有race测试补充；本片补足实际SIGKILL边界，不执行真实模型付费请求。
+
+## F4/F5 / 切片10C5预算SIGKILL实证
+
+新增ops_budget_crash_drill.py与互斥--budget-crash-preview，MR91合成首轮响应补真实SDK usage字段20，预算100。19246/19247使用已构建真实二进制执行退出0：已知20+第二请求pending未知持久化、read_file证据存在→SIGKILL→立即重启有效租约拒绝→原lease自然过期→新进程就绪。trace/result逐字一致、冻结预算100不变、父failed状态model_usage_unknown、retry子任务0、模型HTTP累计2未重发。相关model/retry/request定向race1.716秒通过，py_compile/diff检查通过；证明私有0600，不包含真实凭据。该实证补足R2启用预算的进程崩溃边界，其他已知余额/超阈值语义仍由现有SDK/Store测试覆盖，不声称真实服务计费为20。当前1234未调整；继续R7真实GitLab验收工具、实际质量、UI及最终main/部署。

@@ -126,3 +126,13 @@ python3 scripts/smoke-worker-recovery.py \
 ```
 
 先执行原生SIGKILL/租约恢复基础场景，再阻塞专属合成MR的模型响应，使队列在检查窗口保持占用。40个不同MR通过真实HTTP同时入队；全局未完成配额4、项目/用户运行配额1、已有重试pending占1，期望3个新建和37个明确429。满队列重复请求复用旧任务；取消pending后新任务可入队。采样一秒的DB计数与提交延迟输出只描述本次本机边界，不证明生产最大吞吐量或全部时间内的运行并发。使用临时端口、DB和合成上游，finally清理，私有证明不提交Git。真实吞吐量还取决于模型限流/延迟、预算、仓库大小及磁盘，需要按实际部署单独测量。
+
+### 启用预算的崩溃边界
+
+```bash
+python3 scripts/smoke-worker-recovery.py \
+  --binary /your/private/build/aimangebot --budget-crash-preview \
+  --app-port 19246 --upstream-port 19247
+```
+
+该选项单独执行：预算100，首响应报告20 tokens，第二请求发送前已持久化pending未知usage，然后真实SIGKILL。立即重启必须被有效租约拒绝，等待原租约到期后重启，保留相同检查点与预算；父任务标记失败且model_usage_unknown，不创建retry子任务，也不重复模型请求。未知消耗不能按零计价或重新领取预算，因此这里主动停止自动重试。此为本机合成SDK/Worker故障实证，不测真实模型质量、账单或生产吞吐量。
