@@ -283,3 +283,7 @@ MR92合成模型改按system阶段与本轮tool observation响应，支持多次
 ## F5 / 切片12C历史关联真实交互
 
 在隔离19250实例使用seed_move_report由历史6构造明确标记的移动报告11；此fixture不证明Git/Agent质量。真实浏览器展开候选6/7，明确多候选不自动选择；填写理由确认6后显示已确认与风险独立。再确认7触发真实API冲突，界面刷新并保留理由；撤回6后待确认且历史保留；拒绝7后已拒绝并展开操作者/时间/理由历史。SQL核对追加序列confirmed→pending→rejected，当前11风险review零，旧6仍fixed。私有截图association-decisions.jpg 0600，不上传。完成确认/冲突/撤回/拒绝交互；权限只读、跨仓库与补审成功浏览器以及最终main/1234继续待验收。
+
+## F2/F3 / 切片12D路由旧面板残留
+
+真实浏览器由任务9切11再切projects，DOM region计数曾有两个选文件补审，项目页仍显示旧补审；不是AX缓存推断，Playwright实际DOM确认。源码同级FollowupAuditPanel和FindingAssociationsPanel都key=r.id，发生同级key冲突，生产React日志不输出警告。改为followup:ID/associations:ID分别唯一，保留任务变更时重置state语义。构建后重验连续任务/项目切换DOM计数与页面截图，不仅刷新页面掩盖残留。
