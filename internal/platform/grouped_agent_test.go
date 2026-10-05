@@ -131,7 +131,7 @@ func TestGroupedSynthesisKeepsCanonicalFindingSet(t *testing.T) {
 	scope := DiffScope{Added: map[string]map[int]bool{f.File: {2: true}}, Text: "File: service.any\n@@ -2 +2 @@\n+danger(input)"}
 	plan := AuditPlan{Groups: []AuditGroup{{ID: "group-1", Files: []string{f.File}, Scope: scope}, {ID: "group-2", Files: []string{"other.any"}, Scope: scope}}}
 	result, trace, err := auditor.AuditGroups(context.Background(), snap, plan)
-	if err != nil || len(result.Findings) != 1 || result.Findings[0].Confidence != "candidate" || result.Summary != "Cross-group static summary, not reproduction" || len(result.CoverageNotes) != 0 || calls.Load() != 3 {
+	if err != nil || len(result.Findings) != 1 || result.Findings[0].Confidence != "candidate" || result.Summary != "Cross-group static summary, not reproduction" || len(result.CoverageNotes) != 1 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") || calls.Load() != 3 {
 		t.Fatal("synthesis overwrote canonical discovery or missing", result, err, calls.Load())
 	}
 	found := false

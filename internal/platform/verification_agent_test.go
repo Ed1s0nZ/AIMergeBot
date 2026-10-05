@@ -140,6 +140,9 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 			if mode == "shared_budget" && verifyCalls.Load() != 0 {
 				t.Fatal("separate model bypassed shared budget")
 			}
+			if mode == "supported" && !strings.Contains(strings.Join(result.CoverageNotes, " "), "PR impact recording gap") {
+				t.Fatal("independent support hid missing risk chain", result)
+			}
 			if verification.Status != want {
 				t.Fatalf("status %s want %s", verification.Status, want)
 			}

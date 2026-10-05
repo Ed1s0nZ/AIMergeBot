@@ -177,13 +177,16 @@ func TestAuditHTTPWorkflowAndFilters(t *testing.T) {
 	if err := json.Unmarshal(submitted.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	waitStatus(t, s, response.ID, "succeeded")
+	waitStatus(t, s, response.ID, "incomplete")
 	detail := request("GET", fmt.Sprintf("/api/v1/runs/%d", response.ID), "")
 	var payload struct {
 		Run Run `json:"run"`
 	}
 	if err := json.Unmarshal(detail.Body.Bytes(), &payload); err != nil || len(payload.Run.Result.Findings) != 1 {
 		t.Fatal("result missing", err)
+	}
+	if len(payload.Run.Result.CoverageNotes) != 1 || !strings.Contains(payload.Run.Result.CoverageNotes[0], "PR impact recording gap") {
+		t.Fatal("persisted incomplete reason missing", payload.Run.Result)
 	}
 	f := payload.Run.Result.Findings[0]
 	review := request("PUT", fmt.Sprintf("/api/v1/runs/%d/findings/%s/review", response.ID, f.ID), `{"status":"false_positive","reason":"guard exists","expected_revision":0}`)

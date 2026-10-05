@@ -188,3 +188,5 @@ Maintainability Gate Report：agent.go约330行只增加预检调用/覆盖投�
 Workflow Gate Report：P10，AC005/006/007；既有PRContext字段和UI空态已具备，v26实际结果虽有事实仍缺双方来源与逐边关系。实施允许：候选合并/校验后，由服务器逐finding检查结构化PR记录是否有before/after来源、逐边关系；没有不推断安全或完整，而加入coverage_notes。推测关系即使模型unresolved_edges为空仍提示未核实。无PRContext单列未记录，不自动创建关系、不从名称推断路径、不删除候选或改独立复核。UI已有coverage缺口面板使用同API，无新增契约。
 
 Maintainability Gate Report：agent.go仅增加单调用，新纯投影pr_context_coverage.go及定向测试，低风险narrow_fix。验收missing/nil/partial/full/inferred、已有来源事实不替换、JSON独立支持不等同风险链完整，Go回归通过。metadata-only发现不自动要求运行路径关系，说明只用于line风险链；metadata仍要求PR前后事实来源。策略v27。同已见回归样例诊断不能称新隔离验收。
+
+切片18回归修正：无PRContext但已经通过canonical Git metadata验证的发现，其evidence包含BASE/HEAD模式/对象，不额外要求重复结构化链（普通line候选继续显示缺口）。全量暴露group/HTTP/diagram旧测试默认无PRContext仍零覆盖不足的断言；这与新增明确记录契约冲突，改为精确验证服务器gap保留、HTTP为incomplete及图阶段不增加/删除该原因，原发现/评论/筛选断言不改。不是将真实源错配放宽为成功。

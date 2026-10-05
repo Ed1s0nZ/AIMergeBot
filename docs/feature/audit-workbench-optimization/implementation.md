@@ -170,3 +170,9 @@ FindingCard描述前复用VerificationNotice显示partial/unknown全文未获支
 ## v26 实际上下文定向诊断
 
 只运行205/203，分别独立目录并保留全结果。205现读catalog.py/固定配置后基于默认20与校验判兼容，零发现、rejected调查有相关观察。203主阶段读profiles.py与deployment.conf，finding与PRContext影响引用双方来源，不再称关联源码缺失。两例incomplete、64840/97561token、8820/19300ms，无工具错误；相对之前读更全同时token上升，未宣称效率提升。203仍缺结构化before/after IDs及逐边关系，复核对内部网络可达性的补充推断无证据，模型full不当语义保证。来源能力本轮改善、完整链路与整体AC仍未完成。SHA256原始归档与evaluation-context-v26.md保留细节。
+
+## 切片18：风险链缺口由服务器记录
+
+有效候选合并后纯投影检查PRContext前后primary来源、逐边关系；缺字段明确coverage gap，推测关系即使unresolved_edges为空仍标未核实。不创建推断关系、不删除候选、不把独立supported/full当完整路径。canonical Git metadata本身经验证包含BASE/HEAD事实，无PRContext时不要求重复链路；有PRContext则可暴露其来源记录不足。策略v27。
+
+首轮Go回归暴露旧metadata/group/HTTP/diagram的零覆盖缺口断言；先修正元数据重复要求，再把line候选测试改为精确检查新增缺链说明、HTTP保存为incomplete、分组/图阶段保留既有gap，原发现集合、图状态、筛选/复核/重试不变。来源校验不放宽。定向PR验证1.119s；scope/group race1.726s；修正后Go全量通过（platform44.425s）；git diff --check通过。实际SDK支持结果仍保留PRgap，完整字段/推测关系/无发现/元数据以及纯投影不改原事实有定向覆盖。未新增真实模型轮次（本切片只改变确定性投影），既有v26不完整链会被明确说明而非自动变完整。整体真实多组、未见验收和最终QA/生命周期报告仍未完成。

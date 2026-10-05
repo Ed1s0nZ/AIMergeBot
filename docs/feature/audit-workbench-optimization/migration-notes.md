@@ -36,3 +36,7 @@ FindingVerification新增可选claim_coverage（full/partial/unknown），无数
 ### v26 上下文预检
 
 有配置关联源时，主模型首次请求前多一次list_repositories授权预检，计入原工具预算并保存trace/checkpoint；无关联源不增加调用。预检失败/取消/进度持久化失败停止请求，不降级为无关联源审计。来源列表明确非源码，不能支持调查或finding。主调查未读取的固定源会有服务器覆盖说明，后续独立复核不抹去该主阶段缺口。现有列表工具新增聚合后授权复查，不改变单次源码工具前后授权。无API/DB迁移。
+
+### v27 风险链记录缺口
+
+新增服务器coverage_notes，检查有效finding合并后的PRContext双方来源和逐边关系；推测关系即使模型待核实列表为空仍提示。元数据发现不强求运行路径。模型supported/full不抹去服务器记录缺口；这不是语义证明或自动补全事实。无API/数据库迁移，旧存储结果不重写，已有覆盖缺口UI/SARIFwarnings继续适用。

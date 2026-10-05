@@ -155,6 +155,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		}
 	}
 	tools.mergeProposals(ctx, &result)
+	result.CoverageNotes = append(result.CoverageNotes, findingPRCoverage(result.Findings)...)
 	tools.checkpoint()
 	tools.mu.Lock()
 	progressError := tools.progressError
