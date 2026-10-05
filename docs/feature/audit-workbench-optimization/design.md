@@ -70,3 +70,11 @@ Investigation新增可选pr_context（PRInvestigationContext），包含change_s
 ### 切片3A界面契约
 
 新PRInvestigationPanel复用于发现和调查记录，显示change_summary、BASE/HEAD两项、带ObservationLinks的入口/防护事实、单独未核实关系列表。使用原生details/summary键盘开合与既有样式，不引入图形库。历史pr_context缺失显示“未记录结构化PR影响”，不显示为无风险；数组空值明确显示未记录。内容由React文本渲染，不执行HTML。加载、错误、权限状态沿用运行详情资源边界；该面板不新增数据请求或写权限。展示为静态陈述可供核查，不标记形式化证明。响应式继承现有panel与dl；验证类型检查、构建，实际渲染证据另补。
+
+## 切片4：复核版本冲突与草稿
+
+Review新增revision（int64，读取只读，初始记录1）、expected_revision（可选指针int64，写入必填，0代表从未复核）。SQLite platform_reviews增列revision NOT NULL DEFAULT 1，幂等迁移，不修改原状态/历史/评论队列。事务先授权及核查发现存在，再要求非负expected_revision。首次写入INSERT ... ON CONFLICT DO NOTHING，更新WHERE revision=expected，revision+1；影响行数0返回ErrReviewConflict，事务回滚不追加历史/事件或调度评论。缺少版本ErrReviewRevision返回400；冲突409；权限先于冲突判断，避免信息泄漏。所有Store调用同样要求版本条件，测试fixture读取当前版本后显式传入，不增加生产无条件写入后门。
+
+HTTP继续原PUT路径，读取Review带revision。前端记录读取基准版本，未编辑表单跟随远端；有草稿且远端变更时保留草稿、禁用提交，提供加载最新决定或保留草稿并采用新基准的明确操作。409刷新资源并显示冲突，不自动覆盖或重发。提交中禁止编辑及重复提交，成功后刷新最新状态。历史无revision字段客户端需刷新新版；旧API写入缺少expected_revision明确400。
+
+验证：首次并发只成功一个，陈旧更新不改状态/历史/队列，正确版本递增，权限优先，重复迁移保留数据；API缺失/过期/有效版本；浏览器草稿与刷新行为。回滚旧服务会失去版本约束，不能在多人复核期间无准备降级；数据库增列保留兼容读取，部署仍未授权。
