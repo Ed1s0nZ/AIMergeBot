@@ -190,3 +190,9 @@ Workflow Gate Report：P10，AC005/006/007；既有PRContext字段和UI空态已
 Maintainability Gate Report：agent.go仅增加单调用，新纯投影pr_context_coverage.go及定向测试，低风险narrow_fix。验收missing/nil/partial/full/inferred、已有来源事实不替换、JSON独立支持不等同风险链完整，Go回归通过。metadata-only发现不自动要求运行路径关系，说明只用于line风险链；metadata仍要求PR前后事实来源。策略v27。同已见回归样例诊断不能称新隔离验收。
 
 切片18回归修正：无PRContext但已经通过canonical Git metadata验证的发现，其evidence包含BASE/HEAD模式/对象，不额外要求重复结构化链（普通line候选继续显示缺口）。全量暴露group/HTTP/diagram旧测试默认无PRContext仍零覆盖不足的断言；这与新增明确记录契约冲突，改为精确验证服务器gap保留、HTTP为incomplete及图阶段不增加/删除该原因，原发现/评论/筛选断言不改。不是将真实源错配放宽为成功。
+
+## 切片19：评测复用生产分组路径
+
+Workflow Gate Report：P9验收工具，AC003/011；生产PlanAuditGroups/AuditGroups已有SDK与授权回归，评测CLI目前只调用单组Audit，不能证明真实多组行为。允许新增显式-grouped布尔选项（默认false，旧单组复现保留），metadata记录模式、恢复必须模式相同，grouped复用生产32KiB/24文件/8组规划、共享既有工具与token预算、原240秒，不自创分组。保存完整result.AuditGroups/trace/checkpoint与遗漏说明，不以进程0表示各组成功。使用明确已见机制的独立多组诊断语料，不称未见质量验收。
+
+Maintainability Gate Report：cmd/audit-eval/main.go约300行，窄flag/metadata/调用分支，不移动平台编排、不新增运行代码能力。低风险narrow_fix；验收默认旧调用、grouped持久化模式、实际25文件输入生成两组、模型/预算/超时不变。CLI/平台已有构造器、分组边界/SDK测试复用，新增元数据模式测试，真实运行需人工检视两组状态/规范调查与来源，不只看计数。
