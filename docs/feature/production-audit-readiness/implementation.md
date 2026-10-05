@@ -219,3 +219,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F4/F5 / 切片10C2服务定义工具
 
 实现纯标准库ops-service.py生成launchd/systemd定义；绝对路径、控制字符和标签验证，systemd非root用户/组及语法转义，私有输出且不覆盖，失败清理只限自己创建文件。不读取/内嵌秘密、不安装/启动服务。4项unittest通过：plist解析/异常重启与租约间隔、systemd空格/百分号/引号转义、非法身份/换行拒绝、0600/0700和已有文件保持。operations记录生成、安装/停止、权限、bootstrap、就绪、备份卸载和用户登录域限制。此为配置生成器验证；本机launchd异常恢复实证与容量仍待下一片，未停止1234或声称已托管。
+
+## F2/F3 / 切片10C3隔离launchd实证
+
+本机gui/501域实际可访问。新增原生演练脚本，要求绝对测试二进制、非生产19240端口；创建0700临时工作目录/0600合成JSON配置，远端固定本机关闭端口且poll/webhook/comment关闭。先前台启动用合成账号bootstrap，ready后SIGTERM正常退出；再使用ops-service生成随机任务标签plist，launchctl bootstrap。记录实际pid/SQL有效owner，SIGKILL该专属服务PID，等待35秒重启间隔和原租约到期，验证新PID/新owner/readyz、账号可登录且DB保留。最后bootout且确认服务不存在/端口关闭，证明JSON0600只存状态与计数，不存会话/配置内容。失败也卸载自己标签，不触及production。不能以管理器配置存在替代业务验证；脚本失败保留私有日志调查。Linux实证与容量仍单独验收。
