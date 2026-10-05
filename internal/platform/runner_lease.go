@@ -9,6 +9,7 @@ import (
 )
 
 type workerRunState struct {
+	owner    string
 	ctx      context.Context
 	failures chan error
 }

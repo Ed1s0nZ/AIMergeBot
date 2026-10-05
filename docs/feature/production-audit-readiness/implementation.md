@@ -207,3 +207,7 @@ ops-backup.py的backup/verify/restore三个命令使用Python标准库，源SQLi
 Workflow Gate：P10运行可靠性，现有HTTP健康接口、实例租约/心跳与原生恢复证明为上游，允许实施。独立GET /readyz匿名只返回ready/unavailable，不包含owner、路径、仓库、队列或配置；兼容现有healthz。就绪需要Store可查询、Runner已启动且其上下文未停止，并在同一次有界SQL读取中验证当前实例owner相同且租约未过期。查询使用请求派生2秒截止，不调用远端模型/GitLab；部署可工作但外部服务断开时仍不虚称上游可用。owner加入不可变workerRunState，避免HTTP访问可变Runner.owner产生竞态。查询之后仍可能失租，任务写入继续由既有SQLfence保护，ready不是永久授权。
 
 测试覆盖Runner未启动、活跃正确owner、过期、被其他owner替换、ctx取消、DB关闭和无私有信息响应，race检查；后续托管/监控实际使用readyz。本片不替代进程托管和容量证明；其余R1–R8与最终main/1234验收继续有效。
+
+## F4/F5 / 切片10C1就绪实现与检查
+
+新增readiness.go和readiness_test.go，注册匿名GET /readyz；返回固定ready/unavailable且no-store，当前workerRunState保存不可变owner，SQL验证实例有效归属，使用请求派生2秒ctx，不调用外部服务、不访问配置秘密。healthz保留。测试未启动、缺租约、正确归属、过期、owner替换、Worker取消、请求已取消、DB关闭、nil依赖以及固定无敏感响应。定向race最终1.638秒通过；完整go test ./...通过（platform34.883秒，evaluation3.903秒），go vet ./...通过。文档明确旧生产尚无新接口，最终发布后才生效。本片尚无原生就绪/launchd托管实证或容量结果，继续10C2与其余验收。

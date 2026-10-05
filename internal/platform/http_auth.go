@@ -162,6 +162,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 		}
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+	r.GET("/readyz", h.ready)
 	r.POST("/api/v1/auth/login", h.login)
 	api := r.Group("/api/v1", h.guard)
 	api.GET("/auth/me", func(c *gin.Context) { c.JSON(200, currentUser(c)) })

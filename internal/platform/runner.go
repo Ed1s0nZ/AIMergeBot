@@ -69,7 +69,7 @@ func (r *Runner) Start(parent context.Context) error {
 	ctx, cancel := context.WithCancel(parent)
 	r.cancel = cancel
 	r.failures = make(chan error, 1)
-	r.state.Store(&workerRunState{ctx: ctx, failures: r.failures})
+	r.state.Store(&workerRunState{ctx: ctx, failures: r.failures, owner: owner})
 	r.mu.Lock()
 	r.active = map[int64]context.CancelFunc{}
 	r.mu.Unlock()
