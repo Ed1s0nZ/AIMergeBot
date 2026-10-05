@@ -160,3 +160,11 @@ P7/AC002/004/005。v21负对照102已读取源码仍将“相对旧值减少”�
 ## v23执行反馈：有界调查与锚点修复提示
 
 P7/AC006/012：v23 case-102八次提交超8000字节调查，case-103四次修正无效锚点/未关联来源后触发步骤预算。下一窄修复保持所有大小/来源/锚点门槛，错误给出实际序列化字节数、8000 UTF-8字节上限及精简重复源码/事实的指引；空claim与超长ID分别报错。record/update工具描述同步预算，建议少量核心事实，不增加token/step额度。finding来源错误指出具体ID与调查ID，指明先更新同一调查来源清单或改用已关联来源；锚点错误提醒HEAD新增或BASE删除，精确匹配错误提醒重新读取正确侧/行，不回显额外源码。无schema/DB/UI字段变化，策略v24；定向测试确保超限拒绝不更改ledger、修复到限内可保存、精确信息且来源门槛不放宽。实际模型质量另轮验证，原预算失败保留。
+
+## 切片15：独立复核全文覆盖门槛
+
+Workflow Gate Report：用户确认R3最佳实践优化；阶段P10反馈修正；后端证据契约窄修复。上游requirements AC006/011、既有FindingVerification API/组件与v24实际失败记录齐全。薄弱项为supported只判核心风险，全文无依据后果仍存在。允许实施，不需新增页面或重写风险叙述。验收：复核返回claim_coverage=full|partial|unknown；supported且非full由服务器降为inconclusive，保留原候选、原原因和限制，显式说明全文未获支持。rejected保持，来源/授权/锚点门槛不变；历史存储无该字段仍可读，但新的复核缺字段不能支持全文。该字段是模型的静态范围声明，不是语义证明。
+
+Maintainability Gate Report：检视finding_verification.go110行（契约解析/验证）、verification_agent.go206行（独立阶段），现有定向SDK与来源验证测试覆盖；风险低，narrow_fix，无需先重构。不修改大型agent编排；解析枚举、覆盖投影各自原责任内。验证解析非法值/重复旧字段兼容、full/partial/unknown/缺失判定、来源锚点不放宽、拒绝不覆盖、完整SDK与Go回归。
+
+契约：claim_coverage覆盖title、description、trigger及所有具体后果/示例，在已明确写出的条件下逐项检查；缺失运行时复现本身不必partial，但无证据交付/获利或未证实具体payload标partial，并列limitations。不会自动改写原finding、不会让模型写额外补丁或执行代码。server downgrade原因截断1000字符，追加一条服务器范围说明（与已有来源覆盖门槛同类，不冒充模型limitations）。策略v25，原UI已有inconclusive与limitations展示适用。
