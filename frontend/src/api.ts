@@ -169,6 +169,7 @@ export type Run = {
     partial?: boolean;
     arguments: string;
     duration_ms: number;
+    total_tokens?: number;
     prompt_tokens?: number;
     completion_tokens?: number;
     usage_reported?: boolean;
@@ -246,3 +247,5 @@ export type FindingHistory = {
 export type FindingLifecycle = { history_truncated: boolean; current: FindingHistory[]; not_reobserved: FindingOccurrence[]; not_reobserved_truncated: boolean };
 
 export type ModelUsage = {calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number;complete:boolean;estimated_cost:number|null;estimate_unavailable_reason?:string;currency?:string;max_tokens:number;stages:{stage:string;calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number}[]};
+
+export type RetryChainUsage = {root_id:number;attempts:{run_id:number;status:string;usage:ModelUsage}[];usage:ModelUsage};

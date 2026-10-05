@@ -132,6 +132,11 @@ func (s *Store) failAndRetry(ctx context.Context, id int64, owner, message strin
 	} else if info.HeaderState == "exceeds_limit" {
 		info.State = "wait_exceeds_limit"
 	}
+	if state, e := retryBudgetStoppingState(ctx, tx, id, trace, recovery); e != nil {
+		return 0, e
+	} else if state != "" {
+		info.State = state
+	}
 	retryAt := ""
 	if info.State == "scheduled" {
 		info.DelaySeconds = int64((delay + time.Second - 1) / time.Second)

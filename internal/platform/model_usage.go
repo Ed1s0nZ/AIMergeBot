@@ -109,13 +109,50 @@ func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, termin
 	}
 	return out
 }
+
+const pendingModelUsage = "model request pending; token usage unknown"
+
+func modelStartCallback(tools *auditTools, stage, model string) func(context.Context, *callbacks.RunInfo, callbacks.CallbackInput) context.Context {
+	return func(ctx context.Context, info *callbacks.RunInfo, _ callbacks.CallbackInput) context.Context {
+		if info == nil || info.Component != components.ComponentOfChatModel {
+			return ctx
+		}
+		tools.mu.Lock()
+		tools.trace = append(tools.trace, ToolTrace{Name: "model", Stage: stage, Arguments: model, Error: pendingModelUsage})
+		tools.mu.Unlock()
+		tools.checkpoint()
+		tools.mu.Lock()
+		failed := tools.progressError != "" || tools.checkpointStopped
+		tools.mu.Unlock()
+		if failed {
+			stopped, cancel := context.WithCancel(ctx)
+			cancel()
+			return stopped
+		}
+		return ctx
+	}
+}
+func recordModelTrace(tools *auditTools, tr ToolTrace) {
+	tools.mu.Lock()
+	replaced := false
+	for i := len(tools.trace) - 1; i >= 0; i-- {
+		old := tools.trace[i]
+		if old.Name == "model" && (old.Stage == tr.Stage || old.Stage == "primary" && tr.Stage == "") && old.Arguments == tr.Arguments && old.Error == pendingModelUsage {
+			tools.trace[i] = tr
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		tools.trace = append(tools.trace, tr)
+	}
+	tools.mu.Unlock()
+	tools.checkpoint()
+}
 func modelFailureCallback(tools *auditTools, stage, model string) func(context.Context, *callbacks.RunInfo, error) context.Context {
 	return func(ctx context.Context, info *callbacks.RunInfo, _ error) context.Context {
 		if info != nil && info.Component == components.ComponentOfChatModel {
-			tools.mu.Lock()
-			tools.trace = append(tools.trace, ToolTrace{Name: "model", Stage: stage, Arguments: model, Error: "model request failed; token usage unavailable"})
-			tools.mu.Unlock()
-			tools.checkpoint()
+			recordModelTrace(tools, ToolTrace{Name: "model", Stage: stage, Arguments: model, Error: "model request failed; token usage unavailable"})
 		}
 		return ctx
 	}

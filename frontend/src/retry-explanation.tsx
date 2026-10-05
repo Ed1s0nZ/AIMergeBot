@@ -23,6 +23,8 @@ export function RetryExplanation({ run }: { run: Run }) {
     )[info.kind] || "执行中断";
   const stopped = (
     {
+      model_budget_exhausted: "自动重试链已达到 token 停止阈值。",
+      model_usage_unknown: "之前模型请求的用量未知，为避免重复消耗，已停止自动重试。",
       exhausted: "已达到两次自动重试上限。",
       wait_exceeds_limit: "上游要求的等待时间超过 24 小时，已停止自动重试。",
       policy_changed: "审计策略版本已变化，已停止自动重试。",

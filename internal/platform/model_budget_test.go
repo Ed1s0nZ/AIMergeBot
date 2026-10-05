@@ -51,7 +51,7 @@ func TestEinoTokenBudgetStopsNextRequest(t *testing.T) {
 				}
 			}
 			if models != 1 {
-				t.Fatalf("duplicate or missing model usage: %d", models)
+				t.Fatalf("duplicate or missing model usage: %d traces=%+v", models,trace)
 			}
 			if len(trace) == 0 || len(result.CoverageNotes) == 0 {
 				t.Fatal("interrupted audit evidence lost")

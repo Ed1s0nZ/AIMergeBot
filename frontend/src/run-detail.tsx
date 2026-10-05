@@ -1,3 +1,4 @@
+import { RetryUsagePanel } from "./retry-usage";
 import { FollowupAuditPanel } from "./followup-audit";
 import { ModelUsagePanel } from "./model-usage";
 import { FindingHistoryPanel } from "./finding-history";
@@ -23,6 +24,7 @@ import {
  type CommentSync,
  type FindingLifecycle,
  type ModelUsage,
+ type RetryChainUsage,
 } from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
@@ -139,6 +141,8 @@ export function RunDetail({ id }: { id: number }) {
   const resource = useResource<{
       run: Run;
       usage?: ModelUsage;
+      retry_usage?: RetryChainUsage;
+      retry_usage_error?:string;
       reviews: Review[];
       finding_lifecycle?: FindingLifecycle;
       permissions: ProjectPermissions;
@@ -148,12 +152,13 @@ export function RunDetail({ id }: { id: number }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const r = resource.data?.run;
+  const chainRunning=resource.data?.retry_usage?.attempts.some(a=>["pending","running"].includes(a.status))||false;
   useEffect(() => {
-    if (r && (["pending", "running"].includes(r.status) || (resource.data?.comment_sync?.enabled && !resource.data.comment_sync.retry_exhausted && ["pending","sending","unknown"].includes(resource.data.comment_sync.state)))) {
+    if (r && (["pending", "running"].includes(r.status) || chainRunning || (resource.data?.comment_sync?.enabled && !resource.data.comment_sync.retry_exhausted && ["pending","sending","unknown"].includes(resource.data.comment_sync.state)))) {
       const interval = setInterval(resource.load, 2000);
       return () => clearInterval(interval);
     }
-  }, [id, r?.status, resource.data?.comment_sync?.enabled, resource.data?.comment_sync?.state, resource.data?.comment_sync?.retry_exhausted]);
+  }, [id, r?.status, chainRunning, resource.data?.comment_sync?.enabled, resource.data?.comment_sync?.state, resource.data?.comment_sync?.retry_exhausted]);
   const action = async (kind: "cancel" | "retry") => {
     setBusy(true);
     setError("");
@@ -326,6 +331,8 @@ export function RunDetail({ id }: { id: number }) {
       </section>
       <FollowupAuditPanel key={r.id} run={r} canSubmit={resource.data?.permissions.can_submit||false} />
       <ModelUsagePanel usage={resource.data?.usage} />
+      {resource.data?.retry_usage_error&&<p className="coverage">重试链用量无法核对，当前尝试的已报告用量仍保留。请联系管理员检查任务关联。</p>}
+      <RetryUsagePanel chain={resource.data?.retry_usage} />
       <FindingHistoryPanel lifecycle={resource.data?.finding_lifecycle} findings={r.result.findings} />
       <div className="section-heading">
         <h2>

@@ -277,6 +277,11 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		r.finish(id, "failed", "audit policy changed; submit a new audit", AuditResult{}, nil)
 		return
 	}
+	ctx, err = r.Store.seedRetryModelBudget(ctx, run)
+	if err != nil {
+		r.finish(id, "incomplete", "", budgetInterruptionResult(err), run.Trace)
+		return
+	}
 	if gitConfig.Enabled {
 		remote, ok := repo.(*GitLabRepository)
 		if !ok {

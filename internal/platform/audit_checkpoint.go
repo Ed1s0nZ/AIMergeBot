@@ -54,9 +54,13 @@ func (t *auditTools) checkpoint() {
 	t.mu.Lock()
 	trace := append([]ToolTrace{}, t.trace...)
 	t.mu.Unlock()
-	if err := t.progress(result, trace); err != nil && !errors.Is(err, ErrConflict) {
+	if err := t.progress(result, trace); err != nil {
 		t.mu.Lock()
-		t.progressError = fmt.Sprintf("Checkpoint persistence failed: %s", err)
+		if errors.Is(err, ErrConflict) {
+			t.checkpointStopped = true
+		} else {
+			t.progressError = fmt.Sprintf("Checkpoint persistence failed: %s", err)
+		}
 		t.mu.Unlock()
 	}
 }

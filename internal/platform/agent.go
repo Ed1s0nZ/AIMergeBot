@@ -77,17 +77,15 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		if data, ok := output.(*em.CallbackOutput); ok {
 			trace := ToolTrace{Name: "model", Arguments: cfg.Model}
 			if data.TokenUsage != nil {
+				trace.TotalTokens = data.TokenUsage.TotalTokens
 				trace.PromptTokens = data.TokenUsage.PromptTokens
 				trace.CompletionTokens = data.TokenUsage.CompletionTokens
 				trace.UsageReported = true
 			}
-			tools.mu.Lock()
-			tools.trace = append(tools.trace, trace)
-			tools.mu.Unlock()
-			tools.checkpoint()
+			recordModelTrace(tools, trace)
 		}
 		return c
-	}).OnErrorFn(modelFailureCallback(tools, "primary", cfg.Model)).Build()
+	}).OnStartFn(modelStartCallback(tools, "primary", cfg.Model)).OnErrorFn(modelFailureCallback(tools, "primary", cfg.Model)).Build()
 	msg, err := agent.Generate(ctx, []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}, ea.WithComposeOptions(compose.WithCallbacks(cb)))
 	if err != nil {
 		note := "Primary model generation failed"
@@ -157,16 +155,15 @@ func (e *EinoAuditor) supplement(ctx context.Context, snap Snapshot, result *Aud
 			if data, ok := output.(*em.CallbackOutput); ok {
 				trace := ToolTrace{Name: "model", Stage: "diagram", Arguments: cfg.Model}
 				if data.TokenUsage != nil {
+					trace.TotalTokens = data.TokenUsage.TotalTokens
 					trace.PromptTokens = data.TokenUsage.PromptTokens
 					trace.CompletionTokens = data.TokenUsage.CompletionTokens
 					trace.UsageReported = true
 				}
-				tools.mu.Lock()
-				tools.trace = append(tools.trace, trace)
-				tools.mu.Unlock()
+				recordModelTrace(tools, trace)
 			}
 			return c
-		}).OnErrorFn(modelFailureCallback(tools, "diagram", cfg.Model)).Build()
+		}).OnStartFn(modelStartCallback(tools, "diagram", cfg.Model)).OnErrorFn(modelFailureCallback(tools, "diagram", cfg.Model)).Build()
 		e.generateSequences(ctx, result, tools, registered, model, graphCB)
 	} else {
 		for i := range result.Findings {

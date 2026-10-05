@@ -50,6 +50,7 @@ type auditTools struct {
 	progress           func(AuditResult, []ToolTrace) error
 	progressMu         sync.Mutex
 	supplementalResult *AuditResult
+	checkpointStopped  bool
 	progressError      string
 	repo               Repository
 	snap               Snapshot

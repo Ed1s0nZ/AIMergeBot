@@ -233,7 +233,16 @@ func (h *HTTP) run(c *gin.Context) {
 		differentVerifier = r.AuditPolicy.VerificationModel != "" && r.AuditPolicy.VerificationModel != r.AuditPolicy.Model
 	}
 	usage := SummarizeModelUsage(r.Trace, budget, (r.Status == "succeeded" || r.Status == "incomplete") && r.Error == "", differentVerifier)
-	c.JSON(200, gin.H{"usage": usage, "finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
+	retryUsage, err := h.Store.RetryChainUsage(c.Request.Context(), id)
+	retryUsageError := ""
+	if err != nil {
+		if !errors.Is(err, ErrConflict) {
+			fail(c, err)
+			return
+		}
+		retryUsageError = "Unable to verify retry usage chain; current attempt report retained"
+	}
+	c.JSON(200, gin.H{"retry_usage_error": retryUsageError, "retry_usage": retryUsage, "usage": usage, "finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)

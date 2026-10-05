@@ -112,17 +112,15 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 			if data, ok := output.(*em.CallbackOutput); ok {
 				tr := ToolTrace{Name: "model", Stage: "verification", Arguments: modelName + " · " + f.ID}
 				if data.TokenUsage != nil {
+					tr.TotalTokens = data.TokenUsage.TotalTokens
 					tr.PromptTokens = data.TokenUsage.PromptTokens
 					tr.CompletionTokens = data.TokenUsage.CompletionTokens
 					tr.UsageReported = true
 				}
-				parent.mu.Lock()
-				parent.trace = append(parent.trace, tr)
-				parent.mu.Unlock()
-				parent.checkpoint()
+				recordModelTrace(parent, tr)
 			}
 			return c
-		}).OnErrorFn(modelFailureCallback(parent, "verification", modelName)).Build()
+		}).OnStartFn(modelStartCallback(parent, "verification", modelName+" · "+f.ID)).OnErrorFn(modelFailureCallback(parent, "verification", modelName+" · "+f.ID)).Build()
 		proposed := *f
 		proposed.Verification = nil
 		proposed.SequenceDiagram = nil

@@ -95,6 +95,7 @@ type ToolTrace struct {
 	Stage            string `json:"stage,omitempty"`
 	Output           string `json:"output,omitempty"`
 	ObservationID    string `json:"observation_id,omitempty"`
+	TotalTokens      int    `json:"total_tokens,omitempty"`
 	PromptTokens     int    `json:"prompt_tokens,omitempty"`
 	CompletionTokens int    `json:"completion_tokens,omitempty"`
 	UsageReported    bool   `json:"usage_reported,omitempty"`
