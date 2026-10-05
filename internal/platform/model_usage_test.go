@@ -53,3 +53,23 @@ func TestModelBudgetPriceValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestDifferentVerifierPricesNeverUsePrimaryPrice(t *testing.T) {
+	trace := []ToolTrace{{Name: "model", UsageReported: true, PromptTokens: 1000000, CompletionTokens: 1000000}, {Name: "model", Stage: "verification", UsageReported: true, PromptTokens: 1000000, CompletionTokens: 1000000}}
+	prices := ModelBudgetSettings{Currency: "USD", InputPricePerMillion: 2, OutputPricePerMillion: 8}
+	unknown := SummarizeModelUsage(trace, prices, true, true)
+	if !unknown.Complete || unknown.EstimatedCost != nil || unknown.EstimateUnavailableReason != "verification_price_missing" {
+		t.Fatal("different verifier assigned primary price")
+	}
+	prices.VerificationPricingConfigured = true
+	prices.VerificationInputPricePerMillion = 1
+	prices.VerificationOutputPricePerMillion = 3
+	known := SummarizeModelUsage(trace, prices, true, true)
+	if known.EstimatedCost == nil || *known.EstimatedCost != 14 {
+		t.Fatal("separate prices mixed")
+	}
+	same := SummarizeModelUsage(trace, ModelBudgetSettings{Currency: "USD", InputPricePerMillion: 2, OutputPricePerMillion: 8}, true, false)
+	if same.EstimatedCost == nil || *same.EstimatedCost != 20 {
+		t.Fatal("same model compatibility lost")
+	}
+}

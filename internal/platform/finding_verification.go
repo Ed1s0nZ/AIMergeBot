@@ -9,6 +9,7 @@ import (
 )
 
 type FindingVerification struct {
+	Model          string   `json:"model,omitempty"`
 	Status         string   `json:"status"`
 	Reason         string   `json:"reason"`
 	Limitations    []string `json:"limitations"`

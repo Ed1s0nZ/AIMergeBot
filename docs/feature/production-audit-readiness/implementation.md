@@ -50,3 +50,7 @@ model_budget新增input_price_per_million、output_price_per_million、currency�
 ## F2/F3 / 切片4：独立复核模型选择
 
 新增verification_model（同一已配置兼容API中的模型名称，空继承主模型），不引入新凭据/新数据接收方。冻结策略及摘要；Agent仅在复核阶段创建该模型，主审/汇总/时序图保持主模型。复核初始化失败保留发现并标记unavailable，不静默回退主模型。复核trace标真实模型，FindingVerification展示server-owned model值；模型字段不从生成JSON接受。主审和复核共享token阈值。model_budget新增verification_pricing_configured及对应输入/输出单价；不同模型且未配置价格时不估算整个尝试总费用，不能套主模型价格。复核prompt改为configured verification model而非same model，仍明确静态非运行证明。测试模型请求路由、缺省同模型、独立配置/落盘/冻结/预算与计价不混用，前端展示选择与使用模型。外部多提供商端点与新凭据不在本切片，不扩大发送范围。
+
+## F4/F5 / 切片4实现与验证
+
+verification_model可在系统设置配置且落盘、旧客户端缺失字段保留现值，捕获策略并参与digest；复核阶段使用选择的模型与现有端点/凭据，记录server-owned模型名，图/汇总沿用主模型。新增独立复核计价配置，缺失不同模型单价时详情给出明确未估算原因。CLI冻结选择和价格；Standalone补齐已有verify_findings设置接线，行为与工作台一致。真实Eino本地HTTP测试断言主审/复核请求model路由、失败保持原发现、不同模型不绕过共享阈值、无自动推广以及计价不混用。配置往返/旧客户端/冻结、定向race2.872秒、完整Go(platform22.044秒/evaluation3.677秒)、vet和前端构建1.03秒通过。生产UI与真实模型差异质量尚待本轮后续验收，不把合成HTTP验证说成真实效果。R1真实对象仍未提供；其余项按原清单继续。

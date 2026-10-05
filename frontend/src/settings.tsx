@@ -272,7 +272,8 @@ export function SystemSettings() {
                     }
                   />
                 </label>
-              <ModelBudgetSettingsFields value={s.model_budget || {max_tokens:0,input_price_per_million:0,output_price_per_million:0,currency:""}} onChange={model_budget=>setSettings({...s,model_budget})} />
+              <label>独立复核模型（可选）<input value={s.verification_model||""} maxLength={128} placeholder="留空使用主审模型" onChange={e=>setSettings({...s,verification_model:e.target.value})}/><small>使用当前模型 API 和凭据。选择该接口支持的其他模型可增加复核多样性；独立复核仍需人工确认。</small></label>
+              <ModelBudgetSettingsFields value={s.model_budget || {max_tokens:0,input_price_per_million:0,output_price_per_million:0,currency:"",verification_pricing_configured:false,verification_input_price_per_million:0,verification_output_price_per_million:0}} onChange={model_budget=>setSettings({...s,model_budget})} />
               </div>
             </div>
           </section>

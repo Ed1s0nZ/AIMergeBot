@@ -27,6 +27,7 @@ type AgentConfig struct {
 	Progress               func(AuditResult, []ToolTrace) error
 	APIKey, BaseURL, Model string
 	MaxSteps               int
+	VerificationModel      string
 	MaxTokens              int
 	Temperature            float32
 	MaxToolCalls           int

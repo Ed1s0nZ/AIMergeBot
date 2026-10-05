@@ -24,20 +24,21 @@ import (
 )
 
 type metadata struct {
-	MaxTokens      int                          `json:"max_tokens"`
-	ModelBudget    platform.ModelBudgetSettings `json:"model_budget"`
-	OnlyCase       string                       `json:"only_case,omitempty"`
-	CorpusDigest   string                       `json:"corpus_digest"`
-	CodeRevision   string                       `json:"code_revision"`
-	Model          string                       `json:"model"`
-	EndpointDigest string                       `json:"endpoint_digest"`
-	Policy         string                       `json:"policy"`
-	MaxSteps       int                          `json:"max_steps"`
-	MaxToolCalls   int                          `json:"max_tool_calls"`
-	Temperature    float32                      `json:"temperature"`
-	TimeoutSeconds int                          `json:"timeout_seconds"`
-	Verify         bool                         `json:"verify_findings"`
-	Diagrams       bool                         `json:"generate_diagrams"`
+	MaxTokens         int                          `json:"max_tokens"`
+	VerificationModel string                       `json:"verification_model"`
+	ModelBudget       platform.ModelBudgetSettings `json:"model_budget"`
+	OnlyCase          string                       `json:"only_case,omitempty"`
+	CorpusDigest      string                       `json:"corpus_digest"`
+	CodeRevision      string                       `json:"code_revision"`
+	Model             string                       `json:"model"`
+	EndpointDigest    string                       `json:"endpoint_digest"`
+	Policy            string                       `json:"policy"`
+	MaxSteps          int                          `json:"max_steps"`
+	MaxToolCalls      int                          `json:"max_tool_calls"`
+	Temperature       float32                      `json:"temperature"`
+	TimeoutSeconds    int                          `json:"timeout_seconds"`
+	Verify            bool                         `json:"verify_findings"`
+	Diagrams          bool                         `json:"generate_diagrams"`
 }
 type receipt struct {
 	Usage                 platform.ModelUsage  `json:"usage"`
@@ -146,7 +147,7 @@ func run() error {
 	if calls <= 0 || calls > 80 {
 		calls = 80
 	}
-	meta := metadata{cfg.ModelBudget.MaxTokens, cfg.ModelBudget, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
+	meta := metadata{cfg.ModelBudget.MaxTokens, cfg.VerificationModel, cfg.ModelBudget, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
 	if *resume {
 		raw, e := os.ReadFile(filepath.Join(*output, "metadata.json"))
 		if e != nil {
@@ -200,7 +201,7 @@ func run() error {
 		}
 		scope := platform.BuildDiff(changes, nil, 96*1024)
 		scope.Notes = append(scope.Notes, notes...)
-		auditor := &platform.EinoAuditor{Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
+		auditor := &platform.EinoAuditor{Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
 			return save(filepath.Join(caseDir, "checkpoint.json"), map[string]any{"result": result, "trace": trace})
 		}}}
 		fmt.Printf("%s started\n", c.ID)
@@ -217,7 +218,7 @@ func run() error {
 		}
 		usageComplete := auditErr == nil && caseCtx.Err() == nil
 		cancel()
-		record := receipt{Usage: platform.SummarizeModelUsage(trace, cfg.ModelBudget, usageComplete), ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
+		record := receipt{Usage: platform.SummarizeModelUsage(trace, cfg.ModelBudget, usageComplete, cfg.VerificationModel != "" && cfg.VerificationModel != model), ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
 		for _, f := range result.Findings {
 			if f.File == c.ExpectedAnchor.File && f.Side == c.ExpectedAnchor.Side && f.Line == c.ExpectedAnchor.Line {
 				record.ExpectedAnchorMatched = true

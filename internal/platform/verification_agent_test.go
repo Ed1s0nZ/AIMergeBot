@@ -11,12 +11,13 @@ import (
 )
 
 func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
-	for _, mode := range []string{"supported", "rejected", "inconclusive", "forged", "invalid", "http_failure", "disabled", "clean"} {
+	for _, mode := range []string{"supported", "rejected", "inconclusive", "forged", "invalid", "http_failure", "disabled", "clean", "shared_budget"} {
 		t.Run(mode, func(t *testing.T) {
 			repo, snap, f, _ := sequenceFixture()
 			var verifyCalls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var request struct {
+					Model    string `json:"model"`
 					Messages []struct {
 						Role    string `json:"role"`
 						Content string `json:"content"`
@@ -31,6 +32,13 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 					t.Error(err)
 				}
 				independent := len(request.Messages) > 0 && strings.HasPrefix(request.Messages[0].Content, "Independently review")
+				wantModel := "verification-fixture"
+				if independent && (mode == "supported" || mode == "http_failure" || mode == "shared_budget") {
+					wantModel = "separate-verification-fixture"
+				}
+				if request.Model != wantModel {
+					t.Errorf("phase model %s want %s", request.Model, wantModel)
+				}
 				message := map[string]any{"role": "assistant"}
 				finish := "stop"
 				if !independent {
@@ -83,6 +91,12 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 			defer server.Close()
 			var checkpoints []AuditResult
 			auditor := &EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "verification-fixture", MaxSteps: 8, VerifyFindings: mode != "disabled", Progress: func(result AuditResult, _ []ToolTrace) error { checkpoints = append(checkpoints, result); return nil }}}
+			if mode == "supported" || mode == "http_failure" || mode == "shared_budget" {
+				auditor.Config.VerificationModel = "separate-verification-fixture"
+			}
+			if mode == "shared_budget" {
+				auditor.Config.MaxTokens = 20
+			}
 			scope := DiffScope{Added: map[string]map[int]bool{f.File: {2: true}}}
 			result, trace, err := auditor.Audit(context.Background(), snap, scope)
 			if err != nil {
@@ -102,8 +116,18 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 				t.Fatal("missing verification")
 			}
 			want := mode
-			if mode == "forged" || mode == "invalid" || mode == "http_failure" {
+			if mode == "forged" || mode == "invalid" || mode == "http_failure" || mode == "shared_budget" {
 				want = "unavailable"
+			}
+			expectedModel := auditor.Config.Model
+			if auditor.Config.VerificationModel != "" {
+				expectedModel = auditor.Config.VerificationModel
+			}
+			if mode != "disabled" && verification.Model != expectedModel {
+				t.Fatal("verification model provenance lost")
+			}
+			if mode == "shared_budget" && verifyCalls.Load() != 0 {
+				t.Fatal("separate model bypassed shared budget")
 			}
 			if verification.Status != want {
 				t.Fatalf("status %s want %s", verification.Status, want)

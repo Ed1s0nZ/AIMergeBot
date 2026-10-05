@@ -41,6 +41,7 @@ func defaultGitAudit(c *GitAuditSettings) {
 var ErrSettingsConflict = errors.New("settings changed; reload current configuration before saving")
 
 type Settings struct {
+	VerificationModel        string              `yaml:"verification_model" json:"verification_model"`
 	ModelBudget              ModelBudgetSettings `yaml:"model_budget" json:"model_budget"`
 	Revision                 uint64              `yaml:"config_revision" json:"config_revision"`
 	VerifyFindings           bool                `yaml:"verify_findings" json:"verify_findings"`
@@ -135,6 +136,9 @@ func validURL(raw string) bool {
 	return e == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
 }
 func validateSettings(c Settings) error {
+	if len(c.VerificationModel) > 128 || strings.ContainsAny(c.VerificationModel, "\r\n\x00") {
+		return fmt.Errorf("invalid verification model name")
+	}
 	if err := validateModelBudget(c.ModelBudget); err != nil {
 		return err
 	}
@@ -291,7 +295,7 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 		return Settings{}, err
 	}
 	current := s.Snapshot()
-	cfg := Settings{ModelBudget: current.ModelBudget, AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, VerifyFindings: current.VerifyFindings, TrustedProxies: current.TrustedProxies}
+	cfg := Settings{VerificationModel: current.VerificationModel, ModelBudget: current.ModelBudget, AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, VerifyFindings: current.VerifyFindings, TrustedProxies: current.TrustedProxies}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {
@@ -356,6 +360,6 @@ func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope)
 	if model == "" {
 		model = cfg.OpenAI.Model
 	}
-	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
+	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
 	return a.Audit(ctx, s, scope)
 }

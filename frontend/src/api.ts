@@ -95,7 +95,7 @@ export type SequenceDiagram = {
   limitations?: string[];
   mermaid?: string;
 };
-export type FindingVerification = { status: string; reason: string; limitations: string[]; observation_ids: string[]; base_sha: string; head_sha: string };
+export type FindingVerification = { model?:string; status: string; reason: string; limitations: string[]; observation_ids: string[]; base_sha: string; head_sha: string };
 export type Finding = {
  fingerprint?: string;
  verification?: FindingVerification;
@@ -212,7 +212,8 @@ export type Settings = {
   enable_polling: boolean;
   enable_webhook: boolean;
   enable_mr_comment: boolean;
-  model_budget: { max_tokens: number; input_price_per_million: number; output_price_per_million: number; currency: string };
+  verification_model: string;
+  model_budget: { verification_pricing_configured:boolean; verification_input_price_per_million:number; verification_output_price_per_million:number; max_tokens: number; input_price_per_million: number; output_price_per_million: number; currency: string };
   scan_existing_mrs: boolean;
   webhook_token: string;
   audit_workers: number;
@@ -244,4 +245,4 @@ export type FindingHistory = {
 };
 export type FindingLifecycle = { history_truncated: boolean; current: FindingHistory[]; not_reobserved: FindingOccurrence[]; not_reobserved_truncated: boolean };
 
-export type ModelUsage = {calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number;complete:boolean;estimated_cost:number|null;currency?:string;max_tokens:number;stages:{stage:string;calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number}[]};
+export type ModelUsage = {calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number;complete:boolean;estimated_cost:number|null;estimate_unavailable_reason?:string;currency?:string;max_tokens:number;stages:{stage:string;calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number}[]};

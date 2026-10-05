@@ -227,10 +227,12 @@ func (h *HTTP) run(c *gin.Context) {
 		return
 	}
 	budget := ModelBudgetSettings{}
+	differentVerifier := false
 	if r.AuditPolicy != nil {
 		budget = r.AuditPolicy.ModelBudget
+		differentVerifier = r.AuditPolicy.VerificationModel != "" && r.AuditPolicy.VerificationModel != r.AuditPolicy.Model
 	}
-	usage := SummarizeModelUsage(r.Trace, budget, (r.Status == "succeeded" || r.Status == "incomplete") && r.Error == "")
+	usage := SummarizeModelUsage(r.Trace, budget, (r.Status == "succeeded" || r.Status == "incomplete") && r.Error == "", differentVerifier)
 	c.JSON(200, gin.H{"usage": usage, "finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {

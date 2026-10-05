@@ -232,6 +232,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 			cfg.ReAct.Temperature = float64(p.Temperature)
 			cfg.ReAct.MaxSteps = p.MaxSteps
 			cfg.ModelBudget = p.ModelBudget
+			cfg.VerificationModel = p.VerificationModel
 			cfg.AuditTimeoutSeconds = p.TimeoutSeconds
 			cfg.GitAudit = p.Git
 			cfg.WhitelistExtensions = p.Excluded
@@ -251,7 +252,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if model == "" {
 			model = cfg.OpenAI.Model
 		}
-		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
+		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
 	}
 	if original, ok := auditor.(*EinoAuditor); ok {
 		copy := *original

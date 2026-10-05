@@ -91,6 +91,7 @@ model_budget:
 	if err != nil {
 		t.Fatal(err)
 	}
+	next.VerificationModel = "independent-fixture"
 	next.ModelBudget.MaxTokens = 100000
 	next.ModelBudget.Currency = "USD"
 	next.ModelBudget.InputPricePerMillion = 2
@@ -103,16 +104,17 @@ model_budget:
 		t.Fatal(err)
 	}
 	cfg := reloaded.Snapshot()
-	if cfg.ModelBudget.MaxTokens != 100000 || cfg.ModelBudget.Currency != "USD" || cfg.ModelBudget.InputPricePerMillion != 2 || cfg.ModelBudget.OutputPricePerMillion != 8 || cfg.OpenAI.APIKey != "synthetic-local-only" {
+	if cfg.VerificationModel != "independent-fixture" || cfg.ModelBudget.MaxTokens != 100000 || cfg.ModelBudget.Currency != "USD" || cfg.ModelBudget.InputPricePerMillion != 2 || cfg.ModelBudget.OutputPricePerMillion != 8 || cfg.OpenAI.APIKey != "synthetic-local-only" {
 		t.Fatal("budget or secret retention lost")
 	}
 	if policyDigest(before) == policyDigest(capturePolicy(cfg)) {
 		t.Fatal("budget not frozen in identity")
 	}
 	delete(public, "model_budget")
+	delete(public, "verification_model")
 	encoded, _ = json.Marshal(public)
 	next, err = svc.DecodePublic(encoded)
-	if err != nil || next.ModelBudget.MaxTokens != 100000 {
+	if err != nil || next.VerificationModel != "independent-fixture" || next.ModelBudget.MaxTokens != 100000 {
 		t.Fatal("old client reset budget", err)
 	}
 	for _, n := range []int{-1, 10000001} {

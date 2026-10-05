@@ -16,22 +16,23 @@ type ModelStageUsage struct {
 	CompletionTokens int64  `json:"completion_tokens"`
 }
 type ModelUsage struct {
-	Calls            int               `json:"calls"`
-	UnknownCalls     int               `json:"unknown_calls"`
-	PromptTokens     int64             `json:"prompt_tokens"`
-	CompletionTokens int64             `json:"completion_tokens"`
-	Complete         bool              `json:"complete"`
-	Stages           []ModelStageUsage `json:"stages"`
-	EstimatedCost    *float64          `json:"estimated_cost"`
-	Currency         string            `json:"currency,omitempty"`
-	MaxTokens        int               `json:"max_tokens"`
+	Calls                     int               `json:"calls"`
+	UnknownCalls              int               `json:"unknown_calls"`
+	PromptTokens              int64             `json:"prompt_tokens"`
+	CompletionTokens          int64             `json:"completion_tokens"`
+	Complete                  bool              `json:"complete"`
+	Stages                    []ModelStageUsage `json:"stages"`
+	EstimateUnavailableReason string            `json:"estimate_unavailable_reason,omitempty"`
+	EstimatedCost             *float64          `json:"estimated_cost"`
+	Currency                  string            `json:"currency,omitempty"`
+	MaxTokens                 int               `json:"max_tokens"`
 }
 
 func validateModelBudget(v ModelBudgetSettings) error {
 	if v.MaxTokens < 0 || v.MaxTokens > 10000000 {
 		return fmt.Errorf("model_budget.max_tokens must be 0–10000000")
 	}
-	for _, p := range []float64{v.InputPricePerMillion, v.OutputPricePerMillion} {
+	for _, p := range []float64{v.InputPricePerMillion, v.OutputPricePerMillion, v.VerificationInputPricePerMillion, v.VerificationOutputPricePerMillion} {
 		if math.IsNaN(p) || math.IsInf(p, 0) || p < 0 || p > 1000000 {
 			return fmt.Errorf("invalid model token price")
 		}
@@ -44,8 +45,9 @@ func validateModelBudget(v ModelBudgetSettings) error {
 
 // Known sums are retained even if one request did not report usage. Never
 // interpret zero calls or an interrupted attempt as a verified zero bill.
-func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, terminal bool) ModelUsage {
+func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, terminal bool, differentVerificationModel ...bool) ModelUsage {
 	out := ModelUsage{Stages: []ModelStageUsage{}, MaxTokens: settings.MaxTokens, Currency: settings.Currency}
+	out.EstimateUnavailableReason = "price_not_configured"
 	index := map[string]int{}
 	for _, tr := range trace {
 		if tr.Name != "model" {
@@ -74,11 +76,36 @@ func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, termin
 		out.Stages[i].CompletionTokens += int64(tr.CompletionTokens)
 	}
 	out.Complete = terminal && out.Calls > 0 && out.UnknownCalls == 0
+
 	if settings.Currency != "" && validateModelBudget(settings) == nil && out.Calls > out.UnknownCalls {
-		cost := float64(out.PromptTokens)/1000000*settings.InputPricePerMillion + float64(out.CompletionTokens)/1000000*settings.OutputPricePerMillion
-		if !math.IsInf(cost, 0) && !math.IsNaN(cost) {
-			out.EstimatedCost = &cost
+		cost := 0.0
+		out.EstimateUnavailableReason = "verification_price_missing"
+		priced := true
+		different := len(differentVerificationModel) > 0 && differentVerificationModel[0]
+		for _, stage := range out.Stages {
+			if stage.Calls == stage.UnknownCalls {
+				continue
+			}
+			input, output := settings.InputPricePerMillion, settings.OutputPricePerMillion
+			if stage.Stage == "verification" {
+				if settings.VerificationPricingConfigured {
+					input = settings.VerificationInputPricePerMillion
+					output = settings.VerificationOutputPricePerMillion
+				} else if different {
+					priced = false
+					break
+				}
+			}
+			cost += float64(stage.PromptTokens)/1000000*input + float64(stage.CompletionTokens)/1000000*output
 		}
+		if priced && !math.IsInf(cost, 0) && !math.IsNaN(cost) {
+			out.EstimatedCost = &cost
+			out.EstimateUnavailableReason = ""
+		}
+	}
+
+	if out.Calls == out.UnknownCalls {
+		out.EstimateUnavailableReason = "no_reported_usage"
 	}
 	return out
 }

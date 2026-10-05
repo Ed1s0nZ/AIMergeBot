@@ -13,10 +13,13 @@ var ErrModelTokenBudget = errors.New("model token stopping threshold reached")
 var ErrModelUsageUnknown = errors.New("model usage unavailable; further budgeted calls stopped")
 
 type ModelBudgetSettings struct {
-	MaxTokens             int     `yaml:"max_tokens" json:"max_tokens"`
-	InputPricePerMillion  float64 `yaml:"input_price_per_million" json:"input_price_per_million"`
-	OutputPricePerMillion float64 `yaml:"output_price_per_million" json:"output_price_per_million"`
-	Currency              string  `yaml:"currency" json:"currency"`
+	VerificationPricingConfigured     bool    `yaml:"verification_pricing_configured" json:"verification_pricing_configured"`
+	VerificationInputPricePerMillion  float64 `yaml:"verification_input_price_per_million" json:"verification_input_price_per_million"`
+	VerificationOutputPricePerMillion float64 `yaml:"verification_output_price_per_million" json:"verification_output_price_per_million"`
+	MaxTokens                         int     `yaml:"max_tokens" json:"max_tokens"`
+	InputPricePerMillion              float64 `yaml:"input_price_per_million" json:"input_price_per_million"`
+	OutputPricePerMillion             float64 `yaml:"output_price_per_million" json:"output_price_per_million"`
+	Currency                          string  `yaml:"currency" json:"currency"`
 }
 type modelBudgetKey struct{}
 type modelTokenBudget struct {

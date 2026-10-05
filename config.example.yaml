@@ -62,3 +62,8 @@ model_budget:
   currency: ""
   input_price_per_million: 0
   output_price_per_million: 0
+  verification_pricing_configured: false
+  verification_input_price_per_million: 0
+  verification_output_price_per_million: 0
+# Same configured API and credentials; empty inherits the primary model.
+verification_model: ""
