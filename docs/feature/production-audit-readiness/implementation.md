@@ -201,3 +201,9 @@ ops-backup.py的backup/verify/restore三个命令使用Python标准库，源SQLi
 2026-10-05原生构建SHA256 036f311a486a61b310f4eff2545e2242ce71d6131d86cdc0f1d1ffb84af8c613，在19236/19237隔离端口执行metadata/lifecycle/comment/verification/backup全部场景，进程退出0。实际SIGKILL后等待原租约、检查点保持、恢复子任务成功；MR92模型5次、MR94模型9次；备份CLI三步成功、恢复前后9张业务表hash一致，admin/member原Cookie会话与viewer ACL保留，风险复核和关联追加历史保留，模型与评论请求零新增。9项备份单元测试再次通过0.119秒。私有证明位于本机临时目录，不上传源DB/config/包。1234生产未调整。
 
 合成持久化移动报告仅证明恢复历史保存，不证明实际Git/Agent质量。R8尚需10C托管/就绪/容量，R2启用预算崩溃及R7实际GitLab验收、R1真实样本、浏览器综合验证、最终main和部署继续保留未完成。
+
+## F2/F3 / 切片10C1租约就绪检查
+
+Workflow Gate：P10运行可靠性，现有HTTP健康接口、实例租约/心跳与原生恢复证明为上游，允许实施。独立GET /readyz匿名只返回ready/unavailable，不包含owner、路径、仓库、队列或配置；兼容现有healthz。就绪需要Store可查询、Runner已启动且其上下文未停止，并在同一次有界SQL读取中验证当前实例owner相同且租约未过期。查询使用请求派生2秒截止，不调用远端模型/GitLab；部署可工作但外部服务断开时仍不虚称上游可用。owner加入不可变workerRunState，避免HTTP访问可变Runner.owner产生竞态。查询之后仍可能失租，任务写入继续由既有SQLfence保护，ready不是永久授权。
+
+测试覆盖Runner未启动、活跃正确owner、过期、被其他owner替换、ctx取消、DB关闭和无私有信息响应，race检查；后续托管/监控实际使用readyz。本片不替代进程托管和容量证明；其余R1–R8与最终main/1234验收继续有效。
