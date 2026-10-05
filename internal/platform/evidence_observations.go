@@ -8,7 +8,7 @@ import (
 
 func isSourceTool(name string) bool {
 	switch name {
-	case "read_repository_file", "search_repository_code", "get_change_metadata", "read_file", "read_files", "search_code", "get_diff", "compare_files", "get_history", "git_blame", "search_history":
+	case "read_repository_file", "read_repository_files", "search_repository_code", "get_change_metadata", "read_file", "read_files", "search_code", "get_diff", "compare_files", "get_history", "git_blame", "search_history":
 		return true
 	}
 	return false

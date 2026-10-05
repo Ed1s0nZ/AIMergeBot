@@ -97,6 +97,9 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 		if e := add(utils.InferTool("read_repository_file", "Read numbered lines from one authorized context repository at its fixed SHA, max 200 lines. repository_id is a listed context project ID, not an arbitrary destination. Context facts cannot replace primary changed-line evidence.", t.contextFile)); e != nil {
 			return nil, e
 		}
+		if e := add(utils.InferTool("read_repository_files", "Read 1–8 related file ranges from one authorized context repository at its fixed SHA. Each range uses path/start/end, max 200 lines; base must be false. Aggregate output bounded to 16000 bytes. Context facts cannot replace primary PR change evidence; remaining or more requires follow-up reads.", t.contextBatch)); e != nil {
+			return nil, e
+		}
 		if e := add(utils.InferTool("search_repository_code", "Search the entire selected fixed context repository, literal/regex/path/extension/case filters, next_cursor pagination. Results are lexical candidates, not semantic call proof.", t.contextSearch)); e != nil {
 			return nil, e
 		}
