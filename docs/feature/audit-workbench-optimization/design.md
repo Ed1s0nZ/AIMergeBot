@@ -174,3 +174,11 @@ Maintainability Gate Report：检视finding_verification.go110行（契约解析
 Workflow Gate Report：P10反馈修正，R3 AC006/007及v25 API范围字段已落地；复用FindingCard/VerificationEvidence，无新后端接口。实现允许：主调查标签改为明确的主调查源码支持，partial/unknown全文范围在描述前显示静态证据提示，复核面板显示全文/部分/未知范围，历史无字段单列未声明，不篡改历史判定。加载/无记录继续原状态；已有拒绝/不足/失败保留；提示不是运行复现证明。不改变人工复核权限、草稿或筛选。
 
 Maintainability Gate Report：run-detail.tsx现有单页组件组成、api.ts类型集聚，本切片只插入已提取VerificationNotice组件及可选类型字段；新逻辑保留在finding-verification.tsx，避免向详情页堆积判定。narrow_fix；无需广泛重构。验收真实组件显示partial提示优先于描述，full/历史/无记录有不同范围说明，窄宽360px和键盘导航无新增横向溢出，类型/构建通过。
+
+## 切片17：主调查上下文预检与服务器覆盖记录
+
+Workflow Gate Report：P10，AC002/003/011；实际验收203主阶段忽略下游、205误称可用契约不可检查，既有固定授权列表工具/trace/checkpoint接口齐全。实施允许：首次主模型请求前复用list_repositories进行授权预检，成功列表作为显式非源码导航进入任务，旧观察仍不能当证据；无关联源不增加调用或提示。预检耗一个工具调用，预算保持。取消/撤权/进度持久化失败不发送模型请求。工具聚合列表前后复核授权防止期间撤权；可用状态不作为后续读取授权替代。
+
+主阶段结束后按成功、固定SHA、evidence_eligible源码trace记录每个配置源的实际读取状态：未读取只说明相关性未知，不说不存在/安全；不可用由预检记录，候选及原覆盖说明不删，独立复核后来读取不追溯把主调查标成已读。不推断仓库语义、不抓取目录自动全量审计。
+
+Maintainability Gate Report：agent.go约330行只增加预检调用/覆盖投影调用，新实现独立context_navigation.go纯投影+工具复用；context_repository_tools.go约145行保留权限责任。低风险narrow_fix，无需大重构；测试首次SDK提示与模型请求前checkpoint、源码读取资格（失败/列表/旧SHA不算）、无源不改提示、撤权/取消不发模型、同配置来源完整保留。策略v26。此改动依据已见验收失败，corpus-acceptance-v1自此转回归，不再称当前策略隔离验收，后续补新验收版本。
