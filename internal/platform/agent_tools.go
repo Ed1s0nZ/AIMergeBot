@@ -46,6 +46,7 @@ type toolOutput struct {
 }
 
 type auditTools struct {
+	successfulReads    map[string]int
 	contextSources     map[int]ContextSource
 	contextReaders     map[int]*auditTools
 	rawOnly            bool
@@ -115,6 +116,8 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	var err error
 	if over {
 		err = fmt.Errorf("tool call budget exhausted")
+	} else if t.repeatedReadBlocked(name, args) {
+		err = fmt.Errorf("repeated snapshot read stopped: identical request already succeeded three times; reuse evidence observation IDs or change the investigation query")
 	} else {
 		out, err = fn()
 	}
@@ -139,6 +142,9 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	if err != nil {
 		trace.Error = err.Error()
 		out.Error = err.Error()
+	}
+	if err == nil {
+		t.recordSuccessfulRead(name, args)
 	}
 	out.EvidenceEligible = err == nil && isSourceTool(name) && strings.TrimSpace(out.Text) != ""
 	t.mu.Lock()

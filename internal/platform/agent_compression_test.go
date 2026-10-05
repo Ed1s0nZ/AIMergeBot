@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -111,14 +112,18 @@ func TestEinoLongInvestigationCompression(t *testing.T) {
 						message["content"] = `{"findings":[],"summary":"static integration fixture","coverage_notes":[]}`
 					} else {
 						finish = "tool_calls"
-						message["tool_calls"] = []any{map[string]any{"id": "read", "type": "function", "function": map[string]string{"name": "read_file", "arguments": `{"path":"file.any","start":1,"end":200}`}}}
+						message["tool_calls"] = []any{map[string]any{"id": "read", "type": "function", "function": map[string]string{"name": "read_file", "arguments": fmt.Sprintf(`{"path":"file-%d.any","start":1,"end":200}`, primary)}}}
 					}
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]any{"id": "fixture", "object": "chat.completion", "choices": []any{map[string]any{"index": 0, "finish_reason": finish, "message": message}}, "usage": usage})
 			}))
 			defer server.Close()
-			a := &EinoAuditor{Repository: fixtureRepo{files: map[string]string{"file.any": strings.Repeat(strings.Repeat("a", 60)+"\n", 200)}}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "synthetic", MaxSteps: 16, MaxTokens: 1000}}
+			files := map[string]string{}
+			for i := 1; i <= 11; i++ {
+				files[fmt.Sprintf("file-%d.any", i)] = strings.Repeat(strings.Repeat("a", 60)+"\n", 200)
+			}
+			a := &EinoAuditor{Repository: fixtureRepo{files: files}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "synthetic", MaxSteps: 16, MaxTokens: 1000}}
 			result, trace, err := a.Audit(context.Background(), Snapshot{BaseSHA: "fixed-base", HeadSHA: "fixed-head"}, DiffScope{})
 			if summaries == 0 {
 				t.Fatal("compression never triggered")
