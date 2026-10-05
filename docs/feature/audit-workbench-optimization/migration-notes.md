@@ -28,3 +28,7 @@ PR 风险链扩展可选字段，旧 JSON 可继续读取；新的字段包含�
 跨组交接令审计策略升为 eino-audit-contract-v22，增加内部AgentConfig.PriorGroupNotes，不新增用户配置或API字段。旧组观察是导航提示，必须在后续组重新读取；授权失败不传既有事实，预算超限保留覆盖限制。普通单组请求内容兼容。
 
 预期契约对比提示v23、来源/大小/锚点错误修复指引v24；不新增API/DB字段，不提高预算或降低校验门槛。旧版本失败证据保留，新审计用v24。
+
+### v25 全文复核范围
+
+FindingVerification新增可选claim_coverage（full/partial/unknown），无数据库迁移。历史已保存记录保持原判定，不追溯改写；新复核缺失字段按unknown，supported且非full降inconclusive，原因和原limitations保留。客户端原有inconclusive展示、覆盖说明与SARIFverification属性继续适用。字段只表示独立模型范围声明，不能当作运行时证明，也不能保证模型没有遗漏事实。

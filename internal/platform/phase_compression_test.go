@@ -72,7 +72,7 @@ func TestSupplementalPhaseCompressionIsolation(t *testing.T) {
 									}
 								}
 							}
-							raw, _ := json.Marshal(map[string]any{"status": "supported", "reason": "fresh pinned anchor supports the conditional fixture claim", "limitations": []string{"static fixture"}, "observation_ids": ids})
+							raw, _ := json.Marshal(map[string]any{"claim_coverage": "full", "status": "supported", "reason": "fresh pinned anchor supports the conditional fixture claim", "limitations": []string{"static fixture"}, "observation_ids": ids})
 							message["content"] = string(raw)
 						}
 					}

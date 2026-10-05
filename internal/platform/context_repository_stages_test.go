@@ -67,7 +67,7 @@ func TestFreshStagesReadAuthorizedContextThroughSDK(t *testing.T) {
 					}
 					var content []byte
 					if stage == "verification" {
-						content, _ = json.Marshal(verificationInput{Status: "supported", Reason: "synthetic conditional risk review", Limitations: []string{"fixture, not exploit reproduction"}, ObservationIDs: ids})
+						content, _ = json.Marshal(verificationInput{ClaimCoverage: "full", Status: "supported", Reason: "synthetic conditional risk review", Limitations: []string{"fixture, not exploit reproduction"}, ObservationIDs: ids})
 					} else {
 						content, _ = json.Marshal(groupSynthesis{Summary: "synthetic fixed context summary", CoverageNotes: []string{}})
 					}

@@ -12,7 +12,7 @@ func TestVerificationRequiresFreshPinnedAnchor(t *testing.T) {
 	f := Finding{Side: "head", File: "entry.any", Line: 2, Evidence: "delete(resource)"}
 	output, _ := json.Marshal(toolOutput{BaseSHA: "base", HeadSHA: "head", Text: "2: delete(resource)\n"})
 	tr := ToolTrace{Stage: "verification", Name: "read_file", ObservationID: "verify-f-1", Arguments: `{"path":"entry.any","base":false}`, Output: string(output)}
-	input := verificationInput{Status: "supported", Reason: "Static review only", Limitations: []string{"Not executed"}, ObservationIDs: []string{tr.ObservationID}}
+	input := verificationInput{ClaimCoverage: "full", Status: "supported", Reason: "Static review only", Limitations: []string{"Not executed"}, ObservationIDs: []string{tr.ObservationID}}
 	verified, err := validateVerification(input, snap, f, []ToolTrace{tr})
 	if err != nil || verified.HeadSHA != "head" {
 		t.Fatal(verified, err)

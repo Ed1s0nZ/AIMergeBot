@@ -144,7 +144,7 @@ func TestContextObservationCannotStandInForPrimaryFindingOrVerifierAnchor(t *tes
 	fresh.stage = "verification"
 	fresh.observationPrefix = "verify-risk-observation"
 	extra, _ := fresh.contextFile(ctx, contextReadArgs{RepositoryID: 2, Path: f.File, Start: 2, End: 2})
-	verdict := verificationInput{Status: "supported", Reason: "static conditional risk", Limitations: []string{}, ObservationIDs: []string{extra.ObservationID}}
+	verdict := verificationInput{ClaimCoverage: "full", Status: "supported", Reason: "static conditional risk", Limitations: []string{}, ObservationIDs: []string{extra.ObservationID}}
 	if _, err := validateVerification(verdict, snap, f, fresh.trace); err == nil {
 		t.Fatal("context observation endorsed primary without fresh read")
 	}

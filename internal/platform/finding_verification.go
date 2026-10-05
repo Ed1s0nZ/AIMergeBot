@@ -11,6 +11,7 @@ import (
 type FindingVerification struct {
 	Model          string   `json:"model,omitempty"`
 	Status         string   `json:"status"`
+	ClaimCoverage  string   `json:"claim_coverage,omitempty"`
 	Reason         string   `json:"reason"`
 	Limitations    []string `json:"limitations"`
 	ObservationIDs []string `json:"observation_ids"`
@@ -20,6 +21,7 @@ type FindingVerification struct {
 
 type verificationInput struct {
 	Status         string   `json:"status"`
+	ClaimCoverage  string   `json:"claim_coverage,omitempty"`
 	Reason         string   `json:"reason"`
 	Limitations    []string `json:"limitations"`
 	ObservationIDs []string `json:"observation_ids"`
@@ -41,6 +43,9 @@ func parseVerification(raw string) (verificationInput, error) {
 	}
 	if input.Status != "supported" && input.Status != "rejected" && input.Status != "inconclusive" {
 		return input, fmt.Errorf("invalid verification verdict")
+	}
+	if input.ClaimCoverage != "" && input.ClaimCoverage != "full" && input.ClaimCoverage != "partial" && input.ClaimCoverage != "unknown" {
+		return input, fmt.Errorf("invalid verification claim coverage")
 	}
 	if strings.TrimSpace(input.Reason) == "" || utf8.RuneCountInString(input.Reason) > 1000 || input.Limitations == nil || input.ObservationIDs == nil || len(input.Limitations) > 8 || len(input.ObservationIDs) > 20 {
 		return input, fmt.Errorf("invalid verification explanation")
@@ -104,7 +109,8 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 	if input.Status == "supported" && !anchor {
 		return nil, fmt.Errorf("support verdict lacks freshly read primary anchor")
 	}
-	verified := &FindingVerification{Status: input.Status, Reason: input.Reason, Limitations: append([]string{}, input.Limitations...), ObservationIDs: append([]string{}, input.ObservationIDs...), BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
+	verified := &FindingVerification{Status: input.Status, ClaimCoverage: input.ClaimCoverage, Reason: input.Reason, Limitations: append([]string{}, input.Limitations...), ObservationIDs: append([]string{}, input.ObservationIDs...), BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
 	gateContextVerification(verified, snap, inspected)
+	gateClaimCoverage(verified)
 	return verified, nil
 }
