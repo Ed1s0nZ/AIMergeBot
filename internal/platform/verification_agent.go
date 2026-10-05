@@ -125,6 +125,20 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 			} else {
 				verified, validationErr := validateVerification(input, parent.snap, *f, trace)
 				if validationErr != nil {
+					code := "invalid_source"
+					switch validationErr.Error() {
+					case "verifier observation is not a fresh successful pinned source":
+						code = "invalid_observation"
+					case "duplicate verifier observation":
+						code = "duplicate_observation"
+					case "verifier verdict requires fresh evidence":
+						code = "missing_evidence"
+					case "support verdict lacks freshly read primary anchor":
+						code = "missing_anchor"
+					}
+					parent.mu.Lock()
+					parent.trace = append(parent.trace, ToolTrace{Name: "model_response", Stage: "verification", Error: code, Output: responseDiagnostic(message.Content, responseError(code))})
+					parent.mu.Unlock()
 					f.Verification = unavailableVerification(parent.snap, "独立复核缺少有效的新来源证据。", "unavailable")
 				} else {
 					if verified.Status == "supported" && len(fresh.unresolved()) > 0 {

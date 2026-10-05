@@ -232,6 +232,10 @@ func run() error {
 }
 
 func classifyError(err error) (string, int) {
+	var response *platform.AuditResponseError
+	if errors.As(err, &response) {
+		return "model_response_" + response.Code, 0
+	}
 	if info := platform.UpstreamFailureInfo(err); info != nil {
 		return info.Source + "_" + info.Kind, info.HTTPStatus
 	}

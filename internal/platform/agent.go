@@ -93,6 +93,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	}
 	result, err := ParseResult(msg.Content)
 	if err != nil {
+		tools.trace = append(tools.trace, ToolTrace{Name: "model_response", Error: err.Error(), Output: responseDiagnostic(msg.Content, err)})
 		return AuditResult{MetadataChanges: scope.metadataChanges(), Findings: tools.acceptedFindings(), Summary: "Invalid model response; validated submissions retained", CoverageNotes: []string{"Invalid final model response"}}, tools.trace, err
 	}
 	result.AuditGroups = nil // Group completion is server-owned, never model supplied.
@@ -173,22 +174,22 @@ func (e *EinoAuditor) supplement(ctx context.Context, snap Snapshot, result *Aud
 func ParseResult(raw string) (AuditResult, error) {
 	var r AuditResult
 	if len(raw) > 128*1024 {
-		return r, fmt.Errorf("result exceeds budget")
+		return r, responseError("output_budget")
 	}
 	dec := json.NewDecoder(strings.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&r); err != nil {
-		return r, fmt.Errorf("invalid audit JSON: %w", err)
+		return r, responseError(jsonFailureCode(err))
 	}
 	var trailing any
 	if err := dec.Decode(&trailing); err != io.EOF {
-		return r, fmt.Errorf("trailing audit data")
+		return r, responseError("trailing_data")
 	}
 	if r.Findings == nil || r.CoverageNotes == nil || strings.TrimSpace(r.Summary) == "" {
-		return r, fmt.Errorf("audit requires findings array, summary and coverage_notes array")
+		return r, responseError("required_fields")
 	}
 	if len(r.Findings) > 100 {
-		return r, fmt.Errorf("too many findings")
+		return r, responseError("finding_limit")
 	}
 	return r, nil
 }
