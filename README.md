@@ -17,6 +17,8 @@
 
 ## 快速开始
 
+本轮开发中的功能及未完成验收见 [生产审计发布清单](docs/feature/production-audit-readiness/release-readiness.md)，不代表当前部署已包含全部能力。
+
 单实例升级、私有数据库/配置备份和恢复命令见 [运维说明](docs/operations.md)。备份恢复包不加入 Git；恢复仅写入新目录，不覆盖当前部署。
 
 需要 Go（模块最低声明 1.21，当前验证环境为 1.27.1）、CGO/C 编译器；改动前端需要 Node.js 20.19+ / npm。SQLite 驱动需要 `CGO_ENABLED=1`。
