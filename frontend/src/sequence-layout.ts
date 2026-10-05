@@ -43,6 +43,7 @@ export function compactSequenceText(text: string, width: number, maxLines = 3) {
 export function sequenceLayout(
   participants: { id: string; label: string }[],
   steps: SequenceStep[],
+  overview = false,
 ) {
   const gap = 280,
     width = Math.max(820, (participants.length - 1) * gap + 300);
@@ -76,8 +77,8 @@ export function sequenceLayout(
       (step.certainty === "inferred" ? "推测 · " : "") +
       (step.kind === "return" ? "返回 · " : "") +
       step.label;
-    const lines = compactSequenceText(label, available);
-    const height = Math.max(82, lines.length * 18 + 48);
+    const lines = compactSequenceText(label, available, overview ? 1 : 3);
+    const height = overview ? 58 : Math.max(82, lines.length * 18 + 48);
     const row = { step, from, to, middle, top, height, lines };
     top += height;
     return row;

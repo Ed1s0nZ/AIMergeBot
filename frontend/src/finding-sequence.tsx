@@ -1,6 +1,13 @@
 import { GitMetadataEvidence } from "./git-metadata-evidence";
-import { useId, useRef, useState } from "react";
-import { Download, GitBranch, LocateFixed } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  Download,
+  GitBranch,
+  LocateFixed,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+} from "lucide-react";
 import type { SequenceDiagram } from "./api";
 import { sequenceLayout, compactSequenceText } from "./sequence-layout";
 
@@ -12,7 +19,20 @@ export function FindingSequence({
   findingId: string;
 }) {
   const [selected, setSelected] = useState<number | null>(null),
-    [exportError, setExportError] = useState("");
+    [exportError, setExportError] = useState(""),
+    [zoom, setZoom] = useState<number | null>(null),
+    [canvasWidth, setCanvasWidth] = useState(800);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const measure = () =>
+      setCanvasWidth(Math.max(160, canvas.clientWidth - 32));
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    measure();
+    return () => observer.disconnect();
+  }, [diagram]);
   const svg = useRef<SVGSVGElement>(null),
     id = useId().replace(/[^a-zA-Z0-9]/g, "");
   if (!diagram)
@@ -47,12 +67,18 @@ export function FindingSequence({
     return (
       <div className="sequence-empty">时序图数据不完整，审计发现已保留。</div>
     );
-  const layout = sequenceLayout(participants, steps),
+  const layout = sequenceLayout(participants, steps, zoom === null),
     active =
       selected === null
         ? steps.findIndex((s) => s.risk)
         : Math.min(selected, steps.length - 1),
     step = steps[active];
+  const fitScale = Math.min(1, canvasWidth / layout.width, 460 / layout.height);
+  const scale = zoom ?? fitScale;
+  const setView = (value: number | null) => {
+    setZoom(value);
+    canvasRef.current?.scrollTo({ top: 0, left: 0 });
+  };
   const selectStep = (index: number) => {
     setSelected(index);
     const canvas = svg.current?.parentElement;
@@ -80,7 +106,10 @@ export function FindingSequence({
   const download = () => {
     if (!svg.current) return;
     try {
-      const data = new XMLSerializer().serializeToString(svg.current),
+      const exported = svg.current.cloneNode(true) as SVGSVGElement;
+      exported.style.removeProperty("width");
+      exported.style.removeProperty("height");
+      const data = new XMLSerializer().serializeToString(exported),
         url = URL.createObjectURL(
           new Blob([data], { type: "image/svg+xml;charset=utf-8" }),
         );
@@ -140,8 +169,48 @@ export function FindingSequence({
         </span>
         <small>静态推导 · 非实际运行轨迹</small>
       </div>
+      <div className="sequence-view-controls" aria-label="时序图缩放">
+        <button
+          type="button"
+          aria-pressed={zoom === null}
+          onClick={() => setView(null)}
+        >
+          <Maximize2 size={14} />
+          全局
+        </button>
+        <button
+          type="button"
+          aria-pressed={zoom === 1}
+          onClick={() => setView(1)}
+        >
+          阅读
+        </button>
+        <button
+          type="button"
+          aria-label="缩小图形"
+          disabled={scale <= 0.25}
+          onClick={() => setView(Math.max(0.25, scale - 0.15))}
+        >
+          <ZoomOut size={15} />
+        </button>
+        <span>{Math.round(scale * 100)}%</span>
+        <button
+          type="button"
+          aria-label="放大图形"
+          disabled={scale >= 2}
+          onClick={() => setView(Math.min(2, scale + 0.15))}
+        >
+          <ZoomIn size={15} />
+        </button>
+        <small>
+          {zoom === null
+            ? "完整链路概览 · 点击步骤查看证据"
+            : "拖动滚动条浏览 · 全局恢复完整链路"}
+        </small>
+      </div>
       <div
-        className="sequence-scroll"
+        className={`sequence-scroll ${zoom === null ? "sequence-fit" : ""}`}
+        ref={canvasRef}
         tabIndex={0}
         aria-label="时序图画布，可横向滚动"
       >
@@ -153,7 +222,12 @@ export function FindingSequence({
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           role="img"
           aria-labelledby={`${id}-title ${id}-desc`}
-          style={{ fontFamily: "system-ui, sans-serif", background: "#ffffff" }}
+          style={{
+            fontFamily: "system-ui, sans-serif",
+            background: "#ffffff",
+            width: layout.width * scale,
+            height: layout.height * scale,
+          }}
         >
           <title id={`${id}-title`}>问题链路时序图</title>
           <desc id={`${id}-desc`}>

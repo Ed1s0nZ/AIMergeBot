@@ -37,10 +37,6 @@
 }
 .sequence-scroll svg {
   display: block;
-  width: 100%;
-  min-width: 820px;
-  max-width: 1180px;
-  height: auto;
   margin: 0 auto;
 }
 .sequence-legend {
@@ -189,4 +185,48 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.sequence-view-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #fafbfe;
+  border-bottom: 1px solid var(--border);
+}
+.sequence-view-controls button {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.sequence-view-controls button[aria-pressed="true"] {
+  background: #edf2ff;
+  color: #3459c4;
+  border-color: #c9d5f2;
+}
+.sequence-view-controls span {
+  min-width: 42px;
+  text-align: center;
+  font-size: 11px;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+.sequence-view-controls small {
+  margin-left: auto;
+  color: #8391a6;
+  font-size: 11px;
+}
+.sequence-fit {
+  max-height: none;
+}
+@media (max-width: 640px) {
+  .sequence-view-controls {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .sequence-view-controls small {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }
