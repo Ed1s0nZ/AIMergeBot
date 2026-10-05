@@ -118,6 +118,9 @@ func (s *Store) migrate() error {
 	if err = migrateContextRepositories(tx); err != nil {
 		return err
 	}
+	if err = migrateDetailVersions(tx); err != nil {
+		return err
+	}
 	for _, query := range []string{
 		`CREATE INDEX IF NOT EXISTS platform_quota_project_running ON platform_runs(status,project_id)`,
 		`CREATE INDEX IF NOT EXISTS platform_quota_user_running ON platform_runs(status,requested_by)`,

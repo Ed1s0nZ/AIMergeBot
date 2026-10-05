@@ -194,6 +194,11 @@ func (h *HTTP) run(c *gin.Context) {
 	if !allowed {
 		return
 	}
+	version, err := h.detailStatus(c.Request.Context(), id, currentUser(c).ID, role)
+	if err != nil {
+		fail(c, err)
+		return
+	}
 	r, err := h.Store.Run(c.Request.Context(), id)
 	if err != nil {
 		fail(c, err)
@@ -250,7 +255,7 @@ func (h *HTTP) run(c *gin.Context) {
 		}
 		retryUsageError = "Unable to verify retry usage chain; current attempt report retained"
 	}
-	c.JSON(200, gin.H{"retry_usage_error": retryUsageError, "retry_usage": retryUsage, "usage": usage, "finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
+	c.JSON(200, gin.H{"detail_version": version.Version, "retry_usage_error": retryUsageError, "retry_usage": retryUsage, "usage": usage, "finding_lifecycle": lifecycle, "run": r, "reviews": reviews, "permissions": access, "queue_wait": wait, "comment_sync": syncState})
 }
 func (h *HTTP) cancelRun(c *gin.Context) {
 	id, ok := idParam(c)

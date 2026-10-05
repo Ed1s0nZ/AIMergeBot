@@ -182,6 +182,7 @@ export function FindingCard({
 }
 export function RunDetail({ id }: { id: number }) {
   const resource = useResource<{
+      detail_version?: string;
       run: Run;
       usage?: ModelUsage;
       retry_usage?: RetryChainUsage;
@@ -191,7 +192,7 @@ export function RunDetail({ id }: { id: number }) {
       permissions: ProjectPermissions;
       comment_sync?: CommentSync | null;
       queue_wait?: { reason: string; eligible_at?: string } | null;
-    }>("/runs/" + id),
+    }>("/runs/" + id, "/runs/" + id + "/status"),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const r = resource.data?.run;
@@ -210,7 +211,12 @@ export function RunDetail({ id }: { id: number }) {
             resource.data.comment_sync.state,
           )))
     ) {
-      const interval = setInterval(resource.load, 2000);
+      let checking = false;
+      const interval = setInterval(async () => {
+        if (checking) return;
+        checking = true;
+        try { await resource.refresh(); } finally { checking = false; }
+      }, 2000);
       return () => clearInterval(interval);
     }
   }, [
@@ -220,6 +226,7 @@ export function RunDetail({ id }: { id: number }) {
     resource.data?.comment_sync?.enabled,
     resource.data?.comment_sync?.state,
     resource.data?.comment_sync?.retry_exhausted,
+    resource.refresh,
   ]);
   const action = async (kind: "cancel" | "retry") => {
     setBusy(true);
