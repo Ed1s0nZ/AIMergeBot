@@ -357,3 +357,7 @@ P10验收阶段，11B程序及现有原生恢复fixture为上游，允许窄范�
 ## F2/F3 / 发布策略版本隔离
 
 P10发布准备，原有PolicyVersion去重/Worker/重试隔离为上游，允许窄变更。当前仍v12，与已部署上一轮相同；本轮新增共享模型预算、独立复核、分片/补审和跨仓库策略，必须v13隔离执行语义。仅修改runs_store.go常量，历史报告/策略不重写，旧pending由既有Worker版本检查拒绝且要求新提交，旧重试不会自动生成新版子任务。README说明历史报告仍可查看，新提交使用新版本。先核对既有Worker与retry测试覆盖，再完整Go回归；不因版本升号宣称已部署，私有1234不变。
+
+## F4/F5 / v13策略隔离实现
+
+PolicyVersion升为eino-audit-contract-v13，历史不重写；README说明旧排队任务拒绝与重新提交。新增旧v12任务失败后retry state=policy_changed/无child/证据保留、新提交不同run且捕获v13测试，首次定向0.974秒通过；完整Go平台29.576秒与vet通过。随后补原生Runner旧pending验证，任务failed且固定升级提示，blockingAuditor从未启动；两项升级测试定向race2.996秒通过。此轮应用常量变更尚未重新构建/部署生产，之前c789432原生fixture仍v12，不追认旧演练为v13部署证明。后续需要新二进制升级验收、外部质量/GitLab与main。
