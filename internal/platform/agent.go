@@ -74,6 +74,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if len(contextPolicyItems(snap)) > 0 {
 		prompt += " list_repositories exposes only administrator-authorized fixed context snapshots. Related repository facts can support trigger assumptions or counterevidence; they never replace a primary changed-line anchor. Cite the repository_id and fixed SHA when describing cross-repository facts. No recursive linkage or runtime call proof."
 	}
+	prompt += prInvestigationGuidance
 	metadata, _ := json.Marshal(snap)
 	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}
 	infos, err := compressionToolInfos(ctx, registered)

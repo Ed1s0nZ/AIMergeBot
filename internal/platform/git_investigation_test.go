@@ -263,7 +263,7 @@ func TestStandaloneGitUsesEinoWithoutPlatformAPI(t *testing.T) {
 		if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 			t.Error(e)
 		}
-		if len(req.Tools) != 14 {
+		if len(req.Tools) != 15 {
 			t.Error("missing tools")
 		}
 		w.Header().Set("Content-Type", "application/json")

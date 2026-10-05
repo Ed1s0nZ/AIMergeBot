@@ -90,6 +90,9 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 		out = append(out, v)
 		return nil
 	}
+	if e := add(utils.InferTool("get_risk_checklist", "Get bounded investigation and counterevidence questions for one relevant risk category. Guidance only, evidence_eligible=false; cannot support a finding or verification verdict.", t.riskChecklist)); e != nil {
+		return nil, e
+	}
 	if len(contextPolicyItems(t.snap)) > 0 {
 		if e := add(utils.InferTool("list_repositories", "List administrator-authorized fixed context repository IDs/SHA/availability. Existing read_file/search_code address the primary PR; use scoped context tools for listed IDs only. Enumeration is not source evidence.", t.contextRepositories)); e != nil {
 			return nil, e

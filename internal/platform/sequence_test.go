@@ -101,7 +101,7 @@ func TestEinoConditionalSequenceGenerationPreservesFindings(t *testing.T) {
 				var content string
 				if diagram {
 					graphCalls.Add(1)
-					if len(req.Tools) != 11 {
+					if len(req.Tools) != 12 {
 						t.Error("diagram phase must use read-only tools")
 					}
 					for _, v := range req.Tools {
