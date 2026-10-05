@@ -180,3 +180,7 @@ FindingCard描述前复用VerificationNotice显示partial/unknown全文未获支
 ## 切片19：生产分组评测入口
 
 CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata继续全字段精确比较；失败恢复不改原记录。grouped复用生产PlanAuditGroups/AuditGroups，不改32KiB/24文件/8组、原模型/共享工具与token预算/240秒。单组路径保留。corpus-grouped-v1.json复用已见Lua机制与24个无害文档变更，人工边界诊断25文件成两组，不称独立质量benchmark。恢复分组/单组混用与损坏metadata拒绝、失败不覆盖文件有新测试。CLI测试0.545s、evaluation5.059s、git diff --check通过；平台未修改，上一切片Go全量仍为对应平台代码证据，未重复无关全量。真实多组诊断下一步启动，结果未出不声称交接质量验证完成。
+
+## v27 真实多组诊断与完成矩阵
+
+生产25文件成24+1两组，两组completed，最终1个group-1来源/调查的规范风险保留、独立supported/full，group2重新读取固定BASE/HEAD/diff使用新观察；status=incomplete、256290token、46391ms。后组只负责文档却重复提交首组Lua风险被正确scope拒绝；存在重复调查名、模型将范围拒绝称环境问题、汇总重复coverage/文件总数叙述不准。PRContext记录缺口如实保留，不做完整链路或效率结论。62原始文件SHA256归档、evaluation-grouped-v27.md记录事实。verification-matrix.md按R3所有12项核对当前证据，明确保留未完成项，整体完成审查未通过。下一改进明确当前组锚点范围，稳定去重相同覆盖说明，最终UI与新隔离验收/交付审查仍需完成。
