@@ -227,3 +227,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F4/F5 / 切片10C3原生launchd验收
 
 新增smoke-launchd.py，实际合成配置bootstrap→正常退出→生成随机标签→launchctl bootstrap→readyz/SQL owner→SIGKILL专属PID→新PID/新有效owner/readyz→原账号登录→bootout，不读生产配置/不调用远端。失败finally只卸载自己标签，工作目录0700、config/log/证明0600。原生二进制包含readyz代码，在19240首轮全部通过35.55秒（该版耗时包含后续登录/卸载）；调整计时位置后19241复验全部通过，重启观察35.29秒、退出0。19240立即重跑曾因TCP端口仍占用被前置bind拒绝，未创建新服务；文档明确选空闲端口。服务已卸载，1234实际healthz保持ok。4项服务生成器测试再次通过，py_compile/diff检查通过。证明只保留私有本机，Linux未实测。继续容量/启用预算SIGKILL、R7、真实质量、UI和最终main/1234交付，不能以本机托管演练代替全部R8。
+
+## F2/F3 / 切片10C4原生容量边界
+
+复用smoke-worker-recovery新增独立--capacity-preview，在完成原租约SIGKILL基础实证后进行真实HTTP并发提交。合成GitLab支持独立MR100–149固定版本；这些合成模型请求由Event阻塞，确保观察窗口不被快速完成掩盖。global outstanding=4，project/user running=1，已有rate-limit pending占1；40个不同MR并发提交应仅3个创建、37个429，DB pending/running总数不超过4且running最多1。重复已接受MR应复用原任务，不因队列已满再次占配额；取消一个已接受任务后另一MR可入队。finally释放模型Event并清理已有fixture进程。结果仅是本机固定4容量边界，不宣称生产吞吐量或硬件上限；额度状态不泄漏其他用户/项目记录。其他preview组合不得以额外模型调用破坏基础证明计数，容量在现有断言之后独立执行。
