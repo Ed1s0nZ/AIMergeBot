@@ -6,7 +6,7 @@ Repository: Ed1s0nZ/AIMergeBot；PR：无，本地分支差异。Author：当前
 Base origin/main：bcaeae230e5f101b484df6777c1a56aa8be80f39。
 Head codex/production-audit-readiness：b2e043f856acd7fc91f1e43a752121ea6fb4512e。
 Reviewed at：2026-10-05T06:53:17Z。INITIAL，READ_ONLY，首次限定高风险路径检视；无前次报告。
-报告仅绑定上述代码快照，后续head变化需要重新检视，不能作为最终合并批准。
+报告状态：STALE，原决定对当前流程已SUPERSEDED。后续修复为b40389a，新复核见production-audit-b40389a.md；本文仅保留原发现证据，不作为当前合并结论。
 
 ## 2. Decision
 
