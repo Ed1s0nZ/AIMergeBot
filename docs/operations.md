@@ -157,7 +157,7 @@ python3 scripts/gitlab-acceptance-receipt.py \
 python3 scripts/ops-healthcheck.py --endpoint http://127.0.0.1:1234 --timeout 3
 ```
 
-成功输出ready JSON且退出0；其余输出固定unavailable且退出1。只读取readyz，1KiB响应上限，拒绝重定向与非本机明文HTTP，不输出地址、异常或响应内容。可交给已有监控系统周期执行；本工具不安装定时器、不通知外部人员、不自动重启。Worker就绪不证明GitLab/模型可用，仍应检查实际任务失败率。默认检查1234，新接口在最终版本切换后才可用，旧版本返回unavailable不能误报为新版本成功。
+成功输出ready JSON且退出0；其余输出固定unavailable且退出1。正常入口将整次HTTP观察放在独立子进程中，`--timeout`（默认3秒，允许1–10秒）限制整个观察，超时终止并回收子进程；不是仅限制socket静默。操作系统创建和回收存在调度开销，不是硬实时承诺。只读取readyz，1KiB响应上限，拒绝重定向与非本机明文HTTP，不输出地址、异常或响应内容。可交给已有监控系统周期执行；本工具不安装定时器、不通知外部人员、不自动重启。Worker就绪不证明GitLab/模型可用，仍应检查实际任务失败率。默认检查1234，新接口在最终版本切换后才可用，旧版本返回unavailable不能误报为新版本成功。
 
 ### 固定文件补审演练
 

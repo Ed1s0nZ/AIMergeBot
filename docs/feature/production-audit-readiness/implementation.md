@@ -403,3 +403,7 @@ P10，R8有界只读就绪检查与独立检视慢响应反例为上游，允许
 ## F5 / ac9a5b5整体回归及剩余检视
 
 干净源码ac9a5b57823fd97d0cda44398dc7b0f523bb63b6运行go test ./...与go vet ./...均exit0，platform测试60.619秒；Python所有test_*.py共26项9.347秒通过且ResourceWarning=error。上一轮同源码前端构建已通过，没有追加应用修改。主检视继续读取模型预算/费用/重试说明、固定选文件补审、复核与工具观察、报告轮询调用，以及历史评测PrepareCase/路径隔离/commit验证/标签匹配和时序布局；未把阅读有限文件当完整分支审查。独立上下文正在只读检查f69e310→ac9a5b5修复delta（实际agent句柄），结果尚未取得，PRR-002/003正式re-review待完成。外部质量样本和专用GitLab授权缺口保留，main及1234未更新。
+
+## F6 / 设置、公开API与时序契约补充检视
+
+6a26fce干净工作区继续检查base→head设置/项目/API类型/时序界面/config示例及Go配置差异；对照settings DecodePublic→revision/空密钥保留→0600临时文件fsync/rename→Public→React保存反馈、项目配置专用接口与同步、关联仓库admin注册。读取时序reference验证与固定source/调用前后权限核对、每仓库缓存key、primary风险锚点限制、SDK提示与Mermaid仓库标签，并核对真实Git时序反例测试（错误SHA、未知仓库、关联替换primary锚点、权限撤销）及来源观察隔离。检查routes错误码与TS映射、run冻结费用与retry摘要、关联报告list ACL、polling失败不标记已见版本、取消中断与评论跨仓库禁止。README/evaluation/ops公开说明与实现对照，未发现新的可行动缺陷；健康检查操作说明补充整体子进程期限。此为源代码/契约检查，不替代真实外部调用、浏览器全部响应式状态或最终整个分支准入结论。
