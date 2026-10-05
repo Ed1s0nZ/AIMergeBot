@@ -124,3 +124,9 @@ P7/REQ006：固定快照只读工具对完全相同参数的成功读取允许�
 REQ003/005 的下一切片在现有 PRContext 增加可选 before_observation_ids/after_observation_ids、impact（风险结果事实）、counterexamples（已检查反例事实）与 relationships（from/to/relation、certainty=cited|inferred、observation_ids）。每项均引用当前调查已验证的源码观察，两个快照的来源分别链接；跨文件/跨仓库边使用来源观察识别固定仓库。cited 表示模型提供连接依据的静态陈述，服务端只验证来源归属，不能解释为调用语义已证明；inferred 明确为推测，未找到依据的关系放 unresolved_edges。旧 nil/空字段兼容，不强制伪造完整链。列表最多8项、边端点最多200字、关系最多500字、事实500字；沿用整体8000字节调查上限。保存/发现派生/压缩交接继续使用完整已验证 ledger，禁止 proposal 覆盖服务器派生上下文。
 
 Workflow Gate：P7，已确认范围，扩展现有可选契约，无新服务端API，UI复用源码观察链接并分开呈现静态引用和推测；unknown/empty 明确显示。Maintainability Gate：两个小模块各单一职责，允许窄切片，不动大型 legacy 模块。验证：拒绝跨调查观察、未知确定性、无来源边、超长项；历史兼容、深复制、JSON保留及实际UI展示；递增审计策略。
+
+## 跨仓库评测输入契约
+
+P7/REQ011：在自建语料 case 中可选 context_repositories（最多8，每个 repository_id>=2且唯一、files最多100、单文件256KiB，仍受整个语料1MiB上限）。显式列出的样例仓库是评测授权边界，创建独立固定提交，无网络取仓库、不执行代码；源码观察按正常 contextSources/policy 校验。样例上下文与标签/判定理由分离，只把固定仓库事实传入模型；receipt 保存关联仓库 SHA。历史 Git 语料先不接受该字段，避免把样例与真实源码混为同一授权模型。缺省无上下文兼容已有11例。
+
+维护门槛：评测入口/语料模块职责现有清楚，新增准备逻辑独立模块；不改变生产审计策略。校验全部路径/预算/ID后才能建上下文仓库，复用禁钩子确定性 Git 构造。同内容上下文 BASE/HEAD 提交允许空提交，内容不增加伪造说明文件。验证 corpus拒绝重复/主仓库ID/路径逃逸、固定SHA可复现、语料标签不进入仓库、实际 ContextSources读取固定内容；跨仓库正负对照质量单独实际模型运行。
