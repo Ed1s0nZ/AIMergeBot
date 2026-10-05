@@ -243,3 +243,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F4/F5 / 切片10C5预算SIGKILL实证
 
 新增ops_budget_crash_drill.py与互斥--budget-crash-preview，MR91合成首轮响应补真实SDK usage字段20，预算100。19246/19247使用已构建真实二进制执行退出0：已知20+第二请求pending未知持久化、read_file证据存在→SIGKILL→立即重启有效租约拒绝→原lease自然过期→新进程就绪。trace/result逐字一致、冻结预算100不变、父failed状态model_usage_unknown、retry子任务0、模型HTTP累计2未重发。相关model/retry/request定向race1.716秒通过，py_compile/diff检查通过；证明私有0600，不包含真实凭据。该实证补足R2启用预算的进程崩溃边界，其他已知余额/超阈值语义仍由现有SDK/Store测试覆盖，不声称真实服务计费为20。当前1234未调整；继续R7真实GitLab验收工具、实际质量、UI及最终main/部署。
+
+## F2/F3 / 切片11A GitLab只读验收凭据
+
+R7先提供只读采证脚本：明确app/gitlab地址、run/project/MR、expected full HEAD SHA；凭据只从AIM_ACCEPT_SESSION/AIM_ACCEPT_GITLAB_TOKEN环境读取，不进入命令参数/证明。禁止HTTP重定向携带凭据，远端要求HTTPS，本机HTTP例外。读取readyz、完整指定run和GitLab MR/指定discussion；检查固定快照、当前MR HEAD、comment sent generation收敛、discussion/note一致。私有证明只保存run/version/评论标识、generation及body SHA256，不复制源码/评论/用户数据，0600不覆盖。脚本不写GitLab、不触发审计，可在授权的写入测试前后采证；这不是Webhook/同评论更新/冲突端到端全部完成，下一片写入验收只能对明确授权专用MR执行。
