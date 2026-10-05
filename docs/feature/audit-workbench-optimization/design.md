@@ -168,3 +168,9 @@ Workflow Gate Report：用户确认R3最佳实践优化；阶段P10反馈修正�
 Maintainability Gate Report：检视finding_verification.go110行（契约解析/验证）、verification_agent.go206行（独立阶段），现有定向SDK与来源验证测试覆盖；风险低，narrow_fix，无需先重构。不修改大型agent编排；解析枚举、覆盖投影各自原责任内。验证解析非法值/重复旧字段兼容、full/partial/unknown/缺失判定、来源锚点不放宽、拒绝不覆盖、完整SDK与Go回归。
 
 契约：claim_coverage覆盖title、description、trigger及所有具体后果/示例，在已明确写出的条件下逐项检查；缺失运行时复现本身不必partial，但无证据交付/获利或未证实具体payload标partial，并列limitations。不会自动改写原finding、不会让模型写额外补丁或执行代码。server downgrade原因截断1000字符，追加一条服务器范围说明（与已有来源覆盖门槛同类，不冒充模型limitations）。策略v25，原UI已有inconclusive与limitations展示适用。
+
+## 切片16：复核全文范围的可见性
+
+Workflow Gate Report：P10反馈修正，R3 AC006/007及v25 API范围字段已落地；复用FindingCard/VerificationEvidence，无新后端接口。实现允许：主调查标签改为明确的主调查源码支持，partial/unknown全文范围在描述前显示静态证据提示，复核面板显示全文/部分/未知范围，历史无字段单列未声明，不篡改历史判定。加载/无记录继续原状态；已有拒绝/不足/失败保留；提示不是运行复现证明。不改变人工复核权限、草稿或筛选。
+
+Maintainability Gate Report：run-detail.tsx现有单页组件组成、api.ts类型集聚，本切片只插入已提取VerificationNotice组件及可选类型字段；新逻辑保留在finding-verification.tsx，避免向详情页堆积判定。narrow_fix；无需广泛重构。验收真实组件显示partial提示优先于描述，full/历史/无记录有不同范围说明，窄宽360px和键盘导航无新增横向溢出，类型/构建通过。
