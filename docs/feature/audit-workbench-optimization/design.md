@@ -104,3 +104,11 @@ SQLite platform_detail_versions(project_id PRIMARY KEY,revision NOT NULL)按项�
 结果properties包含验证状态、触发条件、修复建议、观察ID与PR上下文；false_positive人工决定可导出external suppression，空理由用明确默认说明。运行properties保留状态、固定提交、策略、覆盖缺口；executionSuccessful仅表示审计运行完成，不表示无漏洞。历史或缺失验证明确unverified；默认无runtime reproduction。
 
 UI在详情增加下载按钮，通过既有api权限错误处理，JSON序列化为Blob后本地下载，立即释放object URL；忙时禁用，失败显示错误。加载/空/权限状态仍沿用详情，不新增上传。验证官方JSON schema、BASE删除、元数据、跨仓库与不确定关系、权限撤销/未登录/导出错误；不宣称特定托管平台原生上传兼容。
+
+## 发现工作台切片：筛选与导航契约
+
+Workflow Gate Report：用户要求优化审计复核体验；当前 P7，REQ007/AC007 已确认。复用现有 Finding/Review 类型和页面样式，客户端只筛选已授权加载的结果，无 API 新字段。空报告沿用原提示，筛选零匹配另给清空操作；默认全部，不隐去候选/历史未核实发现。控件有可访问名称、结果数 live 提示、窄屏换行。无新增 Figma 资产。上游产品契约已存在，筛选具体字段作为实现假设可安全推断，允许实现。
+
+支持文字（标题/路径/描述/风险类型）、严重度、人工复核、独立静态复核筛选；组合 AND。导航只列当前匹配项，跳转对应卡片，不将独立复核误称运行验证。计数展示匹配/总数，未知字段值仍作为可选项提供。过滤时卡片保持挂载并 hidden，以保留未提交草稿、冲突状态及运行中的保存操作；不分页、不以列表位置作为身份。切换 run 用 key 重建筛选状态。
+
+Maintainability Gate Report：run-detail.tsx 586 行，页面组合与卡片复核两职责，风险 medium；新增行为放 finding-workbench.tsx，原页面仅薄委托，选 adapter_extraction，不进行广泛重构。复核草稿保留必须通过真实组件交互验证，类型检查/build 必需。隐藏保留组件不是虚拟化性能优化，不声称减少初始渲染成本。
