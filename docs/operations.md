@@ -105,3 +105,14 @@ systemctl stop aimangebot
 ```
 
 systemd模板定义异常重启、35秒间隔、45秒停止超时、0077 umask、禁止新增权限；没有声称Linux部署已实测。需要独立的就绪监控，管理器进程状态不等于业务健康。当前1234服务尚未切换为本配置；隔离自动重启演练及最终上线验证仍待完成。
+
+### 隔离launchd异常重启演练
+
+macOS已登录用户可运行：
+
+```bash
+go build -o /your/private/build/aimangebot .
+python3 scripts/smoke-launchd.py --binary /your/private/build/aimangebot --port 19240
+```
+
+只接受19000–19999测试端口，需空闲；刚完成一次演练时TCP状态可能暂时占用，选另一空闲测试端口。脚本创建自己的私有临时目录、合成账号和随机服务标签，不读取生产config/DB，不连接外部GitLab或模型。前台bootstrap正常退出后交由launchd，强制终止测试PID，核对35秒等待后的不同PID、不同有效租约owner、readyz和原账号登录；finally卸载自己的服务。stdout只输出布尔结果和观察耗时，证明0600；日志/DB/配置保留私有目录，不提交Git。失败需查私有日志，不能把服务定义存在当作验收成功。此演练证明本机用户域异常自动恢复，不证明Linux系统服务、真实模型质量或生产容量。
