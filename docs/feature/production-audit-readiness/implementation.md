@@ -287,3 +287,7 @@ MR92合成模型改按system阶段与本轮tool observation响应，支持多次
 ## F2/F3 / 切片12D路由旧面板残留
 
 真实浏览器由任务9切11再切projects，DOM region计数曾有两个选文件补审，项目页仍显示旧补审；不是AX缓存推断，Playwright实际DOM确认。源码同级FollowupAuditPanel和FindingAssociationsPanel都key=r.id，发生同级key冲突，生产React日志不输出警告。改为followup:ID/associations:ID分别唯一，保留任务变更时重置state语义。构建后重验连续任务/项目切换DOM计数与页面截图，不仅刷新页面掩盖残留。
+
+## F4 / 切片12D唯一key修复
+
+将同级补审和关联组件key改为分别带类型前缀的任务ID，既消除冲突又保留换任务重置。生产构建/TS通过1.22秒，资源更新index-DgxiO4_H；实际修复后路由重验仍待包含新资源的二进制，不将构建成功当作DOM残留已解决。新19256/19257旧资源fixture已完成固定补审原生API证明并保留UI，当前浏览器30仍在旧19250项目页；修复前截图私有0600。下一步新资源实际验收与其余跨仓库/真实质量/GitLab/main/部署继续。

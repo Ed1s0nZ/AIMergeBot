@@ -412,7 +412,7 @@ export function RunDetail({ id }: { id: number }) {
         )}
       </section>
       <FollowupAuditPanel
-        key={r.id}
+        key={`followup:${r.id}`}
         run={r}
         canSubmit={resource.data?.permissions.can_submit || false}
       />
@@ -428,7 +428,7 @@ export function RunDetail({ id }: { id: number }) {
         findings={r.result.findings}
       />
       <FindingAssociationsPanel
-        key={r.id}
+        key={`associations:${r.id}`}
         run={r}
         canReview={resource.data?.permissions.can_review || false}
       />
