@@ -166,3 +166,7 @@ FindingCard描述前复用VerificationNotice显示partial/unknown全文未获支
 有配置关联源时首次主模型请求前复用list_repositories，计入原工具预算并持久化trace/checkpoint，导航明确非源码；无关联源不改提示或增加调用。失败/取消/检查点失败不发请求。列表组装后重新检查每个固定源授权，期间撤权不暴露部分聚合。成功主阶段按源码trace的固定提交、EvidenceEligible、成功与阶段记录未读取来源；独立复核后来读取不追溯标成主调查已读，未读只说明相关性/下游保护未知，不推断不存在。策略v26。
 
 实际SDK初始请求检验导航、available=true、evidence_eligible=false及先有检查点，撤权/取消/保存失败均0模型请求；无源路径原样，主阶段未读有服务器说明。来源资格测试排除失败/列表/旧SHA/独立阶段/不合格输出；聚合授权二次撤销不返回条目。定向3.450s、race3.340s、Go全量通过（platform43.590s），git diff --check通过。因参考了验收v1的缺口，这套从v26改称回归语料；历史独立v25结果与原标注不改。真实模型是否主动读取仍未证明，后续定向诊断须保留失败而非报准确率。
+
+## v26 实际上下文定向诊断
+
+只运行205/203，分别独立目录并保留全结果。205现读catalog.py/固定配置后基于默认20与校验判兼容，零发现、rejected调查有相关观察。203主阶段读profiles.py与deployment.conf，finding与PRContext影响引用双方来源，不再称关联源码缺失。两例incomplete、64840/97561token、8820/19300ms，无工具错误；相对之前读更全同时token上升，未宣称效率提升。203仍缺结构化before/after IDs及逐边关系，复核对内部网络可达性的补充推断无证据，模型full不当语义保证。来源能力本轮改善、完整链路与整体AC仍未完成。SHA256原始归档与evaluation-context-v26.md保留细节。
