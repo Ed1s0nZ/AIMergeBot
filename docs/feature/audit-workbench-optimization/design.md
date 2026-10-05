@@ -196,3 +196,9 @@ Maintainability Gate Report：agent.go仅增加单调用，新纯投影pr_contex
 Workflow Gate Report：P9验收工具，AC003/011；生产PlanAuditGroups/AuditGroups已有SDK与授权回归，评测CLI目前只调用单组Audit，不能证明真实多组行为。允许新增显式-grouped布尔选项（默认false，旧单组复现保留），metadata记录模式、恢复必须模式相同，grouped复用生产32KiB/24文件/8组规划、共享既有工具与token预算、原240秒，不自创分组。保存完整result.AuditGroups/trace/checkpoint与遗漏说明，不以进程0表示各组成功。使用明确已见机制的独立多组诊断语料，不称未见质量验收。
 
 Maintainability Gate Report：cmd/audit-eval/main.go约300行，窄flag/metadata/调用分支，不移动平台编排、不新增运行代码能力。低风险narrow_fix；验收默认旧调用、grouped持久化模式、实际25文件输入生成两组、模型/预算/超时不变。CLI/平台已有构造器、分组边界/SDK测试复用，新增元数据模式测试，真实运行需人工检视两组状态/规范调查与来源，不只看计数。
+
+## 切片20：当前组边界与覆盖说明稳定去重
+
+Workflow Gate Report：P10反馈，v27真实两组scope错误/重复coverage已归档；现有分组计划/AgentConfig/coverage API可复用。允许内部CurrentGroup导航（ID/当前组文件，最多16KiB完整JSON），主提示说明总manifest仅导航、只有当前组diff可提交，先前规范finding不重复提交；可读取跨组来源但不能借旧观察授权新发现。普通单组不增加导航。锚点路径不在当前scope时错误明确本组边界，仍不放宽side/line/source校验。synthesis覆盖说明完全相同字符串去重，稳定保留首次顺序、不trim/合并近义/移除不同来源记录。不宣称自动避免语义重复调查。
+
+Maintainability Gate Report：agent/grouped/synthesis约330/180/155行，新纯helper group_navigation.go，不添加大型全局状态。低风险narrow_fix；测试普通单组、16KiB完整导航、真实两组SDK第二组任务明确scope/不得重复、跨组路径拒绝、覆盖顺序与不同字符串保留。元数据scope验证不改，生产预算不改，策略v28。真实多组新轮验证仍需保留上一失败。
