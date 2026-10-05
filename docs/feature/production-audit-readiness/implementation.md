@@ -437,3 +437,7 @@ P10，专用GitLab实测与既有comment仅succeeded契约为上游，允许窄�
 ## F4/F5 / PRR-004提前停止实现
 
 验收CLI在已核对run身份的detail阶段发现incomplete立即记录原停止阶段并失败；converged只接受succeeded，不等不存在的评论同步，不重复Webhook。新增pending/null→incomplete/null真实HTTP反例读取恰好2次、仅一次POST且记录dedup未验证；原incomplete/sent反例保持。11项GitLab receipt/write回归通过（初轮3.986秒），正常成功/同note更新/人工冲突路径无变化。ops同步即时停止说明；完整正式re-review随后进行。
+
+## F6 / 用户明确发布范围决定
+
+2026-10-05用户明确指示“无法验证先不验证，直接合并”，解除此前外部验收范围阻塞。保留真实历史/大型跨仓库质量和公网Webhook等未验证项作为后续，不宣称取得证据、不清除实际incomplete模型结果。当前614e0d5有效源码已完成分区检视、修复独立复检与回归，后续仅记录范围决定及合并/部署。按已授权最终提交main及1234部署执行，保留敏感信息检查与私有备份。
