@@ -18,36 +18,38 @@ type Project struct {
 }
 
 type Finding struct {
-	Fingerprint     string               `json:"fingerprint,omitempty"`
-	Verification    *FindingVerification `json:"verification,omitempty"`
-	AnchorType      string               `json:"anchor_type,omitempty"`
-	Metadata        *GitChangeMetadata   `json:"metadata,omitempty"`
-	InvestigationID string               `json:"investigation_id,omitempty"`
-	ObservationIDs  []string             `json:"observation_ids,omitempty"`
-	SequenceDiagram *SequenceDiagram     `json:"sequence_diagram,omitempty"`
-	Side            string               `json:"side"`
-	Type            string               `json:"type"`
-	ID              string               `json:"id"`
-	File            string               `json:"file"`
-	Line            int                  `json:"line"`
-	Severity        string               `json:"severity"`
-	Title           string               `json:"title"`
-	Description     string               `json:"description"`
-	Evidence        string               `json:"evidence"`
-	Trigger         string               `json:"trigger"`
-	Suggestion      string               `json:"suggestion"`
-	Confidence      string               `json:"confidence"`
+	PRContext       *PRInvestigationContext `json:"pr_context,omitempty"`
+	Fingerprint     string                  `json:"fingerprint,omitempty"`
+	Verification    *FindingVerification    `json:"verification,omitempty"`
+	AnchorType      string                  `json:"anchor_type,omitempty"`
+	Metadata        *GitChangeMetadata      `json:"metadata,omitempty"`
+	InvestigationID string                  `json:"investigation_id,omitempty"`
+	ObservationIDs  []string                `json:"observation_ids,omitempty"`
+	SequenceDiagram *SequenceDiagram        `json:"sequence_diagram,omitempty"`
+	Side            string                  `json:"side"`
+	Type            string                  `json:"type"`
+	ID              string                  `json:"id"`
+	File            string                  `json:"file"`
+	Line            int                     `json:"line"`
+	Severity        string                  `json:"severity"`
+	Title           string                  `json:"title"`
+	Description     string                  `json:"description"`
+	Evidence        string                  `json:"evidence"`
+	Trigger         string                  `json:"trigger"`
+	Suggestion      string                  `json:"suggestion"`
+	Confidence      string                  `json:"confidence"`
 }
 
 type Investigation struct {
-	ObservationIDs        []string `json:"observation_ids,omitempty"`
-	CounterObservationIDs []string `json:"counter_observation_ids,omitempty"`
-	ID                    string   `json:"id"`
-	Claim                 string   `json:"claim"`
-	Status                string   `json:"status"`
-	Evidence              []string `json:"evidence"`
-	Counterevidence       []string `json:"counterevidence"`
-	NextSteps             []string `json:"next_steps"`
+	PRContext             *PRInvestigationContext `json:"pr_context,omitempty"`
+	ObservationIDs        []string                `json:"observation_ids,omitempty"`
+	CounterObservationIDs []string                `json:"counter_observation_ids,omitempty"`
+	ID                    string                  `json:"id"`
+	Claim                 string                  `json:"claim"`
+	Status                string                  `json:"status"`
+	Evidence              []string                `json:"evidence"`
+	Counterevidence       []string                `json:"counterevidence"`
+	NextSteps             []string                `json:"next_steps"`
 }
 type AuditResult struct {
 	AuditGroups     []AuditGroupProgress `json:"audit_groups,omitempty"`

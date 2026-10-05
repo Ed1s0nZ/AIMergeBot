@@ -1,4 +1,5 @@
 import { FrozenContextRepositories } from "./context-repositories";
+import { PRInvestigationPanel } from "./pr-investigation";
 import { FindingAssociationsPanel } from "./finding-associations";
 import { RetryUsagePanel } from "./retry-usage";
 import { FollowupAuditPanel } from "./followup-audit";
@@ -69,6 +70,7 @@ function FindingCard({
         <p className="muted">关联调查：{finding.investigation_id}</p>
       )}
       <ObservationLinks ids={finding.observation_ids} />
+      <PRInvestigationPanel context={finding.pr_context} />
       {finding.anchor_type === "git_metadata" && finding.metadata ? (
         <GitMetadataEvidence metadata={finding.metadata} />
       ) : (
@@ -474,6 +476,7 @@ export function RunDetail({ id }: { id: number }) {
                 </span>
               </summary>
               <p className="muted">这里记录代码调查结果，不代表已运行复现。</p>
+              <PRInvestigationPanel context={item.pr_context} />
               <p>证据：{item.evidence?.join("；") || "尚未记录"}</p>
               <ObservationLinks ids={item.observation_ids} />
               <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>

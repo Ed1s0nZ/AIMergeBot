@@ -40,6 +40,9 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 		if err := t.validateObservationIDs(a.CounterObservationIDs); err != nil {
 			return toolOutput{}, err
 		}
+		if err := validatePRContext(a); err != nil {
+			return toolOutput{}, err
+		}
 		if t.ledger == nil {
 			t.ledger = map[string]Investigation{}
 		}
@@ -65,6 +68,7 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 				return toolOutput{}, fmt.Errorf("resolved hypothesis needs evidence/counterevidence and successful source observation IDs")
 			}
 		}
+		a.PRContext = clonePRContext(a.PRContext)
 		t.ledger[a.ID] = a
 		raw, _ = json.Marshal(a)
 		return toolOutput{Text: string(raw)}, nil

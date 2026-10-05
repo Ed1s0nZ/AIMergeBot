@@ -108,7 +108,16 @@ export type FindingVerification = {
   base_sha: string;
   head_sha: string;
 };
+export type PRInvestigationContext = {
+  change_summary: string;
+  before: string;
+  after: string;
+  entry_points: { statement: string; observation_ids: string[] }[];
+  guards: { statement: string; observation_ids: string[] }[];
+  unresolved_edges: string[];
+};
 export type Finding = {
+  pr_context?: PRInvestigationContext;
   fingerprint?: string;
   verification?: FindingVerification;
   anchor_type?: "line" | "git_metadata";
@@ -168,6 +177,7 @@ export type Run = {
     coverage_notes: string[];
     excluded_files?: string[];
     investigations?: {
+      pr_context?: PRInvestigationContext;
       id: string;
       claim: string;
       status: string;

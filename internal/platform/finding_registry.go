@@ -18,6 +18,8 @@ func (t *auditTools) acceptFinding(ctx context.Context, f Finding) (Finding, err
 	f = result.Findings[0]
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	// Context is derived from the linked, validated ledger, never the proposal.
+	f.PRContext = clonePRContext(t.ledger[f.InvestigationID].PRContext)
 	if t.findings == nil {
 		t.findings = map[string]Finding{}
 	}
