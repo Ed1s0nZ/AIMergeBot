@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
 from pathlib import Path
 import threading
+import time
 import unittest
 
 spec = importlib.util.spec_from_file_location("healthcheck", Path(__file__).with_name("ops-healthcheck.py"))
@@ -37,6 +38,40 @@ class MonitorTests(unittest.TestCase):
             server.server_close()
             thread.join(timeout=2)
         self.assertFalse(module.check(endpoint, 1))
+
+    def test_overall_deadline_stops_slow_headers_and_body(self):
+        for slow_headers in (False, True):
+            class Handler(BaseHTTPRequestHandler):
+                def log_message(self, *args):
+                    pass
+                def do_GET(self):
+                    try:
+                        if slow_headers:
+                            self.connection.sendall(b"HTTP/1.0 200 OK\r\nX-Slow: ")
+                            for _ in range(20):
+                                self.connection.sendall(b"a")
+                                time.sleep(0.12)
+                            self.connection.sendall(b"\r\n\r\n{\"status\":\"ready\"}")
+                        else:
+                            self.send_response(200)
+                            self.end_headers()
+                            for byte in b'{"status":"ready"}':
+                                self.wfile.write(bytes([byte]))
+                                self.wfile.flush()
+                                time.sleep(0.12)
+                    except OSError:
+                        pass
+            server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                start = time.monotonic()
+                self.assertFalse(module.check(f"http://127.0.0.1:{server.server_port}", 1))
+                self.assertLess(time.monotonic() - start, 1.8)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
 
     def test_invalid_transport_no_request(self):
         for endpoint in ("http://remote.test", "https://user:secret@remote.test", "https://remote.test?secret=x", "file:///tmp/data", "https://remote.test/path"):

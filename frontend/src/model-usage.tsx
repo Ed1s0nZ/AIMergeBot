@@ -1,7 +1,7 @@
 import type {ModelUsage} from "./api";
 export function ModelUsagePanel({usage,retryChain=false}:{usage?:ModelUsage;retryChain?:boolean}) {
  if(!usage)return null;
- const reasons:Record<string,string>={price_not_configured:"未配置单价或币种",verification_price_missing:"独立复核模型尚未配置单价",no_reported_usage:"没有可计价的报告用量"};
+ const reasons:Record<string,string>={usage_overflow:"供应商用量计数溢出，无法可靠估算",price_not_configured:"未配置单价或币种",verification_price_missing:"独立复核模型尚未配置单价",no_reported_usage:"没有可计价的报告用量"};
  const names:Record<string,string>={primary:"主审",verification:"独立复核",synthesis:"跨组汇总",diagram:"时序图"};
  return <section className="panel trace"><h2>模型用量与成本</h2>
  <p>{usage.complete?"报告用量完整":"报告用量不完整 · 以下仅为已知部分"}</p>

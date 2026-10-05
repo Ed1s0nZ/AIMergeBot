@@ -395,3 +395,7 @@ Workflow Gate P10，现有R2预算/费用契约与f69e310独立检视为上游�
 ## F2/F3 / PRR-003健康检查总体期限
 
 P10，R8有界只读就绪检查与独立检视慢响应反例为上游，允许窄修复。urllib timeout只能限制socket静默，DNS/连接/头/正文没有总期限。把现有HTTP观察移入独立Python子进程，父进程subprocess.run(timeout=...)对整个观察施加期限，超时终止并回收子进程，返回unavailable。保留URL/凭据/协议/redirect/1KiB响应规则，子进程不写文件、不重启服务、不通知。隐藏内部观察参数仅供父进程，正常CLI行为不变，HTTPError继续关闭。测试慢正文和慢头，1秒deadline内不得接受最终ready，容许进程回收与调度余量；正常及失败边界保留。父进程生成的URL只有通过验证后才传入子进程。进程创建/回收有系统调度开销，不宣称硬实时保证。另为PRR-002前端增加usage_overflow说明，避免误显示为缺少价格；不改变API。
+
+## F4/F5 / PRR-003整体期限与费用说明
+
+健康检查父进程对独立观察子进程设置subprocess总timeout，超时kill/wait回收并报告unavailable；DNS、HTTP头与正文均在子进程，保留原有重定向/协议/长度/JSON规则。真实本机HTTP慢头和每0.12秒一个字节的慢正文均在1秒期限（含回收允许1.8秒）返回不可用，不再等待最终ready。3项healthcheck测试3.922秒通过，ResourceWarning=error；前端增加usage_overflow中文提示，tsc+Vite生产构建2.56秒通过并同步嵌入资源。整体回归及修复re-review待继续，未把本机慢服务测试当生产监控或完整发布证明。
