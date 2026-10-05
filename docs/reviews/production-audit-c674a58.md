@@ -1,3 +1,5 @@
+> STALE / SUPERSEDED：当前报告见 production-audit-412097d.md，本文保留历史快照。
+
 # PR Review — 修复与分区检视 @ c674a58
 
 ## 1. Review Metadata
