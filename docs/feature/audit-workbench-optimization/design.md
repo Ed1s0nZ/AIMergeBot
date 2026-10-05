@@ -118,3 +118,9 @@ Maintainability Gate Report：run-detail.tsx 586 行，页面组合与卡片复�
 P7/REQ006：固定快照只读工具对完全相同参数的成功读取允许三次，第四次不再读取并返回明确无进展错误及已有证据 ID。请求不同范围、分页、BASE/HEAD、关联仓库或查询条件不合并；失败不计为成功，避免封死暂时性失败的恢复。只对来源工具及清单/概览读取生效，不限制调查更新、报告构建和提交发现。独立复核拥有独立工具实例与计数。保护失败保留 trace/checkpoint/pending，并按既有覆盖不足路径表达，不假称完整审计。不会返回曾经缓存的源码绕过当前授权。此机制限制重复数据读取，模型仍受既有轮次和工具总预算限制；不能宣称自动判断语义无进展。
 
 维护检查：agent_tools.go 低于800行，但已有读取、预算及记录职责；新重复状态逻辑独立模块，invoke 仅薄委托。产品/接口沿用 toolOutput.Error，无新UI。允许 narrow feature，使用定向工具测试、race、全量 Go 检验，并递增策略版本避免旧任务按新规则重试。
+
+## PR 风险链：逐边事实契约
+
+REQ003/005 的下一切片在现有 PRContext 增加可选 before_observation_ids/after_observation_ids、impact（风险结果事实）、counterexamples（已检查反例事实）与 relationships（from/to/relation、certainty=cited|inferred、observation_ids）。每项均引用当前调查已验证的源码观察，两个快照的来源分别链接；跨文件/跨仓库边使用来源观察识别固定仓库。cited 表示模型提供连接依据的静态陈述，服务端只验证来源归属，不能解释为调用语义已证明；inferred 明确为推测，未找到依据的关系放 unresolved_edges。旧 nil/空字段兼容，不强制伪造完整链。列表最多8项、边端点最多200字、关系最多500字、事实500字；沿用整体8000字节调查上限。保存/发现派生/压缩交接继续使用完整已验证 ledger，禁止 proposal 覆盖服务器派生上下文。
+
+Workflow Gate：P7，已确认范围，扩展现有可选契约，无新服务端API，UI复用源码观察链接并分开呈现静态引用和推测；unknown/empty 明确显示。Maintainability Gate：两个小模块各单一职责，允许窄切片，不动大型 legacy 模块。验证：拒绝跨调查观察、未知确定性、无来源边、超长项；历史兼容、深复制、JSON保留及实际UI展示；递增审计策略。
