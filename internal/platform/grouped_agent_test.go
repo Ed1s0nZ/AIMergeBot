@@ -14,6 +14,7 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 	for _, mode := range []string{"failure", "budget"} {
 		t.Run(mode, func(t *testing.T) {
 			repo, snap, f, _ := sequenceFixture()
+			f.ObservationIDs = []string{"group-1-observation-1"}
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var request struct {
@@ -26,6 +27,9 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 				}
 				n := calls.Add(1)
 				if n == 3 {
+					if len(request.Messages) < 2 || !strings.Contains(request.Messages[1].Content, "Prior group navigation") || !strings.Contains(request.Messages[1].Content, "unsafe sink") || !strings.Contains(request.Messages[1].Content, "source_locators") || !strings.Contains(request.Messages[1].Content, "group-1-observation-1") {
+						t.Error("later group lost source handoff")
+					}
 					w.WriteHeader(400)
 					return
 				}

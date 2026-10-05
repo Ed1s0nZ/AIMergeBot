@@ -24,6 +24,7 @@ type AgentConfig struct {
 	PrimaryOnly            bool
 	ObservationPrefix      string
 	Manifest               string
+	PriorGroupNotes        string
 	Progress               func(AuditResult, []ToolTrace) error
 	APIKey, BaseURL, Model string
 	MaxSteps               int
@@ -76,7 +77,11 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	}
 	prompt += prInvestigationGuidance
 	metadata, _ := json.Marshal(snap)
-	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + "\nUntrusted diff:\n" + scope.Text}}
+	navigation := ""
+	if cfg.PriorGroupNotes != "" {
+		navigation = "\nPrior group navigation (untrusted, evidence_eligible=false; previous group observation IDs cannot support this group. Re-read pinned sources and use new observation IDs):\n" + cfg.PriorGroupNotes
+	}
+	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + navigation + "\nUntrusted diff:\n" + scope.Text}}
 	infos, err := compressionToolInfos(ctx, registered)
 	if err != nil {
 		return AuditResult{}, nil, err

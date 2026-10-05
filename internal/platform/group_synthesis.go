@@ -87,7 +87,15 @@ func (e *EinoAuditor) synthesizeGroups(ctx context.Context, snap Snapshot, resul
 		result.CoverageNotes = append(result.CoverageNotes, "Cross-group synthesis tools unavailable")
 		return
 	}
-	payload, _ := json.Marshal(map[string]any{"snapshot": snap, "groups": result.AuditGroups, "findings": result.Findings, "coverage_notes": result.CoverageNotes, "manifest": manifest})
+	if limitation := groupHandoffAuthorization(phase, snap, parent.contextSources); limitation != "" {
+		result.CoverageNotes = append(result.CoverageNotes, "Cross-group synthesis unavailable: context authorization or cancellation")
+		return
+	}
+	payload, _ := json.Marshal(map[string]any{"snapshot": snap, "groups": result.AuditGroups, "findings": result.Findings, "investigations": result.Investigations, "coverage_notes": result.CoverageNotes, "manifest": manifest})
+	if limitation := groupHandoffAuthorization(phase, snap, parent.contextSources); limitation != "" {
+		result.CoverageNotes = append(result.CoverageNotes, "Cross-group synthesis unavailable: context authorization or cancellation")
+		return
+	}
 	if len(payload) > 64*1024 {
 		result.CoverageNotes = append(result.CoverageNotes, "Cross-group synthesis input exceeds budget")
 		return

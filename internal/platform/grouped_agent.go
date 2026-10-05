@@ -97,6 +97,14 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		child.Config.PrimaryOnly = true
 		child.Config.ObservationPrefix = g.ID + "-observation"
 		child.Config.Manifest = string(manifest)
+		child.Config.PriorGroupNotes = ""
+		if i > 0 {
+			notes, limitation := e.authorizedGroupHandoff(primaryCtx, snap, result, trace)
+			child.Config.PriorGroupNotes = notes
+			if limitation != "" {
+				result.CoverageNotes = append(result.CoverageNotes, limitation)
+			}
+		}
 		child.Config.MaxToolCalls = remaining / (len(plan.Groups) - i)
 		if child.Config.MaxToolCalls < 1 {
 			child.Config.MaxToolCalls = 1
