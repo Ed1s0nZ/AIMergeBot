@@ -182,3 +182,13 @@ ops-backup.py的backup/verify/restore三个命令使用Python标准库，源SQLi
 9项unittest通过（0.119秒）：未checkpoint WAL数据恢复、源主DB/config保持、权限/文件集合、租约与停写声明拒绝、不覆盖已有备份/恢复目录、symlink/非私有配置/源内部输出拒绝、hash篡改/未知manifest路径/缺失文件、即使匹配hash也拒绝损坏DB、配置变化与复制失败清理、截止时间及私有包目录、实际CLI成功和失败日志不暴露fixture秘密/路径。测试连接显式关闭，避免仅提交却保持SQLite文件句柄；Python缓存加入gitignore。README链接docs/operations.md，明确停止写入前提、命令、恢复流程、来源信任及验证边界。此次未更改生产1234，公共healthz实际返回ok。
 
 本片只完成可复用备份工具；10B原生二进制业务恢复、10C托管/就绪/容量及预算崩溃证明仍未完成，R7真实MR授权与R1历史质量证据仍缺少。最终main/1234发布与浏览器综合验收按原清单保留，不能用这9项文件级测试代替整个R8验收。
+
+## F2/F3 / 切片10B原生恢复演练
+
+复用已有smoke-worker-recovery隔离真实二进制/合成上游/临时目录，新增--backup-preview，要求metadata/lifecycle/comment场景同时启用，保留既有SIGKILL与真实租约等待证明。独立ops_restore_drill.py协作模块承载恢复步骤，旧脚本仅参数和调用接线，保持文件小于800行。先通过真实HTTP创建受限成员、赋予项目viewer及第二个未授权项目，验证其能查看已授权历史、看不到未授权项目；独立CookieJar保存会话。成员身份/会话必须在恢复后直接使用，不能重新登录掩盖会话丢失。
+
+关联历史使用明确标记的合成持久化报告fixture：复制已完成历史任务的固定策略/发现，构造普通文件移动元数据与新路径，按现有指纹契约计算候选源指纹并对原记录计算值作交叉校验。该合成报告仅用于恢复数据，不作为实际Git差异、Agent质量或真实PR证明。由真实GET/PUT关联接口创建人工确认记录，再验证关联不会改变评论。现有真实Worker完成的metadata/生命周期任务、SIGKILL父检查点、人工风险复核、评论单次创建/更新记录都纳入恢复检查。
+
+停掉所有本演练的应用进程并等待退出，关闭SQLite测试连接，确认公共健康不可用。通过实际ops-backup.py CLI对临时DB/config创建并验证恢复包，再通过restore写到另一新目录；备份父目录独立于源目录，0700，本片不要求可选二进制入包，使用同一已验证构建二进制启动恢复目录。源与恢复包均保留本机私有，不上传内容。以逻辑业务表有序hash核对任务固定版本/result/trace/策略、用户/会话/ACL、人工Review/追加历史、关联历史、评论状态；Worker实例owner/lease必然变化不作相同断言。恢复后同一admin/member会话访问API，任务、检查点、人工风险复核及关联决定内容必须相同，受限成员ACL仍有效。确认合成上游模型/评论调用计数不增加，避免恢复重复对外操作。原目录保留且不再启动。
+
+恢复进程纳入既有finally清理，证明JSON只输出断言布尔/数量与合成场景，文件0600，目录0700，不打印凭据或DB内容。演练仍约需真实租约等待40秒，等待工具必须使用原句柄并保持状态更新。命令为go build到任务自建临时目录，再运行smoke-worker-recovery.py --backup-preview --metadata-preview --lifecycle-preview --comment-preview（独立复核可加--verification-preview）；禁止生产1234/8080和真实GitLab/模型。当前1234不停止。本片完成后继续10C托管/就绪/容量及R7，不能以这次隔离恢复宣称实际生产迁移已验收。
