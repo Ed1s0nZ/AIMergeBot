@@ -60,3 +60,9 @@ GET /runs/:id/sarif 在读取前与发送前检查 viewer 权限，返回 no-sto
 维护门槛：导出映射、HTTP、UI 分模块，复用授权和 API 错误处理。Go 全量通过（platform 43.468s）；SARIF 与权限定向测试通过 1.021s；官方 OASIS SARIF 2.1.0 cos02 Schema 使用 Draft7Validator+FormatChecker 校验实际测试输出通过。Schema SHA256 ad6db49878699b091f3eeb765b6e29e92a34bad4da88664d000c923b549c3a25。前端构建通过，下载 Blob 延迟释放并挂载临时链接。
 
 受控浏览器点击无报错，但两次下载事件均超时，不能声称文件落盘成功；截图 /tmp/aimangebot-sarif-download-proof.png 仅证明入口呈现。临时预览文件和服务已清理。官方 Schema 合规不代表 GitHub Code Scanning 原生上传兼容；虚拟快照 URI 供消费者识别版本。最终 QA 仍需实际下载落盘验证。
+
+## 切片7：发现筛选与键盘导航
+
+已实现标题/路径/描述/类型搜索、严重度、人工复核、独立静态复核组合筛选与匹配/总数提示；默认全部，未知复核枚举原文呈现，历史没有独立复核单独可选。仅筛选已授权加载数据，不新增 API。导航使用稳定 finding ID 锚点，键盘 Enter 聚焦对应卡片。过滤通过 hidden 保持卡片挂载，保留草稿及冲突处理；任务切换 key 重置筛选。不提供运行验证选项，静态复核和人工决定分别展示。
+
+验证：前端类型检查与 production build 通过。浏览器真实 FindingCard/Workbench 受控样例：中文路径搜索 1/2；叠加高危变 0/2、显示零匹配提示；清空恢复 2/2 且先前复核草稿文本完整保留；人工待处理+独立支持匹配 1/2；导航 Enter 后 hash 指向 finding-two 且焦点进入该卡片。截图 /tmp/aimangebot-finding-workbench-proof.png。浏览器 Playwright 标签定位不可用，原生 AX 控件交互验证成功。临时预览文件、服务、标签已清理。没有提交样例复核，未测试所有未知枚举及窄屏，留最终 QA；隐藏不是虚拟化，不宣称减少初次渲染成本。纯 UI 切片没有后端变化，不重复全量 Go 测试。

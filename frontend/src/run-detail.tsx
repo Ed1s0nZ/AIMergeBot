@@ -1,3 +1,4 @@
+import { FindingWorkbench } from "./finding-workbench";
 import { FrozenContextRepositories } from "./context-repositories";
 import { SARIFDownload } from "./sarif-download";
 import { PRInvestigationPanel } from "./pr-investigation";
@@ -489,16 +490,19 @@ export function RunDetail({ id }: { id: number }) {
         <span className="muted">逐项复核，保留依据</span>
       </div>
       {r.result.findings.length ? (
-        r.result.findings.map((f) => (
-          <FindingCard
+        <FindingWorkbench
+          key={`findings:${id}`}
+          findings={r.result.findings}
+          reviews={resource.data?.reviews || []}
+          renderFinding={(f, review) => <FindingCard
             key={`${id}:${f.id}`}
             finding={f}
             runId={id}
-            review={resource.data?.reviews.find((x) => x.finding_id === f.id)}
+            review={review}
             onSaved={resource.load}
             canReview={resource.data?.permissions.can_review || false}
-          />
-        ))
+          />}
+        />
       ) : (
         <Empty>
           {r.status === "succeeded"

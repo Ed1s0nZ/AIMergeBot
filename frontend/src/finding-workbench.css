@@ -1,0 +1,9 @@
+.finding-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.finding-filters label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 180px; min-width: 0; }
+.finding-filters input, .finding-filters select { width: 100%; min-width: 0; }
+.finding-filters p, .finding-filters small { flex-basis: 100%; margin: 0; }
+.finding-navigation { display: flex; flex-direction: column; gap: 8px; }
+.finding-navigation a { overflow-wrap: anywhere; }
+.finding-target { scroll-margin-top: 24px; }
+.finding-target[hidden] { display: none; }
+.finding-target:focus-visible { outline: 2px solid var(--accent, #5b72ee); outline-offset: 4px; }
