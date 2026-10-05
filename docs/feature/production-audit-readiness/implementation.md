@@ -429,3 +429,7 @@ Workflow Gate P10，上游为R2/R7静态审计契约与上述实际模型结果�
 随后独立隔离实例使用64990bd干净二进制、真实GitLab固定MR2对象与仓库读取，模型响应明确为synthetic transport fixture（假凭据、仅本机模型HTTP，不发送真实模型API Key）。模型复核/时序阶段在该评论专项关闭，因此不证明模型能力；正常Eino结果解析/证据校验→真实Worker→GitLab流程。写入验收程序exit0：新run→重复Webhook相同run且created=false→真实discussion/note首次创建→人工复核后同note更新generation1→2→通过GitLab显式人工编辑→第二复核使desired3/sent2且state=conflict，GitLab正文保持人工编辑内容、标记唯一。MR2保留专用测试评论和人工冲突证据，未自动清理/覆盖。测试服务和本机模型server正常清理。私有proof/配置/DB/日志均不入Git；生产1234未升级。
 
 这是应用入口重放Webhook的实际GitLab读写集成，不证明GitLab从公网主动投递至本机（127.0.0.1无公网入口）。模拟仓库加真实模型仅验证这几个设定案例，不是授权历史PR准确率、误报/漏报统计或跨仓库大PR质量评测。当前已满足用户新授权的凭据配置、模拟项目/MR创建及上述链路实际测试，整体main/生产部署及原验收缺口仍需继续处理。
+
+## F2/F3 / PRR-004真实incomplete无评论即时停止
+
+P10，专用GitLab实测与既有comment仅succeeded契约为上游，允许窄修复验收CLI。首轮detail一旦status=incomplete，即记录audit_incomplete_stop并失败，不等待sent；当前门控放converged之后在真实comment_sync=null时永不到达，只会等满600秒。禁止第二Webhook/review/note写入保持；保留既有首轮任务。把门控前移detail，去除后置重复门控；HTTP回归增加pending/null→incomplete/null反例，断言读取两次即停止、仅初次POST，与incomplete/sent及正常成功路径同验证。错误阶段/JSONL字段不新增、不扩大写入授权，生产平台不变。同步ops说明，随后独立上下文检查当前提示词与工具delta，正式记录修复状态。
