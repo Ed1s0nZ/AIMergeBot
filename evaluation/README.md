@@ -12,7 +12,7 @@ go run ./cmd/audit-eval --config config.yaml --output /tmp/aimangebot-evaluation
 
 `expected_anchor_matched_preliminary_only` 只是机械匹配，不是TP结论。必须人工检查风险机制和保护条件，允许合法相邻锚点，不根据标题关键词给分。区分候选发现、主调查支持和独立静态复核，不声称运行利用验证。连接失败/覆盖不足单列，不能把无结果当成安全，也不能移除失败后伪造高分；usage缺失时不能报告实际计费为0。配置或代码修复后完整重跑要保留旧轮次及原因。
 
-首次真实尝试见 [连接失败报告](../docs/feature/audit-contract-hardening/evaluation-connection-failure.md)：当前凭据返回401 invalid_api_key，暂无有效检测质量结果。
+首次真实尝试见 [连接失败报告](../docs/feature/audit-contract-hardening/evaluation-connection-failure.md)，当时凭据返回401 invalid_api_key。后续 [第四轮真实评测](../docs/feature/audit-contract-hardening/evaluation-round4.md) 已完成策略v12的11例自建语料并记录人工判定；这不是当前策略的代表性质量基线，也不证明生产准确率或跨仓库覆盖。历史失败及各轮结果应一并保留，不能将历史凭据状态当作当前接口状态。
 
 ## 真实历史 PR 输入
 
