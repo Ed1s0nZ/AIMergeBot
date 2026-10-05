@@ -299,3 +299,7 @@ MR92合成模型改按system阶段与本轮tool observation响应，支持多次
 ## F5 / 切片12E跨仓库配置界面及持久化
 
 隔离19258真实浏览器项目1无可关联项目时添加按钮禁用；通过界面登记合成项目2后可添加，选择2、输入invalid提交被完整40/64位SHA校验拒绝且保留输入。改为明确合成40个b保存成功，整页reload后重新展开仍为项目2及同一SHA。只读SQLite核对platform_context_repositories精确(1,2,合成SHA)，仅断言私有config.yaml包含预期SHA，不输出其他配置；系统Python无PyYAML，因此未声称完整YAML解析验证。截图context-saved.jpg本机0600。随后实际移除行并保存，界面显示空关联与同步成功，SQLite计数0且config.yaml不再含该SHA。此合成项目配置验收不代表该SHA存在于真实GitLab或Agent跨仓库质量，不改变生产1234。真实质量样本、权限界面、GitLab授权与最终main/部署仍待完成。
+
+## F2/F3 / 切片11A2采证HTTP异常资源
+
+P10窄范围验收工具维护，已有11A只读GET/凭据隔离/响应上限为上游，允许实现，无新增产品决策。检查发现get_json成功响应用with关闭，但HTTPError（含禁止跟随的302）不进入with，需显式关闭错误响应后重新抛出；保持统一main错误输出，不打印正文/凭据。新增实际本机HTTP测试覆盖成功、302只发一次、503、非法JSON与2MiB超限；直接断言HTTPError响应closed，并以ResourceWarning为error复验。仅涉及脚本和测试，不访问真实GitLab、不发送评论，不将此项算完整R7。
