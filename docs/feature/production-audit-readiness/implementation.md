@@ -263,3 +263,7 @@ P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围�
 ## F2/F3 / 切片12A真实界面排版修复
 
 隔离原生实例19248/19249已完成metadata/lifecycle/comment/verification基础场景，真实浏览器登录并检查设置截图。发现独立复核字段和预算fieldset错误嵌入温度/轮次field-row，触发横向flex压缩成竖列。修复行容器的闭合位置，将独立复核与预算作为fields直接子级，利用既有fieldset全宽规则，不改业务API/值。先build/typecheck，再真实浏览器重验模型布局；此问题不能靠Go或TS成功证明视觉正确。其他跨仓库/历史关联/补审响应式与最终main仍需综合验收。
+
+## F4 / 切片12A设置布局修正
+
+真实19248实例界面已确认缺陷，修正settings.tsx field-row闭合位置并重新生产构建，TypeScript/构建通过1.42秒；新的JS index-H2kC4Rcz替换旧资源。此前整Go回归（缓存结果）、18项Python测试0.899秒及前端typecheck通过。首次npm build误在仓库根执行缺package.json，随后按frontend目录执行成功。真实修复后截图/交互尚未验收，不以构建成功标记F5；旧隔离进程已请求正常停止，下一步使用包含新静态资源的二进制继续实际界面验证。生产1234未替换，真实MR授权仍未收到。
