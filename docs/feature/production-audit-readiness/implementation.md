@@ -271,3 +271,7 @@ P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围�
 ## F5 / 切片12A实际浏览器复验
 
 以aa1f817干净源码重新构建真实二进制至私有/tmp，19250/19251完整metadata/lifecycle/comment/verification原生fixture再次通过，保留UI实例供后续验收。浏览器实际登录合成账号并查看新资源：默认1280视口温度/轮次双列、复核模型独立全宽，预算fieldset不再挤压其他字段；390×844窄屏截图字段正常，DOM scrollWidth=390=innerWidth无横向溢出，随后reset视口。私有截图settings-fixed.jpg保存在本机fixture目录0600，未上传。任务5界面实际显示固定BASE/HEAD、评论同步generation2/2、5次usage未知、分阶段主审/复核/图、独立复核支持/静态限制、元数据note时序图与人工误报状态；展开历史移动关联显示无候选和明确限制。这里只完成设置布局及上述报告显示，尚未操作关联confirm/reject/撤销、跨仓库配置、补审或真实质量样本，保留这些综合验收项。生产1234未变，main未合并。
+
+## F2/F3 / 切片12B补审原生成功fixture
+
+实际浏览器任务5→固定清单entry.any→选择1→按钮启用→新任务9，BASE/HEAD与选择范围正确，原报告保留。但MR92合成响应依赖全局调用序号，第二审计首请求错误返回diagram JSON，真实SDK严格校验报unknown_field失败。不是补审创建失败，不能据此宣称成功审计。改fixture按system阶段/当前tool observation区分主审、独立复核、图，新增--followup-preview完整API成功验证，保留原错误响应拒绝行为。验证父结果/reviews与新任务独立、固定两端/selected_files；此为合成成功流程，不替代真实模型质量。
