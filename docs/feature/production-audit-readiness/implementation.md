@@ -353,3 +353,7 @@ P10验收阶段，11B程序及现有原生恢复fixture为上游，允许窄范�
 8333ea8干净分支执行go test ./...与go vet ./...均exit0（Go测试缓存命中），Python全scripts测试以ResourceWarning=error执行24项3.552秒通过，React tsc+vite生产构建1.07秒通过、资源hash与已验收版本一致且未产生跟踪差异。git ls-files确认config.yaml/.env.deploy/pr_agent.db/aimangebot未被跟踪，暂存秘密检查通过。另启动完整go test -race ./internal/platform，进程句柄已多次确认仍运行、无输出，尚不能记录通过；下一轮只继续等待原句柄，不因无输出重启。真实外部质量与GitLab、main和1234仍未完成。
 
 同一并发检查句柄随后正常exit0，完整platform race88.470秒通过；未重启检查。上述综合回归结果齐全，但不抵消外部验收缺口或自动证明当前1234部署版本。
+
+## F2/F3 / 发布策略版本隔离
+
+P10发布准备，原有PolicyVersion去重/Worker/重试隔离为上游，允许窄变更。当前仍v12，与已部署上一轮相同；本轮新增共享模型预算、独立复核、分片/补审和跨仓库策略，必须v13隔离执行语义。仅修改runs_store.go常量，历史报告/策略不重写，旧pending由既有Worker版本检查拒绝且要求新提交，旧重试不会自动生成新版子任务。README说明历史报告仍可查看，新提交使用新版本。先核对既有Worker与retry测试覆盖，再完整Go回归；不因版本升号宣称已部署，私有1234不变。
