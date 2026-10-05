@@ -215,3 +215,7 @@ Workflow Gate：P10运行可靠性，现有HTTP健康接口、实例租约/心�
 ## F2/F3 / 切片10C2服务配置生成
 
 P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz契约已就绪。生成工具仅创建不存在的私有输出文件，不安装/卸载服务，不读取或复制配置内容。launchd plist采用绝对ProgramArguments/WorkingDirectory、RunAtLoad、KeepAlive.SuccessfulExit=false、ThrottleInterval=35（大于30秒租约）、Umask=077和私有目录日志。systemd模板采用指定非root用户/组、绝对ExecStart/WorkingDirectory、Restart=on-failure/RestartSec=35、TimeoutStopSec=45、UMask=0077和NoNewPrivileges。路径与标识限制明确，systemd路径需转义百分号/引号/反斜杠，禁止控制字符；不提供含凭据环境变量。已有DB部署不需要bootstrap凭据。操作文档解释新库需先私下bootstrap，退出0不重启，异常才自动重启，备份前必须bootout/stop禁止自动重启。本片先生成/验证，下一片隔离launchd真实异常重启与readyz proof，Linux配置不虚称已运行验证。
+
+## F4/F5 / 切片10C2服务定义工具
+
+实现纯标准库ops-service.py生成launchd/systemd定义；绝对路径、控制字符和标签验证，systemd非root用户/组及语法转义，私有输出且不覆盖，失败清理只限自己创建文件。不读取/内嵌秘密、不安装/启动服务。4项unittest通过：plist解析/异常重启与租约间隔、systemd空格/百分号/引号转义、非法身份/换行拒绝、0600/0700和已有文件保持。operations记录生成、安装/停止、权限、bootstrap、就绪、备份卸载和用户登录域限制。此为配置生成器验证；本机launchd异常恢复实证与容量仍待下一片，未停止1234或声称已托管。

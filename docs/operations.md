@@ -66,3 +66,42 @@ curl --fail --max-time 3 http://127.0.0.1:1234/readyz
 ```
 
 新接口在本轮最终发布后生效；当前运行的旧二进制尚未替换。进程托管配置和自动恢复演练仍需单独验收。
+
+## 服务配置生成与停止
+
+`scripts/ops-service.py` 只生成配置，不安装或启动服务。输出父目录必须0700且目标文件不存在，文件0600；不读取config.yaml或嵌入任何凭据。部署工作目录应由服务用户持有且0700，配置0600，日志仅本机私有。先私下启动完成新数据库bootstrap；已有账号数据库无需把管理员密码写入服务配置。自动重启等待35秒，超过实例30秒租约；正常退出0不会自动重启，异常退出才重启。
+
+macOS使用用户launchd域，示例中的路径由操作者替换，保留空格时仍传完整参数：
+
+```bash
+mkdir -m 700 /your/private/service-definitions
+python3 scripts/ops-service.py launchd \
+  --binary /your/deployment/aimangebot --directory /your/deployment \
+  --label local.aimangebot \
+  --output /your/private/service-definitions/local.aimangebot.plist
+plutil -lint /your/private/service-definitions/local.aimangebot.plist
+launchctl bootstrap gui/$(id -u) /your/private/service-definitions/local.aimangebot.plist
+launchctl print gui/$(id -u)/local.aimangebot
+curl --fail --max-time 3 http://127.0.0.1:1234/readyz
+# 备份、升级或撤销托管前先卸载，避免自动重启：
+launchctl bootout gui/$(id -u)/local.aimangebot
+```
+
+不要把日志或私有配置加入Git。用户launchd域需要已登录的用户会话，不宣称系统开机无人登录也启动。服务错误持续发生时先bootout再查本机日志，不重复安装多个标签争夺同一DB。验证重新出现的PID、readyz和任务状态，不能仅看到launchctl定义就宣称服务可用。
+
+Linux生成systemd配置需明确已有非root用户/组；部署目录授予该用户访问，凭据保留在config.yaml。示例定义需审查并按实际安装路径手动安装，不由脚本sudo：
+
+```bash
+python3 scripts/ops-service.py systemd \
+  --binary /srv/aimangebot/aimangebot --directory /srv/aimangebot \
+  --user aimangebot --group aimangebot \
+  --output /your/private/service-definitions/aimangebot.service
+# 审查后由管理员安装至 /etc/systemd/system/aimangebot.service
+systemctl daemon-reload
+systemctl enable --now aimangebot
+systemctl status aimangebot
+# 备份、升级前停止并确认退出
+systemctl stop aimangebot
+```
+
+systemd模板定义异常重启、35秒间隔、45秒停止超时、0077 umask、禁止新增权限；没有声称Linux部署已实测。需要独立的就绪监控，管理器进程状态不等于业务健康。当前1234服务尚未切换为本配置；隔离自动重启演练及最终上线验证仍待完成。
