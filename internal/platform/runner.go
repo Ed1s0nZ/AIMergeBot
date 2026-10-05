@@ -326,9 +326,12 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		}
 		notes = append(notes, followupCoverageNote(p))
 	}
+	plan := PlanAuditGroups(changes, excluded)
+	grouped, canGroup := auditor.(*EinoAuditor)
 	scope := BuildDiff(changes, excluded, 96*1024)
+	useGroups := canGroup && (len(plan.Groups) > 1 || scope.Text == "" && len(plan.Groups) > 0)
 	scope.Notes = append(scope.Notes, notes...)
-	if scope.Text == "" {
+	if scope.Text == "" && !useGroups {
 		status := "incomplete"
 		if len(scope.Excluded) > 0 && len(scope.Notes) == 0 {
 			status = "skipped"
@@ -338,8 +341,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}
 	var result AuditResult
 	var trace []ToolTrace
-	plan := PlanAuditGroups(changes, excluded)
-	if grouped, ok := auditor.(*EinoAuditor); ok && len(plan.Groups) > 1 {
+	if useGroups {
 		plan.Notes = append(plan.Notes, notes...)
 		result, trace, err = grouped.AuditGroups(ctx, run.Snapshot, plan)
 	} else {

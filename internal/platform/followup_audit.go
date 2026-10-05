@@ -98,7 +98,9 @@ func makeRunScope(run Run, changes []Change, notes []string) RunScope {
 	for _, file := range plan.Excluded {
 		excluded[file] = true
 	}
-	if len(plan.Groups) > 1 {
+	whole := BuildDiff(selected, p.Excluded, 96*1024)
+	useGroups := len(plan.Groups) > 1 || whole.Text == "" && len(plan.Groups) > 0
+	if useGroups {
 		for _, g := range plan.Groups {
 			for _, file := range g.Files {
 				included[file] = true
@@ -106,16 +108,29 @@ func makeRunScope(run Run, changes []Change, notes []string) RunScope {
 		}
 		out.Notes = append(out.Notes, plan.Notes...)
 	} else {
-		scope := BuildDiff(selected, p.Excluded, 96*1024)
+		scope := whole
 		for _, file := range scope.Included {
 			included[file] = true
 		}
 		out.Notes = append(out.Notes, scope.Notes...)
 	}
+	omitted := map[string]bool{}
+	if useGroups {
+		for _, file := range plan.OmittedFiles {
+			omitted[file] = true
+		}
+	}
 	groupStatus := map[string]string{}
 	for _, g := range run.Result.AuditGroups {
 		for _, file := range g.Files {
-			groupStatus[file] = g.Status
+			previous := groupStatus[file]
+			if previous == "failed" || g.Status == "failed" {
+				groupStatus[file] = "failed"
+			} else if previous == "unprocessed" || previous == "running" || g.Status == "unprocessed" || g.Status == "running" {
+				groupStatus[file] = "unprocessed"
+			} else {
+				groupStatus[file] = g.Status
+			}
 		}
 	}
 	for _, c := range changes {
@@ -127,6 +142,9 @@ func makeRunScope(run Run, changes []Change, notes []string) RunScope {
 		status := "not_in_input"
 		if included[path] {
 			status = "included"
+			if omitted[path] {
+				status = "partial_input"
+			}
 			if groupStatus[path] == "failed" {
 				status = "group_failed"
 			}

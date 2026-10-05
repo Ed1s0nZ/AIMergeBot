@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"path"
 	"sort"
+	"strings"
 )
 
 const (
 	auditGroupBytes     = 32 * 1024
 	auditGroupFiles     = 24
 	auditMaxGroups      = 8
-	auditTotalDiffBytes = 96 * 1024
+	auditTotalDiffBytes = auditMaxGroups * auditGroupBytes
 )
 
 // AuditGroup is a planning boundary, not a semantic dependency assertion.
@@ -20,9 +21,10 @@ type AuditGroup struct {
 	Scope DiffScope `json:"-"`
 }
 type AuditPlan struct {
-	Groups   []AuditGroup `json:"groups"`
-	Excluded []string     `json:"excluded"`
-	Notes    []string     `json:"notes"`
+	Groups       []AuditGroup `json:"groups"`
+	Excluded     []string     `json:"excluded"`
+	Notes        []string     `json:"notes"`
+	OmittedFiles []string     `json:"omitted_files"`
 }
 
 func changePath(c Change) string {
@@ -32,7 +34,7 @@ func changePath(c Change) string {
 	return c.NewPath
 }
 
-// PlanAuditGroups keeps complete file sections. Any omitted source remains an
+// PlanAuditGroups keeps whole source lines in fixed-coordinate chunks. Any omitted source remains an
 // explicit coverage gap; limits never certify the omitted files as reviewed.
 func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 	ordered := append([]Change(nil), changes...)
@@ -43,7 +45,7 @@ func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 		}
 		return a < b
 	})
-	plan := AuditPlan{Groups: []AuditGroup{}, Excluded: []string{}, Notes: []string{}}
+	plan := AuditPlan{Groups: []AuditGroup{}, Excluded: []string{}, Notes: []string{}, OmittedFiles: []string{}}
 	selected := []Change{}
 	files := []string{}
 	groupBytes, totalBytes := 0, 0
@@ -61,26 +63,51 @@ func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 	for _, c := range ordered {
 		single := BuildDiff([]Change{c}, excluded, auditGroupBytes)
 		plan.Excluded = append(plan.Excluded, single.Excluded...)
-		plan.Notes = append(plan.Notes, single.Notes...)
-		if single.Text == "" {
-			continue
+		units := []Change{c}
+		if len(single.Excluded) == 0 && validPath(changePath(c)) && single.Text == "" && c.Diff != "" && !strings.HasPrefix(c.Diff, "Binary files") {
+			var chunkNotes []string
+			units, chunkNotes = splitChangeDiff(c, auditGroupBytes)
+			for _, note := range single.Notes {
+				if !strings.HasPrefix(note, "Diff budget exceeded;") {
+					plan.Notes = append(plan.Notes, note)
+				}
+			}
+			plan.Notes = append(plan.Notes, chunkNotes...)
+			if len(chunkNotes) > 0 {
+				plan.OmittedFiles = append(plan.OmittedFiles, changePath(c))
+			}
+		} else {
+			plan.Notes = append(plan.Notes, single.Notes...)
+			if single.Text == "" {
+				continue
+			}
 		}
-		size := len(single.Text)
-		if totalBytes+size > auditTotalDiffBytes {
-			plan.Notes = append(plan.Notes, "Grouped diff total budget exceeded; omitted: "+changePath(c))
-			continue
+		for _, unit := range units {
+			input := BuildDiff([]Change{unit}, nil, auditGroupBytes)
+			size := len(input.Text)
+			if size == 0 {
+				continue
+			}
+			if totalBytes+size > auditTotalDiffBytes {
+				plan.Notes = append(plan.Notes, "Grouped diff total budget exceeded; omitted chunk: "+changePath(c))
+				plan.OmittedFiles = append(plan.OmittedFiles, changePath(c))
+				continue
+			}
+			if len(selected) >= auditGroupFiles || groupBytes+size > auditGroupBytes {
+				flush()
+			}
+			if len(plan.Groups) >= auditMaxGroups {
+				plan.Notes = append(plan.Notes, "Audit group count exceeded; omitted chunk: "+changePath(c))
+				plan.OmittedFiles = append(plan.OmittedFiles, changePath(c))
+				continue
+			}
+			selected = append(selected, unit)
+			if len(files) == 0 || files[len(files)-1] != changePath(c) {
+				files = append(files, changePath(c))
+			}
+			groupBytes += size
+			totalBytes += size
 		}
-		if len(selected) >= auditGroupFiles || groupBytes+size > auditGroupBytes {
-			flush()
-		}
-		if len(plan.Groups) >= auditMaxGroups {
-			plan.Notes = append(plan.Notes, "Audit group count exceeded; omitted: "+changePath(c))
-			continue
-		}
-		selected = append(selected, c)
-		files = append(files, changePath(c))
-		groupBytes += size
-		totalBytes += size
 	}
 	flush()
 	return plan

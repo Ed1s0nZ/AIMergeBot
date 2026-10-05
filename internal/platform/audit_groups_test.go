@@ -45,8 +45,8 @@ func TestAuditGroupPlannerReportsExcludedAndOversized(t *testing.T) {
 		changes = append(changes, Change{NewPath: fmt.Sprintf("f%d.any", i), Diff: "@@ -1 +1 @@\n+" + strings.Repeat("a", 20*1024)})
 	}
 	plan := PlanAuditGroups(changes, []string{"md"})
-	if len(plan.Excluded) != 1 || plan.Excluded[0] != "readme.md" || len(plan.Notes) < 7 {
-		t.Fatal("missing omission coverage", plan)
+	if len(plan.Excluded) != 1 || plan.Excluded[0] != "readme.md" || len(plan.Notes) < 3 {
+		t.Fatal("missing omission coverage", plan.Excluded, plan.Notes)
 	}
 	total := 0
 	for _, g := range plan.Groups {

@@ -108,9 +108,19 @@ func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
 			}
 		}
 		if !c.Deleted {
-			d.Added[p] = lines
+			if d.Added[p] == nil {
+				d.Added[p] = map[int]bool{}
+			}
+			for line, added := range lines {
+				d.Added[p][line] = added
+			}
 		}
-		d.Removed[oldPath] = removed
+		if d.Removed[oldPath] == nil {
+			d.Removed[oldPath] = map[int]bool{}
+		}
+		for line, deleted := range removed {
+			d.Removed[oldPath][line] = deleted
+		}
 	}
 	d.Text = out.String()
 	return d

@@ -45,6 +45,7 @@ export function FollowupAuditPanel({
   };
   const labels: Record<string, string> = {
     included: "纳入本次输入",
+    partial_input: "部分差异纳入，仍有省略",
     group_failed: "所属分组审计失败",
     group_unprocessed: "所属分组未完成",
     not_in_input: "未纳入输入",

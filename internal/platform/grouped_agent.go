@@ -39,7 +39,17 @@ func mergeAuditGroup(base AuditResult, group AuditResult, id string) AuditResult
 		}
 	}
 	base.Investigations = append(base.Investigations, copy.Investigations...)
-	base.MetadataChanges = append(base.MetadataChanges, copy.MetadataChanges...)
+	metadataSeen := map[string]bool{}
+	for _, metadata := range base.MetadataChanges {
+		metadataSeen[metadata.canonical()] = true
+	}
+	for _, metadata := range copy.MetadataChanges {
+		key := metadata.canonical()
+		if !metadataSeen[key] {
+			base.MetadataChanges = append(base.MetadataChanges, metadata)
+			metadataSeen[key] = true
+		}
+	}
 	base.CoverageNotes = append(base.CoverageNotes, copy.CoverageNotes...)
 	return base
 }
@@ -52,10 +62,16 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	}
 	trace := []ToolTrace{}
 	manifestPaths := []string{}
+	manifestSeen := map[string]bool{}
 	for _, g := range plan.Groups {
-		manifestPaths = append(manifestPaths, g.Files...)
+		for _, file := range g.Files {
+			if !manifestSeen[file] {
+				manifestPaths = append(manifestPaths, file)
+				manifestSeen[file] = true
+			}
+		}
 	}
-	manifest, _ := json.Marshal(map[string]any{"files": manifestPaths, "excluded": plan.Excluded, "coverage_notes": plan.Notes})
+	manifest, _ := json.Marshal(map[string]any{"files": manifestPaths, "excluded": plan.Excluded, "coverage_notes": plan.Notes, "omitted_files": plan.OmittedFiles})
 	if len(manifest) > 16*1024 {
 		manifest = []byte(`{"incomplete":true,"reason":"changed-path manifest exceeds budget"}`)
 		result.CoverageNotes = append(result.CoverageNotes, "Changed-path manifest exceeds budget")
@@ -128,15 +144,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	// provenance, once for all accepted findings under the original task deadline.
 	scope := DiffScope{Added: map[string]map[int]bool{}, Removed: map[string]map[int]bool{}, Metadata: map[string]GitChangeMetadata{}}
 	for _, g := range plan.Groups {
-		for p, v := range g.Scope.Added {
-			scope.Added[p] = v
-		}
-		for p, v := range g.Scope.Removed {
-			scope.Removed[p] = v
-		}
-		for p, v := range g.Scope.Metadata {
-			scope.Metadata[p] = v
-		}
+		mergeScopeAnchors(&scope, g.Scope)
 	}
 	tools := &auditTools{repo: e.Repository, snap: snap, scope: scope, cache: map[string]string{}, trace: trace, progress: e.Config.Progress, maxCalls: e.Config.MaxToolCalls}
 	tools.sequenceCheckpoint(result)
