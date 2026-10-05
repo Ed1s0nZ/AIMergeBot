@@ -22,3 +22,9 @@
 4. 队列、租约、重试、评论投递和取消恢复。
 5. CI/版本/构建/备份/部署配置一致性；文档与实际默认值对照。
 6. 未验证外部场景独立列出，不扩大合成测试含义。
+
+## 基线验证与接入约束
+
+当前38fc3f7源码不变：go test ./...通过（platform31.267秒、evaluation3.352秒）；Python27项6.194秒通过，ResourceWarning按error；预算/认证/就绪定向测试2.218秒通过。未声称已有race/vet/前端本轮验证。
+
+本机Eino源码核对：ReAct的MessageRewriter每轮修改累积state.Messages，但函数不能返回error；ADK summarization.BeforeModelRewriteState可以直接调用、state包含Messages和ToolInfos且支持错误。因此适配器需要显式停止机制，不能摘要失败后继续发送超长原消息。摘要默认输出不是业务最终JSON，不应复用强制JSONObject的主审模型配置。其额外请求必须归入共享预算与独立compression阶段trace，工具源码证据仍以服务端原始索引核验；系统约束、固定提交、任务输入及未完成调查应保留。完整设计和反例测试是下一阶段，尚未改变Agent。
