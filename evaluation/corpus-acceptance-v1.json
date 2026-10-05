@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "kind": "authored-held-out-static-acceptance-not-production-benchmark",
+  "cases": [
+    {
+      "id": "case-201",
+      "expectation": "positive",
+      "base_files": {
+        "service.lua": "local users = {token_a = \"alice\", token_b = \"bob\"}\nlocal documents = {a = {owner = \"alice\", body = \"alice-private\"}, b = {owner = \"bob\", body = \"bob-private\"}}\nlocal function read_document(actor, id)\n  local document = documents[id]\n  if not document then return 404, \"missing\" end\n  if document.owner ~= actor then return 403, \"forbidden\" end\n  return 200, document.body\nend\nfunction handle(request)\n  local actor = users[request.headers.authorization]\n  if not actor then return 401, \"login\" end\n  if request.method ~= \"GET\" or request.path ~= \"/documents\" then return 404, \"route\" end\n  return read_document(actor, request.query.id)\nend\nreturn {handle = handle}\n"
+      },
+      "head_files": {
+        "service.lua": "local users = {token_a = \"alice\", token_b = \"bob\"}\nlocal documents = {a = {owner = \"alice\", body = \"alice-private\"}, b = {owner = \"bob\", body = \"bob-private\"}}\nlocal function read_document(actor, id)\n  local document = documents[id]\n  if not document then return 404, \"missing\" end\n  return 200, document.body\nend\nfunction handle(request)\n  local actor = users[request.headers.authorization]\n  if not actor then return 401, \"login\" end\n  if request.method ~= \"GET\" or request.path ~= \"/documents\" then return 404, \"route\" end\n  return read_document(actor, request.query.id)\nend\nreturn {handle = handle}\n"
+      },
+      "expected_anchor": {
+        "file": "service.lua",
+        "side": "base",
+        "line": 6
+      },
+      "rationale": "Removing the owner guard permits token-a + GET /documents?id=b to return bob-private. Source includes identity mapping, attacker-controlled query and document store; the runtime framework invoking exported handle is assumed. No runtime reproduction claimed."
+    },
+    {
+      "id": "case-202",
+      "expectation": "negative",
+      "base_files": {
+        "service.lua": "local users = {token_a = \"alice\", token_b = \"bob\"}\nlocal documents = {a = {owner = \"alice\", body = \"alice-private\"}, b = {owner = \"bob\", body = \"bob-private\"}}\nlocal function read_document(actor, id)\n  local document = documents[id]\n  if not document then return 404, \"missing\" end\n  return 200, document.body\nend\nfunction handle(request)\n  local actor = users[request.headers.authorization]\n  if not actor then return 401, \"login\" end\n  if request.method ~= \"GET\" or request.path ~= \"/documents\" then return 404, \"route\" end\n  return read_document(actor, request.query.id)\nend\nreturn {handle = handle}\n"
+      },
+      "head_files": {
+        "service.lua": "local users = {token_a = \"alice\", token_b = \"bob\"}\nlocal documents = {a = {owner = \"alice\", body = \"alice-private\"}, b = {owner = \"bob\", body = \"bob-private\"}}\nlocal function read_document(actor, id)\n  local document = documents[id]\n  if not document then return 404, \"missing\" end\n  if document.owner ~= actor then return 403, \"forbidden\" end\n  return 200, document.body\nend\nfunction handle(request)\n  local actor = users[request.headers.authorization]\n  if not actor then return 401, \"login\" end\n  if request.method ~= \"GET\" or request.path ~= \"/documents\" then return 404, \"route\" end\n  return read_document(actor, request.query.id)\nend\nreturn {handle = handle}\n"
+      },
+      "expected_anchor": {
+        "file": "service.lua",
+        "side": "head",
+        "line": 6
+      },
+      "rationale": "Adding owner check prevents cross-user document reading on shown handle path. This fixes an earlier defect. Do not report the BASE vulnerability as introduced by this PR."
+    },
+    {
+      "id": "case-203",
+      "expectation": "positive",
+      "base_files": {
+        "gateway.mjs": "import http from 'node:http';\nconst identities = new Map([['Bearer token-a', 'alice'], ['Bearer token-b', 'bob']]);\nhttp.createServer(async (req, res) => {\n  const actor = identities.get(req.headers.authorization);\n  if (!actor) { res.writeHead(401); res.end(); return; }\n  if (req.method !== 'GET' || req.url !== '/profile') { res.writeHead(404); res.end(); return; }\n  const headers = {...req.headers, 'x-principal': actor};\n  const reply = await fetch('http://profiles.internal/profile', {headers});\n  res.writeHead(reply.status); res.end(await reply.text());\n}).listen(8080);\n"
+      },
+      "head_files": {
+        "gateway.mjs": "import http from 'node:http';\nconst identities = new Map([['Bearer token-a', 'alice'], ['Bearer token-b', 'bob']]);\nhttp.createServer(async (req, res) => {\n  const actor = identities.get(req.headers.authorization);\n  if (!actor) { res.writeHead(401); res.end(); return; }\n  if (req.method !== 'GET' || req.url !== '/profile') { res.writeHead(404); res.end(); return; }\n  const headers = {'x-principal': actor, ...req.headers};\n  const reply = await fetch('http://profiles.internal/profile', {headers});\n  res.writeHead(reply.status); res.end(await reply.text());\n}).listen(8080);\n"
+      },
+      "expected_anchor": {
+        "file": "gateway.mjs",
+        "side": "head",
+        "line": 7
+      },
+      "rationale": "Object spread order lets token-a request X-Principal:bob override authenticated alice. Listed internal profile service trusts X-Principal and returns bob private email. Identity/caller control are in primary HTTP source. Deployment mapping is static and actual downstream dispatch remains a condition.",
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "profiles.py": "from flask import Flask, request, jsonify\napp = Flask(__name__)\nprofiles = {\"alice\": {\"private_email\": \"alice@private.test\"}, \"bob\": {\"private_email\": \"bob@private.test\"}}\n@app.get(\"/profile\")\ndef profile():\n    actor = request.headers.get(\"X-Principal\")\n    if actor not in profiles:\n        return jsonify(error=\"unauthorized\"), 401\n    return jsonify(profiles[actor])\n",
+            "deployment.conf": "service_name=profiles.internal\nhandler=profiles.py\nexposure=internal-service\n"
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-204",
+      "expectation": "negative",
+      "base_files": {
+        "gateway.mjs": "import http from 'node:http';\nconst identities = new Map([['Bearer token-a', 'alice'], ['Bearer token-b', 'bob']]);\nhttp.createServer(async (req, res) => {\n  const actor = identities.get(req.headers.authorization);\n  if (!actor) { res.writeHead(401); res.end(); return; }\n  if (req.method !== 'GET' || req.url !== '/profile') { res.writeHead(404); res.end(); return; }\n  const headers = {...req.headers, 'x-principal': actor};\n  const reply = await fetch('http://profiles.internal/profile', {headers});\n  res.writeHead(reply.status); res.end(await reply.text());\n}).listen(8080);\n"
+      },
+      "head_files": {
+        "gateway.mjs": "import http from 'node:http';\nconst identities = new Map([['Bearer token-a', 'alice'], ['Bearer token-b', 'bob']]);\nhttp.createServer(async (req, res) => {\n  const actor = identities.get(req.headers.authorization);\n  if (!actor) { res.writeHead(401); res.end(); return; }\n  if (req.method !== 'GET' || req.url !== '/profile') { res.writeHead(404); res.end(); return; }\n  const headers = {'x-principal': actor, ...req.headers};\n  const reply = await fetch('http://profiles.internal/profile', {headers});\n  res.writeHead(reply.status); res.end(await reply.text());\n}).listen(8080);\n"
+      },
+      "expected_anchor": {
+        "file": "gateway.mjs",
+        "side": "head",
+        "line": 7
+      },
+      "rationale": "Same header-order diff, but downstream derives actor from Authorization token independently and ignores X-Principal. token-a with forged X-Principal:bob still selects alice. No new private-data exposure on this route; upstream header pollution alone is not demonstrated harmful.",
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "profiles.py": "from flask import Flask, request, jsonify\napp = Flask(__name__)\ntokens = {\"Bearer token-a\": \"alice\", \"Bearer token-b\": \"bob\"}\nprofiles = {\"alice\": {\"private_email\": \"alice@private.test\"}, \"bob\": {\"private_email\": \"bob@private.test\"}}\n@app.get(\"/profile\")\ndef profile():\n    actor = tokens.get(request.headers.get(\"Authorization\"))\n    if actor not in profiles:\n        return jsonify(error=\"unauthorized\"), 401\n    return jsonify(profiles[actor])\n",
+            "deployment.conf": "service_name=profiles.internal\nhandler=profiles.py\nexposure=internal-service\n"
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-205",
+      "expectation": "negative",
+      "base_files": {
+        "client.go": "package catalog\nimport (\n \"bytes\"\n \"encoding/json\"\n \"net/http\"\n)\nfunc List() (*http.Response, error) {\n payload, err := json.Marshal(map[string]any{})\n if err != nil { return nil, err }\n return http.Post(\"http://catalog.internal/list\", \"application/json\", bytes.NewReader(payload))\n}\n"
+      },
+      "head_files": {
+        "client.go": "package catalog\nimport (\n \"bytes\"\n \"encoding/json\"\n \"net/http\"\n)\nfunc List() (*http.Response, error) {\n payload, err := json.Marshal(map[string]any{\"limit\": 20})\n if err != nil { return nil, err }\n return http.Post(\"http://catalog.internal/list\", \"application/json\", bytes.NewReader(payload))\n}\n"
+      },
+      "expected_anchor": {
+        "file": "client.go",
+        "side": "head",
+        "line": 8
+      },
+      "rationale": "Explicit limit20 preserves downstream default20; service enforces integer1..20. Missing caller/runtime is a coverage gap, not evidence of compatibility regression or resource exhaustion.",
+      "context_repositories": [
+        {
+          "repository_id": 2,
+          "files": {
+            "catalog.py": "from flask import Flask, request, jsonify\napp = Flask(__name__)\nitems = list(range(100))\n@app.post(\"/list\")\ndef list_items():\n    payload = request.get_json()\n    limit = payload.get(\"limit\", 20)\n    if not isinstance(limit, int) or limit < 1 or limit > 20:\n        return jsonify(error=\"limit\"), 400\n    return jsonify(items=items[:limit])\n",
+            "deployment.conf": "service_name=catalog.internal\nhandler=catalog.py\n"
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-206",
+      "expectation": "negative",
+      "base_files": {
+        "app.py": "from flask import Flask, request\nimport logging\napp = Flask(__name__)\n@app.get(\"/calculate\")\ndef calculate():\n    expression = request.args.get(\"expression\", \"0\")\n    logging.info(\"calculation request\")\n    return str(eval(expression))\n"
+      },
+      "head_files": {
+        "app.py": "from flask import Flask, request\nimport logging\napp = Flask(__name__)\n@app.get(\"/calculate\")\ndef calculate():\n    expression = request.args.get(\"expression\", \"0\")\n    logging.info(\"calculation received\")\n    return str(eval(expression))\n"
+      },
+      "expected_anchor": {
+        "file": "app.py",
+        "side": "head",
+        "line": 8
+      },
+      "rationale": "Unchanged eval(expression) is dangerous and reachable in BASE/HEAD. Changing only a constant log message changes neither evaluation nor input flow. Do not attribute this historical flaw as a new PR finding; separate existing-risk context if desired."
+    }
+  ]
+}

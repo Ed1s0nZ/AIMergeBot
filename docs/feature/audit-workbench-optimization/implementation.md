@@ -148,3 +148,9 @@ v20同配置4例结果未满足负对照：102模型不查看已配置的billing
 新增独立复核claim_coverage=full/partial/unknown声明，覆盖标题、描述、触发及具体附加后果。新supported且非full（含缺失）经服务器降为inconclusive，候选不删除，原解释与limitations保留；原有来源/锚点/固定提交限制继续先校验。旧已保存记录不重写；新字段兼容已有API展示与SARIF属性，策略v25。模型可能误判full，该门槛只防止显式部分支持成为全文背书，不宣称自动语义证明。
 
 解析/完整来源/partial/unknown/缺字段/拒绝/1000字上限定向通过0.660s，实际SDK新partial与缺字段模式保留原候选且有覆盖说明，通过0.564s；范围与来源race通过1.755s；Go全量通过（platform42.606s）；git diff --check通过。真实模型对新增契约的遵循仍需另行验证，未把SDK合成输出当真实质量结果；独立验收集、真实多组和最终UI验收未完成。
+
+## v25 实际复核与验收集冻结
+
+真实4例复核均结束receipt；101/102/103各1候选且claim_coverage=partial，服务器降inconclusive；104零发现。490166 token。101伤害方向相反、102负例再次误报且复核计算错误，降级不等于消除误报，evaluation-cross-v25.md保留失败与逐项解释。250原始文件SHA256归档。
+
+另外冻结未参与此前调优的6例corpus-acceptance-v1.json，外部人工真值包括Lua保护删除/修复、JS到Python身份头覆盖及独立认证反证、Go到Python兼容默认参数、Python无关日志PR与既存eval。协议明确不据同一验收输出调优再声称未见、逐条判断附加断言而非计数。SHA256 8fc3da20d047082dd6a2e37460afe4254ab4870e52c26735b27fbc563e0474af；临时只读输入验证程序使用实际LoadCorpus、BuildRepository、PrepareContextFixtures成功构造全部6个固定Git输入，未运行样例/模型，程序及生成目录已清理。无生产代码变更不重复全量测试。真实验收结果待运行，整体仍未完成。
