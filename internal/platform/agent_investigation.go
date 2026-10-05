@@ -96,7 +96,7 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("get_change_metadata", "Read canonical Git metadata for an included changed path. Use the entire text as metadata finding evidence, anchor_type git_metadata and line 0. File modes/object IDs are facts, not proof of a vulnerability.", t.changeMetadata)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("list_files", "List head file names, page size 100.", t.list)); e != nil {
+	if e := add(utils.InferTool("list_files", "List head file names, page size 100. Enumeration is not source evidence; evidence_eligible=false.", t.list)); e != nil {
 		return nil, e
 	}
 	if e := add(utils.InferTool("search_code", "Search all pinned text files, literal or extended regex, path prefix, extension and case filtering. Continue next_cursor when more. Lexical matches are not semantic references.", t.search)); e != nil {
@@ -126,7 +126,7 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("record_hypothesis", "Record concise factual claim, evidence, counterevidence, observation_ids, counter_observation_ids and next_steps; not private reasoning. Returns generated id.", t.record)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids or counterevidence/counter_observation_ids linking successful source observations. Does not prove exploitability.", t.update)); e != nil {
+	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids for supported; rejected REQUIRES counterevidence AND counter_observation_ids. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Does not prove exploitability.", t.update)); e != nil {
 		return nil, e
 	}
 	if e := add(utils.InferTool("submit_finding", "Validate proposed finding against changed base/head lines or verified Git metadata and exact snapshot evidence; matching evidence does not establish runtime verification.", t.submit)); e != nil {

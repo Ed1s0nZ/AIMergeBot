@@ -29,16 +29,18 @@ type searchArgs struct {
 	Base       bool   `json:"base"`
 }
 type toolOutput struct {
-	Metadata      *GitChangeMetadata `json:"metadata,omitempty"`
-	ObservationID string             `json:"observation_id"`
-	BaseSHA       string             `json:"base_sha"`
-	HeadSHA       string             `json:"head_sha"`
-	NextCursor    int                `json:"next_cursor,omitempty"`
-	Remaining     bool               `json:"remaining,omitempty"`
-	Text          string             `json:"text"`
-	Files         []string           `json:"files,omitempty"`
-	More          bool               `json:"more,omitempty"`
-	Error         string             `json:"error,omitempty"`
+	EvidenceEligible       bool               `json:"evidence_eligible"`
+	EligibleObservationIDs []string           `json:"eligible_observation_ids,omitempty"`
+	Metadata               *GitChangeMetadata `json:"metadata,omitempty"`
+	ObservationID          string             `json:"observation_id"`
+	BaseSHA                string             `json:"base_sha"`
+	HeadSHA                string             `json:"head_sha"`
+	NextCursor             int                `json:"next_cursor,omitempty"`
+	Remaining              bool               `json:"remaining,omitempty"`
+	Text                   string             `json:"text"`
+	Files                  []string           `json:"files,omitempty"`
+	More                   bool               `json:"more,omitempty"`
+	Error                  string             `json:"error,omitempty"`
 }
 
 type auditTools struct {
@@ -120,7 +122,20 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 		trace.Error = err.Error()
 		out.Error = err.Error()
 	}
+	out.EvidenceEligible = err == nil && isSourceTool(name) && strings.TrimSpace(out.Text) != ""
 	t.mu.Lock()
+	if err != nil {
+		for i := len(t.trace) - 1; i >= 0 && len(out.EligibleObservationIDs) < 20; i-- {
+			prior := t.trace[i]
+			if prior.Error != "" || !isSourceTool(prior.Name) {
+				continue
+			}
+			var evidence toolOutput
+			if json.Unmarshal([]byte(prior.Output), &evidence) == nil && evidence.Error == "" && strings.TrimSpace(evidence.Text) != "" && evidence.BaseSHA == t.snap.BaseSHA && evidence.HeadSHA == t.snap.HeadSHA {
+				out.EligibleObservationIDs = append(out.EligibleObservationIDs, prior.ObservationID)
+			}
+		}
+	}
 	encoded, _ := json.Marshal(out)
 	trace.Output = string(encoded)
 	trace.ObservationID = out.ObservationID

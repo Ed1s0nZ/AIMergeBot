@@ -32,13 +32,35 @@ func responseDiagnostic(raw string, err error) string {
 		code = typed.Code
 	}
 	shape := struct {
-		Code      string `json:"code"`
-		Bytes     int    `json:"bytes"`
-		Fenced    bool   `json:"fenced"`
-		ValidJSON bool   `json:"valid_json"`
-	}{code, len(raw), strings.HasPrefix(strings.TrimSpace(raw), "```"), false}
+		Code         string `json:"code"`
+		Bytes        int    `json:"bytes"`
+		Fenced       bool   `json:"fenced"`
+		ValidJSON    bool   `json:"valid_json"`
+		FirstToken   string `json:"first_token"`
+		SyntaxOffset int64  `json:"syntax_offset,omitempty"`
+	}{Code: code, Bytes: len(raw), Fenced: strings.HasPrefix(strings.TrimSpace(raw), "```"), FirstToken: "other"}
 	if len(raw) <= 128*1024 {
 		shape.ValidJSON = json.Valid([]byte(raw))
+		var value any
+		var syntax *json.SyntaxError
+		if parseErr := json.Unmarshal([]byte(raw), &value); errors.As(parseErr, &syntax) {
+			shape.SyntaxOffset = syntax.Offset
+		}
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			shape.FirstToken = "empty"
+		} else {
+			switch trimmed[0] {
+			case '{':
+				shape.FirstToken = "object"
+			case '[':
+				shape.FirstToken = "array"
+			case '"':
+				shape.FirstToken = "string"
+			case '`':
+				shape.FirstToken = "backtick"
+			}
+		}
 	}
 	b, _ := json.Marshal(shape)
 	return string(b)

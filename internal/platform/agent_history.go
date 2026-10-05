@@ -39,7 +39,7 @@ func (t *auditTools) gitQuery(ctx context.Context, name string, a gitArgs) (tool
 		if limit == 0 {
 			limit = 20
 		}
-		if limit < 1 || limit > 100 {
+		if (name == "get_history" || name == "search_history" || name == "git_blame") && (limit < 1 || limit > 100) {
 			return toolOutput{}, fmt.Errorf("limit must be 1–100")
 		}
 		var args []string
