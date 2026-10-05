@@ -102,3 +102,7 @@ AuditGit当前只有96KiB整体BuildDiff，未使用已有PlanAuditGroups/单文
 原生Git对象与真实HTTP模型协议验证五模式：大文件多组、总预算省略、策略排除、汇总压缩成功和失败；定向测试通过。实际构建CLI验证stdout JSON及完成0/覆盖不完整2/失败1退出码，4.679秒通过。新增汇总阶段中文标签，React TypeScript/Vite构建980ms通过，go vet通过，压缩/纯Git/覆盖停止/SQLite定向race5.812秒通过。全回归首次发现旧单调查HTTP脚本依赖共享125文件fixture不分组，当前分组生效后应分别验证：旧调查用排除扩展名限制范围（此配置是排除列表），大型多组由新测试覆盖；修订后完整Go回归进行中。此记录不声称main或1234已更新。先前a53376f远端CI37292733102全部success，只证明该快照，当前切片需要独立CI。
 
 修订后的完整Go回归通过（platform31.191秒）。最后核对退出契约时补充：incomplete即使伴随覆盖停止error也退出2；仅执行失败/error而非incomplete退出1，增加针对分类优先级回归。
+
+## F6 / main与1234交付
+
+源码bb19914已通过远端CI37294855358；main快进38a42fe并推送成功，随后精确head手动CI37295639220全success。独立子代理依pr-review再检视完整base447fc73/head38a42fe，COMMENT、无blocking finding，实际定向platform3.180/root3.669秒通过；文档增量已分类。生产干净38a42fe构建vcs.modified=false，go-sqlite3 v1.14.52，用户launchd单实例升级到Library运行目录。升级前物理配置/DB/二进制一致备份校验，恢复后业务表内容hash/数量相同；失败可回到旧服务。readyz、登录、设置save/revision/刷新、凭据保留不回显、源目录config.yaml链接一致、项目/静态资源和浏览器登录页验证通过。保留现有自动轮询/Webhook/评论false，没有额外GitLab写入。私有证明不提交；后续备份用物理运行目录，源root旧DB不是活动DB。原先历史/大型/跨仓库真实质量、公网Webhook/Linux的用户延期决定继续如实保留，详见release-readiness。

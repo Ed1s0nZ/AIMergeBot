@@ -2,7 +2,7 @@
 
 ## 1. Review Metadata
 
-Repository：Ed1s0nZ/AIMergeBot；本地分支差异，无PR。Base：main @ 447fc73045766e862efb56f48492964659da6b3c；Head：codex/formal-release-hardening @ bb19914f79d4236e930663dff312a229ca24a154。时间：2026-10-05；Reviewer：Codex（实现者自检，非独立审批）。状态CURRENT；READ_ONLY；INITIAL；此前本切片报告无，旧生产报告不被作为本切片批准。
+Repository：Ed1s0nZ/AIMergeBot；本地分支差异，无PR。Base：main @ 447fc73045766e862efb56f48492964659da6b3c；Head：codex/formal-release-hardening @ bb19914f79d4236e930663dff312a229ca24a154。时间：2026-10-05；Reviewer：Codex（实现者自检，非独立审批）。状态STALE（后续文档提交及部署已发生；不作为最终head批准）；READ_ONLY；INITIAL；此前本切片报告无，旧生产报告不被作为本切片批准。
 
 ## 2. Decision
 
@@ -56,3 +56,7 @@ macOS/Go1.27.1：完整Go测试exit0，platform31.191秒；最后CLI分类更改
 ## 12. Machine-readable Summary
 
 `decision=INCOMPLETE; mergeable=unknown; blockers=0; independent_review=false; CI=pending; main_deployed=false`。
+
+## 后续证据索引（不修改冻结决定）
+
+独立检视冻结base447fc73/head38a42fe，COMMENT、无blocking finding；实际定向platform3.180/root3.669秒通过，并核对bb19914至38a42fe只有报告文档。完整原范围/生成产物/来源隔离/成本/取消/public stage/CLI/HTTP/SQLite/CI均已分类；真实质量和外部验证边界保持。当前发布交付见release-readiness.md；此历史报告原INCOMPLETE不被重写成独立APPROVE。
