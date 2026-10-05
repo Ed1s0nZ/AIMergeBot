@@ -341,3 +341,9 @@ P10验收阶段，11B程序及现有原生恢复fixture为上游，允许窄范�
 新增独立--gitlab-write-preview、合成Webhook凭据及评论开关、MR project_id/sha与CLI环境session传递。首轮因macOS /var实际symlink的私有目录检查拒绝，在调用端传root.resolve真实路径，未降低工具规则。第二轮已创建pending run但真实API comment_sync=null触发程序AttributeError提前退出，原生证明未成立；修复detail/converged将null视为尚未建立同步，补真实HTTP首轮pending/null再终态测试。9项工具测试2.221秒通过。
 
 第三轮19264/19265原生演练exit0：实例自然租约过期恢复保持既有证明；MR92通过Webhook新run5、去重同run、真实Eino两次HTTP、同discussion/note更新、显式人工编辑、第二次review进入conflict并保留正文。fixture核对create=1、PUT=2（应用更新+验收人工编辑），证明JSONL/总体proof本机0600。使用已有干净c789432应用二进制，当前脚本来自工作区；未声称此二进制包含最新脚本提交版本，未改1234。该证据完成程序与真实Worker本机集成，不证明用户GitLab网络投递或真实模型质量；授权外部MR和其他验收继续未完成。
+
+## F5 / 切片12G查看成员实际界面权限
+
+19258隔离实例通过管理员API建立合成ui-fixture-viewer成员及项目1 viewer授权，真实浏览器退出管理员再登录该合成成员。设置旧路由显示页面不存在或无权限，管理员导航隐藏；任务列表无新建入口且解释无可执行项目，已授权报告可读、复核控件隐藏并提示需授权，补审仅查看固定清单且提示提交需操作权限。历史移动关联空状态显示只读，项目页仅项目1且无添加/成员授权/关联仓库/停用入口，未授权项目2不显示。
+
+元数据发现不符合行锚点移动关联，seed_move_report原样生成8无候选是预期，不能把空状态当候选只读验证。另以明确合成持久化记录9构造行发现（不改原生5/6结果），重新计算服务端兼容指纹，再生成10。实际界面展示9→10移动候选、两端链接/事实展开及只读提示，没有理由输入或确认/拒绝/撤回按钮。此fixture仅验证权限UI，不证明Git移动或模型质量，私有viewer-association.jpg 0600。完成R6候选viewer只读和R4管理员配置入口限制；跨仓库报告权限交集仍由已有实际HTTP/Store验证承担，不把此主仓库viewer界面当跨仓库授权撤销全覆盖。
