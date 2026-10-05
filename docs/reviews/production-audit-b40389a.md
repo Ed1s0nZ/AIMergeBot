@@ -1,3 +1,5 @@
+> STALE / SUPERSEDED：当前检视见 production-audit-c674a58.md；本报告仅保留历史快照证据。
+
 # PR Review — PRR-001 re-review @ b40389a
 
 ## 1. Review Metadata
