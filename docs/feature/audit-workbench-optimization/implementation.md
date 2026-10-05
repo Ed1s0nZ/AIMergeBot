@@ -33,3 +33,11 @@ platform_reviews新增revision，历史记录迁移初始1，迁移幂等。Stor
 验证：Go全量通过（platform 53.825s）；复核及HTTP隔离定向race通过（5.948s）；定向版本测试通过；前端类型检查和最终build通过。测试覆盖首次并发、陈旧更新、评论generation不变、缺失条件、旧表迁移/历史保留及API400/409/204。早期全量失败为旧HTTP fixture未传版本，已迁移后重跑。
 
 本地真实组件浏览器样例验证草稿保留、禁用提交、保留草稿恢复、加载最新及未编辑表单同步。截图/tmp/aimangebot-review-conflict-proof.png为受控样例，非生产操作；预览文件和服务已清理。未进行真实多人账号线上E2E，未部署。窄屏和网络错误的完整验证仍留在最终QA。
+
+## 切片5A：固定Git文件清单缓存
+
+GitRepository.paths复用每实例Directory+完整SHA清单，最多2项、估算8MiB；串行合并并发加载，失败不缓存，FIFO淘汰，返回切片复制。取消在命中前仍检查；上下文工具的权限检查保持，未缓存授权。超限拒绝完整请求，不返回截断清单。额外内存为每GitRepository最高估算8MiB缓存，返回切片及加载瞬间有额外临时开销，不能把该上限解释为整个审计内存上限。
+
+检查门槛：原git_repository.go小于800行，新增缓存放独立模块；无UI/API/schema变更，不改变工具契约与策略。验证：定向race（GitPathCache与ContextBatch）通过8.221s；超大清单测试通过0.910s；Go全量通过（platform 44.472s）；git diff --check通过。实测8个并发同SHA请求只执行1次Git ls-tree，BASE另执行1次；目录变化、无效对象、取消和返回值修改均覆盖。此结果证明减少清单查询，未测端到端耗时。
+
+仍需轻量任务状态轮询、发现筛选、SARIF、完整风险链与交接、多语言跨仓库质量评测及最终QA，整体目标保持未完成。

@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -22,6 +23,9 @@ type GitRepository struct {
 	Directory      string
 	Metadata       Repository
 	HistoryLimited bool
+	pathMu         sync.Mutex
+	pathCache      []gitPathCacheEntry
+	pathCacheBytes int
 }
 
 var commitID = regexp.MustCompile(`^[a-fA-F0-9]{40}([a-fA-F0-9]{24})?$`)
@@ -109,14 +113,7 @@ func (g *GitRepository) paths(ctx context.Context, s Snapshot, base bool) ([]str
 	if e != nil {
 		return nil, e
 	}
-	out, e := g.command(ctx, "ls-tree", "-r", "-z", "--name-only", r)
-	if e != nil {
-		return nil, e
-	}
-	if out == "" {
-		return []string{}, nil
-	}
-	return strings.Split(strings.TrimSuffix(out, "\x00"), "\x00"), nil
+	return g.cachedPaths(ctx, r)
 }
 func (g *GitRepository) ListFiles(ctx context.Context, s Snapshot, page int) ([]string, bool, error) {
 	if page < 1 {
