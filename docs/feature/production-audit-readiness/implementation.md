@@ -46,3 +46,7 @@ model_budget新增input_price_per_million、output_price_per_million、currency�
 ## F4/F5 / 切片3实现与验证
 
 历史PR语料使用本机仓库根目录和完整固定SHA，CLI预先验证所有源对象后才创建产物/调用模型。Git对象读取复用既有保护，不检出/联网/执行源码。真实源和fixture不能混用；ground-truth/output路径含符号链接的真实位置校验阻止标签进入任何源仓库，并拒绝用子目录冒充仓库根来绕过边界。测试验证固定BASE/HEAD读取、脏工作树保留、neutralID/标签隔离、无效ref/缺失commit、混合输入、直接与symlink路径隔离、嵌套源目录拒绝。完整Go(platform19.579秒)与vet通过，新增入口定向检查独立通过；没有真实授权PR质量记录，等待用户提供测试对象。已请求测试项目/MR与验收评论授权，不要求用户发送密钥。
+
+## F2/F3 / 切片4：独立复核模型选择
+
+新增verification_model（同一已配置兼容API中的模型名称，空继承主模型），不引入新凭据/新数据接收方。冻结策略及摘要；Agent仅在复核阶段创建该模型，主审/汇总/时序图保持主模型。复核初始化失败保留发现并标记unavailable，不静默回退主模型。复核trace标真实模型，FindingVerification展示server-owned model值；模型字段不从生成JSON接受。主审和复核共享token阈值。model_budget新增verification_pricing_configured及对应输入/输出单价；不同模型且未配置价格时不估算整个尝试总费用，不能套主模型价格。复核prompt改为configured verification model而非same model，仍明确静态非运行证明。测试模型请求路由、缺省同模型、独立配置/落盘/冻结/预算与计价不混用，前端展示选择与使用模型。外部多提供商端点与新凭据不在本切片，不扩大发送范围。
