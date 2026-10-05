@@ -295,3 +295,7 @@ MR92合成模型改按system阶段与本轮tool observation响应，支持多次
 ## F5 / 切片12D路由清理及补审界面实证
 
 从c789432干净源码构建真实二进制，19258/19259恢复+元数据+独立复核+补审fixture退出证明正确，UI进程继续用于验收。关闭此前自己19250/19256演练，原句柄均exit0，未改生产。浏览器实际登录，连续任务5→任务6→项目（未刷新掩盖）：真实DOM选文件补审region计数1→1→0，项目heading1，旧面板消失；任务6coverage不完整，展开固定清单显示原任务#5补审和entry.any，不声称全量完成。私有followup-validated.jpg/route-clean.jpg 0600留本机。此实证完成12D修复后验证及12B成功结果显示。生产仍旧二进制，无readyz，ops-healthcheck如预期unavailable，不解释为新发布成功。跨仓库界面/实际质量/GitLab授权/最终main与1234继续未完成。
+
+## F5 / 切片12E跨仓库配置界面及持久化
+
+隔离19258真实浏览器项目1无可关联项目时添加按钮禁用；通过界面登记合成项目2后可添加，选择2、输入invalid提交被完整40/64位SHA校验拒绝且保留输入。改为明确合成40个b保存成功，整页reload后重新展开仍为项目2及同一SHA。只读SQLite核对platform_context_repositories精确(1,2,合成SHA)，仅断言私有config.yaml包含预期SHA，不输出其他配置；系统Python无PyYAML，因此未声称完整YAML解析验证。截图context-saved.jpg本机0600。随后实际移除行并保存，界面显示空关联与同步成功，SQLite计数0且config.yaml不再含该SHA。此合成项目配置验收不代表该SHA存在于真实GitLab或Agent跨仓库质量，不改变生产1234。真实质量样本、权限界面、GitLab授权与最终main/部署仍待完成。
