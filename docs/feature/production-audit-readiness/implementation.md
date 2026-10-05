@@ -235,3 +235,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F4/F5 / 切片10C4容量边界原生验收
 
 新增ops_capacity_drill.py，接入--capacity-preview与独立MR100–149阻塞合成模型。真实HTTP Barrier40并发，原生Worker/SQLite/global4/project-user运行1。首轮全部容量断言通过但清理重复取消已取消任务返回409；修正清理跳过已取消ID后，在19244/19245完整重跑SIGKILL真实租约恢复与容量流程退出0：40提交仅3新建/37明确quota429，加原pending总计4；一秒采样running=1、outstanding=4，满额duplicate复用、不新增；取消pending释放后MR149创建成功，总数仍4，清理所有新增任务。HTTP提交p95观察0.076秒，仅本机fixture值，不宣称真实模型吞吐量/绝对性能。相关Quota race测试5.763秒通过，py_compile/diff检查通过。私有proof/config/DB未上传；1234保持不变。R8实际生产监控/最终切换、R2预算崩溃、R7真实GitLab、R1质量与UI/main验收仍需完成。
+
+## F2/F3 / 切片10C5启用预算原生崩溃
+
+新增互斥--budget-crash-preview，复用固定合成MR91/真实二进制/临时DB，max_tokens=100，首轮真实SDK返回usage20并读取文件，第二模型请求等待响应。确认checkpoint中已知20和发送前pending usage未知记录后SIGKILL；立即新进程不得取得有效租约，等待原SQL租约自然到期再启动。必须保留相同trace/result、将父任务failed且retry_info.state=model_usage_unknown、不生成子任务、上游请求仍2（不重发未知消耗），原预算仍100。该策略停止自动恢复以避免未知请求重新获得预算，不声称未收到响应的消耗为0。finally清理全部自己的进程，私有证明0600。其他已知余额/阈值/跨retry的验证由现有race测试补充；本片补足实际SIGKILL边界，不执行真实模型付费请求。
