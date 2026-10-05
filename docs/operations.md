@@ -192,6 +192,6 @@ python3 scripts/gitlab-write-acceptance.py \
 
 原生本机联测可运行 `python3 scripts/smoke-worker-recovery.py --binary /absolute/aimangebot --gitlab-write-preview --app-port 19264 --upstream-port 19265`（选择空闲隔离端口）。该模式单独运行，创建合成Webhook/评论，先验证原生租约恢复再运行完整写入CLI，核对一次create、同note更新与人工冲突保留。上游仅localhost，不访问真实配置或GitLab。
 
-写入验收的终态去重阶段要求首轮 `succeeded`。首轮 `incomplete` 即使已经发出评论也会保留证据并停止，记录 `audit_incomplete_stop` / `deduplication_not_verified`；平台允许用户重审不完整任务，故不能靠再次Webhook来无副作用地验证这种终态去重。停止不等于审计结果无效，也不代表去重/更新/冲突已验收，不能盲目重跑。
+写入验收的终态去重阶段要求首轮 `succeeded`。首次读取到 `incomplete` 即保留证据并停止，包括真实平台没有评论同步记录的情况，不等待评论；即使兼容上游已经发出评论也不继续，记录 `audit_incomplete_stop` / `deduplication_not_verified`；平台允许用户重审不完整任务，故不能靠再次Webhook来无副作用地验证这种终态去重。停止不等于审计结果无效，也不代表去重/更新/冲突已验收，不能盲目重跑。
 
 专用写入验收期间也需避免目标分支BASE、模型/审计设置及策略版本并发变更：平台去重身份包含这些值，客户端当前HEAD检查不是原子提交前置条件。变化可能在第二Webhook后才被检测，产生新任务；不可宣称任意并发情况下只执行一次审计。

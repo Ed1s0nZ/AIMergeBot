@@ -79,6 +79,9 @@ def run(args, credentials, record, send=request, pause=time.sleep, clock=time.mo
         r = d['run']
         if (r['id'], r['project_id'], r['mr_iid'], r['head_sha']) != (run_id, args.project_id, args.mr_iid, args.head_sha):
             raise ValueError('run mismatch')
+        if r['status'] == 'incomplete':
+            record('audit_incomplete_stop', run_id=run_id, deduplication_not_verified=True)
+            raise ValueError('complete audit required for terminal deduplication')
         if r['status'] in ('failed', 'cancelled'):
             raise ValueError('audit failed')
         if (d.get('comment_sync') or {}).get('state') in ('blocked', 'conflict', 'stopped'):
@@ -88,14 +91,9 @@ def run(args, credentials, record, send=request, pause=time.sleep, clock=time.mo
     def converged(min_generation=1):
         d = detail()
         s = d.get('comment_sync') or {}
-        return d if d['run']['status'] in ('succeeded', 'incomplete') and s.get('state') == 'sent' and s.get('sent_generation', 0) >= min_generation and s.get('sent_generation') == s.get('desired_generation') else None
+        return d if d['run']['status'] == 'succeeded' and s.get('state') == 'sent' and s.get('sent_generation', 0) >= min_generation and s.get('sent_generation') == s.get('desired_generation') else None
 
     first = wait(converged)
-    # Incomplete terminal runs can be resubmitted by the application. Replaying
-    # here would create another model audit rather than prove deduplication.
-    if first['run']['status'] != 'succeeded':
-        record('audit_incomplete_stop', run_id=run_id, deduplication_not_verified=True)
-        raise ValueError('complete audit required for terminal deduplication')
     duplicate = trigger()
     if duplicate != {'id': run_id, 'created': False}:
         raise ValueError('webhook dedup mismatch')

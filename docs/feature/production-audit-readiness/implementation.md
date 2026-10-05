@@ -433,3 +433,7 @@ Workflow Gate P10，上游为R2/R7静态审计契约与上述实际模型结果�
 ## F2/F3 / PRR-004真实incomplete无评论即时停止
 
 P10，专用GitLab实测与既有comment仅succeeded契约为上游，允许窄修复验收CLI。首轮detail一旦status=incomplete，即记录audit_incomplete_stop并失败，不等待sent；当前门控放converged之后在真实comment_sync=null时永不到达，只会等满600秒。禁止第二Webhook/review/note写入保持；保留既有首轮任务。把门控前移detail，去除后置重复门控；HTTP回归增加pending/null→incomplete/null反例，断言读取两次即停止、仅初次POST，与incomplete/sent及正常成功路径同验证。错误阶段/JSONL字段不新增、不扩大写入授权，生产平台不变。同步ops说明，随后独立上下文检查当前提示词与工具delta，正式记录修复状态。
+
+## F4/F5 / PRR-004提前停止实现
+
+验收CLI在已核对run身份的detail阶段发现incomplete立即记录原停止阶段并失败；converged只接受succeeded，不等不存在的评论同步，不重复Webhook。新增pending/null→incomplete/null真实HTTP反例读取恰好2次、仅一次POST且记录dedup未验证；原incomplete/sent反例保持。11项GitLab receipt/write回归通过（初轮3.986秒），正常成功/同note更新/人工冲突路径无变化。ops同步即时停止说明；完整正式re-review随后进行。

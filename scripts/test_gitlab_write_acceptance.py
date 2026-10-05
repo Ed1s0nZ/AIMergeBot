@@ -53,7 +53,7 @@ class WriteAcceptanceTests(unittest.TestCase):
                     state['detail_reads'] += 1
                     if state['detail_reads'] == 1:
                         return self.respond({'run': {'id': 1, 'project_id': 2, 'mr_iid': 3, 'head_sha': sha, 'status': 'pending'}, 'comment_sync': None})
-                    return self.respond({'run': {'id': 1, 'project_id': 2, 'mr_iid': 3, 'base_sha': 'd' * 40, 'head_sha': sha, 'status': 'incomplete' if mode == 'incomplete' else 'succeeded', 'result': {'findings': [] if mode == 'empty' else [{'id': 'finding'}]}}, 'comment_sync': {'state': state['sync'], 'sent_generation': state['generation'], 'desired_generation': state['desired'], 'discussion_id': 'discussion', 'note_id': 4}})
+                    return self.respond({'run': {'id': 1, 'project_id': 2, 'mr_iid': 3, 'base_sha': 'd' * 40, 'head_sha': sha, 'status': 'incomplete' if mode.startswith('incomplete') else 'succeeded', 'result': {'findings': [] if mode == 'empty' else [{'id': 'finding'}]}}, 'comment_sync': None if mode == 'incomplete_no_comment' else {'state': state['sync'], 'sent_generation': state['generation'], 'desired_generation': state['desired'], 'discussion_id': 'discussion', 'note_id': 4}})
                 self.respond({}, 404)
 
             def do_POST(self):
@@ -62,8 +62,8 @@ class WriteAcceptanceTests(unittest.TestCase):
                 if self.path != '/webhook' or body['project']['id'] != 2 or body['object_attributes']['iid'] != 3:
                     return self.respond({}, 400)
                 state['hooks'] += 1
-                creates_new = state['hooks'] == 1 or mode == 'incomplete'
-                self.respond({'id': state['hooks'] if mode == 'incomplete' else 1, 'created': creates_new}, 202)
+                creates_new = state['hooks'] == 1 or mode.startswith('incomplete')
+                self.respond({'id': state['hooks'] if mode.startswith('incomplete') else 1, 'created': creates_new}, 202)
 
             def do_PUT(self):
                 body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
@@ -121,6 +121,14 @@ class WriteAcceptanceTests(unittest.TestCase):
         state, stages, error = self.exercise('incomplete')
         self.assertIsInstance(error, ValueError)
         self.assertEqual(state['hooks'], 1)
+        self.assertEqual(state['writes'], [('POST', '/webhook')])
+        self.assertEqual(stages[-1]['stage'], 'audit_incomplete_stop')
+        self.assertTrue(stages[-1]['deduplication_not_verified'])
+
+    def test_incomplete_without_comment_stops_immediately(self):
+        state, stages, error = self.exercise('incomplete_no_comment')
+        self.assertIsInstance(error, ValueError)
+        self.assertEqual(state['detail_reads'], 2)
         self.assertEqual(state['writes'], [('POST', '/webhook')])
         self.assertEqual(stages[-1]['stage'], 'audit_incomplete_stop')
         self.assertTrue(stages[-1]['deduplication_not_verified'])
