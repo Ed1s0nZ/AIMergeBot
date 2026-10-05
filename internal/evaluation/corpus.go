@@ -25,13 +25,14 @@ type PinnedGitCase struct {
 	HeadSHA   string `json:"head_sha"`
 }
 type Case struct {
-	Git            *PinnedGitCase    `json:"git,omitempty"`
-	ID             string            `json:"id"`
-	Expectation    string            `json:"expectation"`
-	BaseFiles      map[string]string `json:"base_files"`
-	HeadFiles      map[string]string `json:"head_files"`
-	ExpectedAnchor Anchor            `json:"expected_anchor"`
-	Rationale      string            `json:"rationale"`
+	ContextRepositories []ContextFixture  `json:"context_repositories,omitempty"`
+	Git                 *PinnedGitCase    `json:"git,omitempty"`
+	ID                  string            `json:"id"`
+	Expectation         string            `json:"expectation"`
+	BaseFiles           map[string]string `json:"base_files"`
+	HeadFiles           map[string]string `json:"head_files"`
+	ExpectedAnchor      Anchor            `json:"expected_anchor"`
+	Rationale           string            `json:"rationale"`
 }
 type Corpus struct {
 	Version int    `json:"version"`
@@ -57,6 +58,9 @@ func LoadCorpus(path string) (Corpus, string, error) {
 	seen := map[string]bool{}
 	idPattern := regexp.MustCompile(`^case-[0-9]{3}$`)
 	for _, c := range corpus.Cases {
+		if err := validateContextFixtures(c); err != nil {
+			return corpus, "", err
+		}
 		if !idPattern.MatchString(c.ID) || seen[c.ID] {
 			return corpus, "", fmt.Errorf("invalid or duplicate neutral case ID")
 		}
@@ -176,7 +180,7 @@ func BuildRepository(ctx context.Context, dir string, c Case) (string, string, e
 	if _, err = git("add", "--all"); err != nil {
 		return "", "", err
 	}
-	if _, err = git("commit", "--quiet", "-m", "head"); err != nil {
+	if _, err = git("commit", "--quiet", "--allow-empty", "-m", "head"); err != nil {
 		return "", "", err
 	}
 	head, err := git("rev-parse", "HEAD")

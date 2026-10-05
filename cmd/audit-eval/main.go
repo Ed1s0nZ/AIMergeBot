@@ -41,20 +41,21 @@ type metadata struct {
 	Diagrams          bool                         `json:"generate_diagrams"`
 }
 type receipt struct {
-	Usage                 platform.ModelUsage  `json:"usage"`
-	ErrorClass            string               `json:"error_class,omitempty"`
-	HTTPStatus            int                  `json:"http_status,omitempty"`
-	ID                    string               `json:"id"`
-	BaseSHA               string               `json:"base_sha"`
-	HeadSHA               string               `json:"head_sha"`
-	Status                string               `json:"status"`
-	ElapsedMS             int64                `json:"elapsed_ms"`
-	Result                platform.AuditResult `json:"result"`
-	Trace                 []platform.ToolTrace `json:"trace"`
-	ExpectedAnchorMatched bool                 `json:"expected_anchor_matched_preliminary_only"`
-	PromptTokens          int                  `json:"prompt_tokens"`
-	CompletionTokens      int                  `json:"completion_tokens"`
-	UsageComplete         bool                 `json:"usage_complete"`
+	ContextRepositories   []platform.ContextRepository `json:"context_repositories,omitempty"`
+	Usage                 platform.ModelUsage          `json:"usage"`
+	ErrorClass            string                       `json:"error_class,omitempty"`
+	HTTPStatus            int                          `json:"http_status,omitempty"`
+	ID                    string                       `json:"id"`
+	BaseSHA               string                       `json:"base_sha"`
+	HeadSHA               string                       `json:"head_sha"`
+	Status                string                       `json:"status"`
+	ElapsedMS             int64                        `json:"elapsed_ms"`
+	Result                platform.AuditResult         `json:"result"`
+	Trace                 []platform.ToolTrace         `json:"trace"`
+	ExpectedAnchorMatched bool                         `json:"expected_anchor_matched_preliminary_only"`
+	PromptTokens          int                          `json:"prompt_tokens"`
+	CompletionTokens      int                          `json:"completion_tokens"`
+	UsageComplete         bool                         `json:"usage_complete"`
 }
 
 func save(path string, v any) error {
@@ -192,7 +193,11 @@ func run() error {
 		if e != nil {
 			return e
 		}
-		snap := platform.Snapshot{ProjectID: 1, SourceProjectID: 1, MRIID: i + 1, BaseSHA: base, HeadSHA: head, Title: c.ID}
+		sources, contexts, e := evaluation.PrepareContextFixtures(ctx, caseDir, c)
+		if e != nil {
+			return e
+		}
+		snap := platform.Snapshot{AuditPolicy: &platform.AuditPolicy{ContextRepositories: contexts}, ProjectID: 1, SourceProjectID: 1, MRIID: i + 1, BaseSHA: base, HeadSHA: head, Title: c.ID}
 		caseCtx, cancel := context.WithTimeout(ctx, time.Duration(*timeout)*time.Second)
 		changes, notes, e := repo.Changes(caseCtx, snap)
 		if e != nil {
@@ -201,7 +206,7 @@ func run() error {
 		}
 		scope := platform.BuildDiff(changes, nil, 96*1024)
 		scope.Notes = append(scope.Notes, notes...)
-		auditor := &platform.EinoAuditor{Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
+		auditor := &platform.EinoAuditor{ContextSources: sources, Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
 			return save(filepath.Join(caseDir, "checkpoint.json"), map[string]any{"result": result, "trace": trace})
 		}}}
 		fmt.Printf("%s started\n", c.ID)
@@ -218,7 +223,7 @@ func run() error {
 		}
 		usageComplete := auditErr == nil && caseCtx.Err() == nil
 		cancel()
-		record := receipt{Usage: platform.SummarizeModelUsage(trace, cfg.ModelBudget, usageComplete, cfg.VerificationModel != "" && cfg.VerificationModel != model), ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
+		record := receipt{ContextRepositories: contexts, Usage: platform.SummarizeModelUsage(trace, cfg.ModelBudget, usageComplete, cfg.VerificationModel != "" && cfg.VerificationModel != model), ID: c.ID, BaseSHA: base, HeadSHA: head, Status: status, ElapsedMS: time.Since(started).Milliseconds(), Result: result, Trace: trace, UsageComplete: true}
 		for _, f := range result.Findings {
 			if f.File == c.ExpectedAnchor.File && f.Side == c.ExpectedAnchor.Side && f.Line == c.ExpectedAnchor.Line {
 				record.ExpectedAnchorMatched = true

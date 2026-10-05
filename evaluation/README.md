@@ -39,3 +39,9 @@ go run ./cmd/audit-eval --config config.yaml --output /tmp/aimangebot-evaluation
 替换示例 SHA 为仓库中实际完整 commit ID，不能使用 HEAD、分支、标签或 blob ID。不能同时提供 `base_files/head_files`。使用 `--corpus /private/path/pr-corpus.json --output /private/path/new-results`；结果权限0600、目录0700，但含源码，仍需按仓库敏感级别保管。模型只收到中性编号、固定提交和实际差异，期望/理由留在仓库外，不用于模型输入。工作树未提交的修改不影响固定对象读取。
 
 机械锚点匹配仍不是检测准确率；真实PR应由人工逐项判定误报、漏报、触发假设与覆盖不足，保留无结果、失败及不确定案例。没有真实仓库样本时，入口测试只能证明输入与隔离流程，不能生成真实质量结论。
+
+## 自建关联仓库场景
+
+自建 case 可额外提供 `context_repositories: [{"repository_id":2,"files":{"svc.py":"..."}}]`，最多8项，ID不得与主仓库1重复。上下文生成独立固定 Git 提交，正常 Eino 上下文工具只能读取显式列出的 ID/SHA；结束 receipt 保存 `context_repositories`，供核对来源。文件校验和隔离规则与主仓库相同，不执行源码、不克隆网络仓库、不向模型提供期望或判定理由。
+
+当前扩展只接受自建上下文，真实历史 Git case 不接受该字段。准备器回归只证明固定对象和输入边界；跨仓库检测质量必须在标注的正负对照案例上实际运行并人工核验。
