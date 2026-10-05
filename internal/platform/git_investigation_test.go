@@ -284,7 +284,9 @@ func TestStandaloneGitUsesEinoWithoutPlatformAPI(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{"id": "fixture", "object": "chat.completion", "choices": []any{map[string]any{"index": 0, "finish_reason": finish, "message": msg}}})
 	}))
 	defer server.Close()
+	// This fixture exercises one investigation; standalone_group_test covers multi-group repositories.
 	cfg := Settings{}
+	cfg.WhitelistExtensions = []string{".unknown", ".txt", ".config", ".dat"}
 	cfg.OpenAI.URL = server.URL
 	cfg.OpenAI.APIKey = "fixture-key"
 	cfg.OpenAI.Model = "fixture-model"

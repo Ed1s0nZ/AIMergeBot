@@ -40,7 +40,9 @@ func main() {
 		}
 		if e != nil {
 			fmt.Fprintln(os.Stderr, "Git audit failed:", e)
-			os.Exit(1)
+		}
+		if code := auditExitCode(result, e); code != 0 {
+			os.Exit(code)
 		}
 		return
 	}

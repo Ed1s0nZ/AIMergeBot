@@ -2,7 +2,7 @@ import type {ModelUsage} from "./api";
 export function ModelUsagePanel({usage,retryChain=false}:{usage?:ModelUsage;retryChain?:boolean}) {
  if(!usage)return null;
  const reasons:Record<string,string>={usage_overflow:"供应商用量计数溢出，无法可靠估算",price_not_configured:"未配置单价或币种",verification_price_missing:"独立复核模型尚未配置单价",no_reported_usage:"没有可计价的报告用量"};
- const names:Record<string,string>={primary:"主审",compression:"上下文压缩",verification_compression:"复核上下文压缩",diagram_compression:"时序图上下文压缩",verification:"独立复核",synthesis:"跨组汇总",diagram:"时序图"};
+ const names:Record<string,string>={primary:"主审",compression:"上下文压缩",verification_compression:"复核上下文压缩",diagram_compression:"时序图上下文压缩",synthesis_compression:"跨组汇总上下文压缩",verification:"独立复核",synthesis:"跨组汇总",diagram:"时序图"};
  return <section className="panel trace"><h2>模型用量与成本</h2>
  <p>{usage.complete?"报告用量完整":"报告用量不完整 · 以下仅为已知部分"}</p>
  <p>输入 {usage.prompt_tokens.toLocaleString()} tokens · 输出 {usage.completion_tokens.toLocaleString()} tokens · {usage.calls} 次请求{usage.unknown_calls>0?` · ${usage.unknown_calls} 次用量未知`:""}</p>

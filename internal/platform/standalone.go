@@ -61,9 +61,14 @@ func AuditGit(ctx context.Context, location, base, head, token string, cfg Setti
 	}
 	scope := BuildDiff(changes, cfg.WhitelistExtensions, 96*1024)
 	scope.Notes = append(scope.Notes, notes...)
+	plan := PlanAuditGroups(changes, cfg.WhitelistExtensions)
+	useGroups := len(plan.Groups) > 1 || scope.Text == "" && len(plan.Groups) > 0
 	run := Run{Snapshot: snap, PolicyVersion: PolicyVersion, Status: "incomplete"}
-	if scope.Text == "" {
-		run.Result = AuditResult{Summary: "No auditable textual changes", Findings: []Finding{}, CoverageNotes: scope.Notes}
+	if scope.Text == "" && !useGroups {
+		if len(scope.Excluded) > 0 && len(scope.Notes) == 0 {
+			run.Status = "skipped"
+		}
+		run.Result = AuditResult{Summary: "No auditable textual changes", Findings: []Finding{}, CoverageNotes: scope.Notes, ExcludedFiles: scope.Excluded}
 		return run, nil
 	}
 	model := cfg.ReAct.Model
@@ -71,7 +76,12 @@ func AuditGit(ctx context.Context, location, base, head, token string, cfg Setti
 		model = cfg.OpenAI.Model
 	}
 	auditor := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
-	run.Result, run.Trace, e = auditor.Audit(ctx, snap, scope)
+	if useGroups {
+		plan.Notes = append(plan.Notes, notes...)
+		run.Result, run.Trace, e = auditor.AuditGroups(ctx, snap, plan)
+	} else {
+		run.Result, run.Trace, e = auditor.Audit(ctx, snap, scope)
+	}
 	if e != nil {
 		run.Status = "failed"
 		if auditCoverageStop(e) {

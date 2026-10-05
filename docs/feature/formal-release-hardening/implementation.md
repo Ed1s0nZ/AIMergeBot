@@ -96,3 +96,9 @@ AuditGit当前只有96KiB整体BuildDiff，未使用已有PlanAuditGroups/单文
 ## F2/F3 / 命令行终态与退出码
 
 现有文档要求覆盖停止的CLI非零退出，但分组/汇总的覆盖缺口返回Run.Status=incomplete、error=nil，main仅判断error，会退出0。修正实现符合已记录契约：stdout仍完整JSON；失败/error退出1，incomplete退出2，succeeded/skipped退出0。调用方据退出码区分未完成而非把它当安全证明；有发现但审计完成仍退出0，不引入漏洞严重性策略。实际构建CLI+固定Git+HTTP模型验证成功、覆盖缺口和模型失败3种退出码，保留非零stdout结果。这是终态传播修复，不修改报告字段或Git写入权限。
+
+## F4/F5 / 纯Git、汇总与CLI联调
+
+原生Git对象与真实HTTP模型协议验证五模式：大文件多组、总预算省略、策略排除、汇总压缩成功和失败；定向测试通过。实际构建CLI验证stdout JSON及完成0/覆盖不完整2/失败1退出码，4.679秒通过。新增汇总阶段中文标签，React TypeScript/Vite构建980ms通过，go vet通过，压缩/纯Git/覆盖停止/SQLite定向race5.812秒通过。全回归首次发现旧单调查HTTP脚本依赖共享125文件fixture不分组，当前分组生效后应分别验证：旧调查用排除扩展名限制范围（此配置是排除列表），大型多组由新测试覆盖；修订后完整Go回归进行中。此记录不声称main或1234已更新。先前a53376f远端CI37292733102全部success，只证明该快照，当前切片需要独立CI。
+
+修订后的完整Go回归通过（platform31.191秒）。最后核对退出契约时补充：incomplete即使伴随覆盖停止error也退出2；仅执行失败/error而非incomplete退出1，增加针对分类优先级回归。
