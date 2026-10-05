@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--verification-preview", action="store_true", help="Verify fresh independent metadata evidence; requires metadata preview")
     parser.add_argument("--comment-preview", action="store_true", help="Verify synthetic GitLab create and review update; requires metadata preview")
     parser.add_argument("--ui-preview", action="store_true", help="Keep fixture online after proof until SIGTERM for browser inspection")
+    parser.add_argument("--capacity-preview", action="store_true", help="Verify 40 concurrent HTTP submissions against outstanding=4 and running=1")
     parser.add_argument("--backup-preview", action="store_true", help="Verify private backup/restore with the same native binary; requires metadata/lifecycle/comment previews")
     parser.add_argument("--app-port", type=int, default=19234)
     parser.add_argument("--upstream-port", type=int, default=19235)
@@ -61,6 +62,7 @@ def main():
         raise ValueError("choose distinct temporary ports, not production1234/8080")
     root = Path(tempfile.mkdtemp(prefix="aimangebot-recovery-smoke."))
     calls = {90: 0, 91: 0, 92: 0, 93: 0, 94: 0}
+    capacity_release = threading.Event()
     lifecycle_phase = [1]
     lock = threading.Lock()
     comments = {}
@@ -120,7 +122,7 @@ def main():
                 body = b"prefix\nchange\n" if "ref=" + "d" * 40 in self.path else b"change\n"
                 self.send_json({"file_path": "a.any", "encoding": "base64", "content": base64.b64encode(body).decode(), "size": len(body)})
                 return
-            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)(/versions(?:/1)?)?", path)
+            match = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94|1[0-4][0-9])(/versions(?:/1)?)?", path)
             if not match:
                 self.send_json({"message": "fixture endpoint unavailable"}, 404)
                 return
@@ -162,6 +164,11 @@ def main():
             request = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
             content = " ".join(str(message.get("content", "")) for message in request["messages"] if message.get("role") == "user")
             iid = 90 if '"mr_iid":90' in content else 92 if '"mr_iid":92' in content else 93 if '"mr_iid":93' in content else 94 if '"mr_iid":94' in content else 91
+            capacity_match = re.search(r'"mr_iid":(1[0-4][0-9])', content)
+            if capacity_match:
+                capacity_release.wait(timeout=120)
+                self.send_json({"id": "fixture-capacity", "object": "chat.completion", "model": "synthetic-recovery", "choices": [{"index": 0, "message": {"role": "assistant", "content": json.dumps({"findings": [], "summary": "Synthetic capacity only", "coverage_notes": []})}, "finish_reason": "stop"}]})
+                return
             with lock:
                 calls[iid] += 1
                 number = calls[iid]
@@ -259,6 +266,8 @@ def main():
     upstream = ThreadingHTTPServer(("127.0.0.1", args.upstream_port), Fixture)
     threading.Thread(target=upstream.serve_forever, daemon=True).start()
     config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "verify_findings": args.verification_preview, "generate_sequence_diagrams": args.metadata_preview}
+    if args.capacity_preview:
+        config["audit_quotas"] = {"outstanding_global": 4, "running_project": 1, "running_user": 1}
     (root / "config.yaml").write_text(json.dumps(config))  # JSON is valid YAML.
     (root / "config.yaml").chmod(0o600)
     env = dict(os.environ, AIM_ADMIN_USERNAME="recovery-fixture-admin", AIM_ADMIN_PASSWORD="recovery-fixture-password")
@@ -385,6 +394,9 @@ def main():
             with lock:
                 assert comment_creates[92] == 1 and comment_updates[92] == 1 and "误报" in comments[92]
             proof.update(comment_run=metadata_run, comment_single_create=True, comment_review_update=True)
+        if args.capacity_preview:
+            from ops_capacity_drill import run_capacity_drill
+            proof["capacity"] = run_capacity_drill(api, db, wait_for)
         if args.backup_preview:
             from ops_restore_drill import run_backup_drill
             def upstream_counts():
@@ -399,6 +411,7 @@ def main():
             while True:
                 time.sleep(1)
     finally:
+        capacity_release.set()
         for process in processes:
             if process.poll() is None:
                 process.terminate()

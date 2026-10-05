@@ -231,3 +231,7 @@ P10运维反馈迭代，上游二进制、配置启动目录、租约与readyz�
 ## F2/F3 / 切片10C4原生容量边界
 
 复用smoke-worker-recovery新增独立--capacity-preview，在完成原租约SIGKILL基础实证后进行真实HTTP并发提交。合成GitLab支持独立MR100–149固定版本；这些合成模型请求由Event阻塞，确保观察窗口不被快速完成掩盖。global outstanding=4，project/user running=1，已有rate-limit pending占1；40个不同MR并发提交应仅3个创建、37个429，DB pending/running总数不超过4且running最多1。重复已接受MR应复用原任务，不因队列已满再次占配额；取消一个已接受任务后另一MR可入队。finally释放模型Event并清理已有fixture进程。结果仅是本机固定4容量边界，不宣称生产吞吐量或硬件上限；额度状态不泄漏其他用户/项目记录。其他preview组合不得以额外模型调用破坏基础证明计数，容量在现有断言之后独立执行。
+
+## F4/F5 / 切片10C4容量边界原生验收
+
+新增ops_capacity_drill.py，接入--capacity-preview与独立MR100–149阻塞合成模型。真实HTTP Barrier40并发，原生Worker/SQLite/global4/project-user运行1。首轮全部容量断言通过但清理重复取消已取消任务返回409；修正清理跳过已取消ID后，在19244/19245完整重跑SIGKILL真实租约恢复与容量流程退出0：40提交仅3新建/37明确quota429，加原pending总计4；一秒采样running=1、outstanding=4，满额duplicate复用、不新增；取消pending释放后MR149创建成功，总数仍4，清理所有新增任务。HTTP提交p95观察0.076秒，仅本机fixture值，不宣称真实模型吞吐量/绝对性能。相关Quota race测试5.763秒通过，py_compile/diff检查通过。私有proof/config/DB未上传；1234保持不变。R8实际生产监控/最终切换、R2预算崩溃、R7真实GitLab、R1质量与UI/main验收仍需完成。

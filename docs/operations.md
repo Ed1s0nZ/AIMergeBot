@@ -116,3 +116,13 @@ python3 scripts/smoke-launchd.py --binary /your/private/build/aimangebot --port 
 ```
 
 只接受19000–19999测试端口，需空闲；刚完成一次演练时TCP状态可能暂时占用，选另一空闲测试端口。脚本创建自己的私有临时目录、合成账号和随机服务标签，不读取生产config/DB，不连接外部GitLab或模型。前台bootstrap正常退出后交由launchd，强制终止测试PID，核对35秒等待后的不同PID、不同有效租约owner、readyz和原账号登录；finally卸载自己的服务。stdout只输出布尔结果和观察耗时，证明0600；日志/DB/配置保留私有目录，不提交Git。失败需查私有日志，不能把服务定义存在当作验收成功。此演练证明本机用户域异常自动恢复，不证明Linux系统服务、真实模型质量或生产容量。
+
+### 隔离并发容量检查
+
+```bash
+python3 scripts/smoke-worker-recovery.py \
+  --binary /your/private/build/aimangebot --capacity-preview \
+  --app-port 19242 --upstream-port 19243
+```
+
+先执行原生SIGKILL/租约恢复基础场景，再阻塞专属合成MR的模型响应，使队列在检查窗口保持占用。40个不同MR通过真实HTTP同时入队；全局未完成配额4、项目/用户运行配额1、已有重试pending占1，期望3个新建和37个明确429。满队列重复请求复用旧任务；取消pending后新任务可入队。采样一秒的DB计数与提交延迟输出只描述本次本机边界，不证明生产最大吞吐量或全部时间内的运行并发。使用临时端口、DB和合成上游，finally清理，私有证明不提交Git。真实吞吐量还取决于模型限流/延迟、预算、仓库大小及磁盘，需要按实际部署单独测量。
