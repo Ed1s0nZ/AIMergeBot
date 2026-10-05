@@ -176,3 +176,7 @@ FindingCard描述前复用VerificationNotice显示partial/unknown全文未获支
 有效候选合并后纯投影检查PRContext前后primary来源、逐边关系；缺字段明确coverage gap，推测关系即使unresolved_edges为空仍标未核实。不创建推断关系、不删除候选、不把独立supported/full当完整路径。canonical Git metadata本身经验证包含BASE/HEAD事实，无PRContext时不要求重复链路；有PRContext则可暴露其来源记录不足。策略v27。
 
 首轮Go回归暴露旧metadata/group/HTTP/diagram的零覆盖缺口断言；先修正元数据重复要求，再把line候选测试改为精确检查新增缺链说明、HTTP保存为incomplete、分组/图阶段保留既有gap，原发现集合、图状态、筛选/复核/重试不变。来源校验不放宽。定向PR验证1.119s；scope/group race1.726s；修正后Go全量通过（platform44.425s）；git diff --check通过。实际SDK支持结果仍保留PRgap，完整字段/推测关系/无发现/元数据以及纯投影不改原事实有定向覆盖。未新增真实模型轮次（本切片只改变确定性投影），既有v26不完整链会被明确说明而非自动变完整。整体真实多组、未见验收和最终QA/生命周期报告仍未完成。
+
+## 切片19：生产分组评测入口
+
+CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata继续全字段精确比较；失败恢复不改原记录。grouped复用生产PlanAuditGroups/AuditGroups，不改32KiB/24文件/8组、原模型/共享工具与token预算/240秒。单组路径保留。corpus-grouped-v1.json复用已见Lua机制与24个无害文档变更，人工边界诊断25文件成两组，不称独立质量benchmark。恢复分组/单组混用与损坏metadata拒绝、失败不覆盖文件有新测试。CLI测试0.545s、evaluation5.059s、git diff --check通过；平台未修改，上一切片Go全量仍为对应平台代码证据，未重复无关全量。真实多组诊断下一步启动，结果未出不声称交接质量验证完成。

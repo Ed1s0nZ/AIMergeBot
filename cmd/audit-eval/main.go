@@ -24,6 +24,7 @@ import (
 )
 
 type metadata struct {
+	Grouped           bool                         `json:"grouped"`
 	MaxTokens         int                          `json:"max_tokens"`
 	VerificationModel string                       `json:"verification_model"`
 	ModelBudget       platform.ModelBudgetSettings `json:"model_budget"`
@@ -81,6 +82,7 @@ func run() error {
 	output := flag.String("output", "", "New isolated result directory")
 	probe := flag.Bool("probe", false, "Safe minimal configured-provider connection check")
 	onlyCase := flag.String("case", "", "Optional one-case diagnostic cohort")
+	grouped := flag.Bool("grouped", false, "Use production bounded grouping and cross-group investigation handoff")
 	resume := flag.Bool("resume", false, "Resume identical evaluation, retaining all completed receipts")
 	timeout := flag.Int("timeout", 240, "Per-case seconds, maximum240")
 	flag.Parse()
@@ -148,15 +150,10 @@ func run() error {
 	if calls <= 0 || calls > 80 {
 		calls = 80
 	}
-	meta := metadata{cfg.ModelBudget.MaxTokens, cfg.VerificationModel, cfg.ModelBudget, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
+	meta := metadata{*grouped, cfg.ModelBudget.MaxTokens, cfg.VerificationModel, cfg.ModelBudget, *onlyCase, digest, revision, model, hex.EncodeToString(endpoint[:]), platform.PolicyVersion, steps, calls, float32(cfg.ReAct.Temperature), *timeout, true, false}
 	if *resume {
-		raw, e := os.ReadFile(filepath.Join(*output, "metadata.json"))
-		if e != nil {
-			return e
-		}
-		var old metadata
-		if e = json.Unmarshal(raw, &old); e != nil || old != meta {
-			return fmt.Errorf("resume metadata mismatch")
+		if err = checkResumeMetadata(filepath.Join(*output, "metadata.json"), meta); err != nil {
+			return err
 		}
 	} else {
 		if err = os.Mkdir(*output, 0700); err != nil {
@@ -211,7 +208,16 @@ func run() error {
 		}}}
 		fmt.Printf("%s started\n", c.ID)
 		started := time.Now()
-		result, trace, auditErr := auditor.Audit(caseCtx, snap, scope)
+		var result platform.AuditResult
+		var trace []platform.ToolTrace
+		var auditErr error
+		if *grouped {
+			plan := platform.PlanAuditGroups(changes, nil)
+			plan.Notes = append(plan.Notes, notes...)
+			result, trace, auditErr = auditor.AuditGroups(caseCtx, snap, plan)
+		} else {
+			result, trace, auditErr = auditor.Audit(caseCtx, snap, scope)
+		}
 		status := "completed"
 		if auditErr != nil {
 			status = "model_or_agent_failed"
@@ -286,4 +292,16 @@ func classifyError(err error) (string, int) {
 		return "network_error", 0
 	}
 	return "agent_or_provider_error", 0
+}
+
+func checkResumeMetadata(path string, expected metadata) error {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var old metadata
+	if json.Unmarshal(raw, &old) != nil || old != expected {
+		return fmt.Errorf("resume metadata mismatch")
+	}
+	return nil
 }

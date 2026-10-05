@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "kind": "authored-group-boundary-diagnostic-not-independent-quality-benchmark",
+  "cases": [
+    {
+      "id": "case-301",
+      "expectation": "positive",
+      "base_files": {
+        "a_service.lua": "local users = {token_a = \"alice\", token_b = \"bob\"}\nlocal documents = {a = {owner = \"alice\", body = \"alice-private\"}, b = {owner = \"bob\", body = \"bob-private\"}}\nlocal function read_document(actor, id)\n  local document = documents[id]\n  if not document then return 404, \"missing\" end\n  if document.owner ~= actor then return 403, \"forbidden\" end\n  return 200, document.body\nend\nfunction handle(request)\n  local actor = users[request.headers.authorization]\n  if not actor then return 401, \"login\" end\n  if request.method ~= \"GET\" or request.path ~= \"/documents\" then return 404, \"route\" end\n  return read_document(actor, request.query.id)\nend\nreturn {handle = handle}\n",
+        "docs/context-00.txt": "Document endpoint reference.\n",
+        "docs/context-01.txt": "Document endpoint reference.\n",
+        "docs/context-02.txt": "Document endpoint reference.\n",
+        "docs/context-03.txt": "Document endpoint reference.\n",
+        "docs/context-04.txt": "Document endpoint reference.\n",
+        "docs/context-05.txt": "Document endpoint reference.\n",
+        "docs/context-06.txt": "Document endpoint reference.\n",
+        "docs/context-07.txt": "Document endpoint reference.\n",
+        "docs/context-08.txt": "Document endpoint reference.\n",
+        "docs/context-09.txt": "Document endpoint reference.\n",
+        "docs/context-10.txt": "Document endpoint reference.\n",
+        "docs/context-11.txt": "Document endpoint reference.\n",
+        "docs/context-12.txt": "Document endpoint reference.\n",
+        "docs/context-13.txt": "Document endpoint reference.\n",
+        "docs/context-14.txt": "Document endpoint reference.\n",
+        "docs/context-15.txt": "Document endpoint reference.\n",
+        "docs/context-16.txt": "Document endpoint reference.\n",
+        "docs/context-17.txt": "Document endpoint reference.\n",
+        "docs/context-18.txt": "Document endpoint reference.\n",
+        "docs/context-19.txt": "Document endpoint reference.\n",
+        "docs/context-20.txt": "Document endpoint reference.\n",
+        "docs/context-21.txt": "Document endpoint reference.\n",
+        "docs/context-22.txt": "Document endpoint reference.\n",
+        "docs/context-23.txt": "Document endpoint reference.\n"
+      },
+      "head_files": {
+        "a_service.lua": "local users = {token_a = \"alice\", token_b = \"bob\"}\nlocal documents = {a = {owner = \"alice\", body = \"alice-private\"}, b = {owner = \"bob\", body = \"bob-private\"}}\nlocal function read_document(actor, id)\n  local document = documents[id]\n  if not document then return 404, \"missing\" end\n  return 200, document.body\nend\nfunction handle(request)\n  local actor = users[request.headers.authorization]\n  if not actor then return 401, \"login\" end\n  if request.method ~= \"GET\" or request.path ~= \"/documents\" then return 404, \"route\" end\n  return read_document(actor, request.query.id)\nend\nreturn {handle = handle}\n",
+        "docs/context-00.txt": "Document endpoint usage reference.\n",
+        "docs/context-01.txt": "Document endpoint usage reference.\n",
+        "docs/context-02.txt": "Document endpoint usage reference.\n",
+        "docs/context-03.txt": "Document endpoint usage reference.\n",
+        "docs/context-04.txt": "Document endpoint usage reference.\n",
+        "docs/context-05.txt": "Document endpoint usage reference.\n",
+        "docs/context-06.txt": "Document endpoint usage reference.\n",
+        "docs/context-07.txt": "Document endpoint usage reference.\n",
+        "docs/context-08.txt": "Document endpoint usage reference.\n",
+        "docs/context-09.txt": "Document endpoint usage reference.\n",
+        "docs/context-10.txt": "Document endpoint usage reference.\n",
+        "docs/context-11.txt": "Document endpoint usage reference.\n",
+        "docs/context-12.txt": "Document endpoint usage reference.\n",
+        "docs/context-13.txt": "Document endpoint usage reference.\n",
+        "docs/context-14.txt": "Document endpoint usage reference.\n",
+        "docs/context-15.txt": "Document endpoint usage reference.\n",
+        "docs/context-16.txt": "Document endpoint usage reference.\n",
+        "docs/context-17.txt": "Document endpoint usage reference.\n",
+        "docs/context-18.txt": "Document endpoint usage reference.\n",
+        "docs/context-19.txt": "Document endpoint usage reference.\n",
+        "docs/context-20.txt": "Document endpoint usage reference.\n",
+        "docs/context-21.txt": "Document endpoint usage reference.\n",
+        "docs/context-22.txt": "Document endpoint usage reference.\n",
+        "docs/context-23.txt": "Document endpoint usage reference.\n"
+      },
+      "expected_anchor": {
+        "file": "a_service.lua",
+        "side": "base",
+        "line": 6
+      },
+      "rationale": "Known ownership-removal mechanism from diagnostic201, deliberately 25 changed files to exercise production24-file group boundary: group1 contains service and23 documentation changes, group2 remaining documentation change. Docs contain no security change. Preserve the service finding and its fixed source IDs across handoff/synthesis; do not invent vulnerabilities in harmless text or certify runtime. Artificial grouping harness test, not unseen vulnerability benchmark."
+    }
+  ]
+}
