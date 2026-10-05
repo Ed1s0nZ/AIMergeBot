@@ -346,6 +346,7 @@ export function FindingSequence({
             step.evidence.map((ref, i) => (
               <div key={i}>
                 <code>
+                  {ref.repository_id ? `仓库 #${ref.repository_id} · ` : ""}
                   {ref.side.toUpperCase()} · {ref.file}
                   {ref.anchor_type === "git_metadata"
                     ? " · Git 元数据"

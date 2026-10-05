@@ -65,7 +65,7 @@ func (e *EinoAuditor) synthesizeGroups(ctx context.Context, snap Snapshot, resul
 	}
 	phase, cancel := context.WithTimeout(ctx, budget)
 	defer cancel()
-	fresh := &auditTools{repo: parent.repo, snap: snap, scope: parent.scope, cache: map[string]string{}, stage: "synthesis", observationPrefix: "synthesis-observation", maxCalls: remaining}
+	fresh := &auditTools{contextSources: parent.contextSources, repo: parent.repo, snap: snap, scope: parent.scope, cache: map[string]string{}, stage: "synthesis", observationPrefix: "synthesis-observation", maxCalls: remaining}
 	fresh.progress = func(_ AuditResult, traces []ToolTrace) error {
 		parent.mu.Lock()
 		seen := map[string]bool{}

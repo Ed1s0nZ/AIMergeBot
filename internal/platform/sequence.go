@@ -16,13 +16,14 @@ type SequenceParticipant struct {
 	Label string `json:"label"`
 }
 type SequenceReference struct {
-	AnchorType string             `json:"anchor_type,omitempty"`
-	Metadata   *GitChangeMetadata `json:"metadata,omitempty"`
-	Side       string             `json:"side"`
-	File       string             `json:"file"`
-	Line       int                `json:"line"`
-	Snippet    string             `json:"snippet"`
-	SHA        string             `json:"sha,omitempty"`
+	RepositoryID int                `json:"repository_id,omitempty"`
+	AnchorType   string             `json:"anchor_type,omitempty"`
+	Metadata     *GitChangeMetadata `json:"metadata,omitempty"`
+	Side         string             `json:"side"`
+	File         string             `json:"file"`
+	Line         int                `json:"line"`
+	Snippet      string             `json:"snippet"`
+	SHA          string             `json:"sha,omitempty"`
 }
 type SequenceStep struct {
 	From      string              `json:"from"`
@@ -67,7 +68,7 @@ func boundedLabel(s string, max int) bool {
 	return strings.TrimSpace(s) != "" && utf8.RuneCountInString(s) <= max && !strings.ContainsAny(s, "\x00\r\n")
 }
 
-func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Finding, input SequenceInput) (*SequenceDiagram, error) {
+func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Finding, input SequenceInput, contextSources ...map[int]ContextSource) (*SequenceDiagram, error) {
 	if len(input.Participants) < 2 || len(input.Participants) > 8 || len(input.Steps) < 1 || len(input.Steps) > 16 || input.Limitations == nil || len(input.Limitations) > 8 {
 		return nil, fmt.Errorf("invalid sequence size or missing limitations array")
 	}
@@ -111,9 +112,32 @@ func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Fin
 			if ref.Side != "head" && ref.Side != "base" || !validPath(ref.File) || !boundedLabel(ref.Snippet, 500) {
 				return nil, fmt.Errorf("invalid sequence reference")
 			}
-			sha := snap.HeadSHA
+			citationRepo, citationSnap := repo, snap
+			var authorize func(context.Context) error
+			if ref.RepositoryID != 0 {
+				if len(contextSources) != 1 || ref.Side != "head" || ref.AnchorType == "git_metadata" {
+					return nil, fmt.Errorf("invalid context sequence reference")
+				}
+				source, ok := contextSources[0][ref.RepositoryID]
+				permitted := false
+				for _, item := range contextPolicyItems(snap) {
+					if item.ProjectID == ref.RepositoryID && item.SHA == source.Snapshot.HeadSHA && item.SHA == source.Snapshot.BaseSHA && source.Snapshot.ProjectID == item.ProjectID && source.Snapshot.SourceProjectID == item.ProjectID {
+						permitted = true
+					}
+				}
+				if !ok || !permitted || source.Repository == nil {
+					return nil, fmt.Errorf("context sequence source unavailable")
+				}
+				citationRepo, citationSnap, authorize = source.Repository, source.Snapshot, source.Authorize
+				if authorize != nil {
+					if err := authorize(ctx); err != nil {
+						return nil, fmt.Errorf("context sequence permission unavailable")
+					}
+				}
+			}
+			sha := citationSnap.HeadSHA
 			if ref.Side == "base" {
-				sha = snap.BaseSHA
+				sha = citationSnap.BaseSHA
 			}
 			if ref.SHA != "" && ref.SHA != sha {
 				return nil, fmt.Errorf("sequence citation SHA mismatch")
@@ -137,15 +161,20 @@ func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Fin
 			if ref.Side == "base" && step.Kind != "note" {
 				return nil, fmt.Errorf("base evidence must annotate before-change code, not a current call")
 			}
-			key := ref.Side + ":" + ref.File
+			key := fmt.Sprintf("%d:%s:%s", ref.RepositoryID, ref.Side, ref.File)
 			lines, ok := cache[key]
 			if !ok {
-				content, e := repo.ReadFile(ctx, snap, ref.File, ref.Side == "base")
+				content, e := citationRepo.ReadFile(ctx, citationSnap, ref.File, ref.Side == "base")
 				if e != nil {
 					return nil, fmt.Errorf("cannot read sequence citation %s", ref.File)
 				}
 				lines = strings.Split(content, "\n")
 				cache[key] = lines
+			}
+			if authorize != nil {
+				if err := authorize(ctx); err != nil {
+					return nil, fmt.Errorf("context sequence permission unavailable")
+				}
 			}
 			if ref.Line > len(lines) || !strings.Contains(lines[ref.Line-1], ref.Snippet) {
 				return nil, fmt.Errorf("sequence evidence does not match %s:%d", ref.File, ref.Line)
@@ -154,7 +183,7 @@ func ValidateSequence(ctx context.Context, repo Repository, snap Snapshot, f Fin
 			if side == "" {
 				side = "head"
 			}
-			if step.Risk && ref.Side == side && ref.File == f.File && ref.Line == f.Line && strings.Contains(ref.Snippet, f.Evidence) {
+			if ref.RepositoryID == 0 && step.Risk && ref.Side == side && ref.File == f.File && ref.Line == f.Line && strings.Contains(ref.Snippet, f.Evidence) {
 				anchored = true
 			}
 		}
@@ -193,6 +222,13 @@ func SequenceMermaid(input SequenceInput) string {
 			b.WriteString("    rect rgb(255, 237, 237)\n")
 		}
 		label := s.Label
+		sourceLabels := map[int]bool{}
+		for _, ref := range s.Evidence {
+			if ref.RepositoryID != 0 && !sourceLabels[ref.RepositoryID] {
+				label = fmt.Sprintf("[仓库 #%d] ", ref.RepositoryID) + label
+				sourceLabels[ref.RepositoryID] = true
+			}
+		}
 		if s.Certainty == "inferred" {
 			label = "[推测] " + label
 		}

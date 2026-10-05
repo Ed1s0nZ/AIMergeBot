@@ -21,6 +21,8 @@ export async function api<T>(
     if (res.status === 401 && path != "/auth/login")
       window.dispatchEvent(new Event("session-expired"));
     const messages: Record<string, string> = {
+      context_repository_unavailable:
+        "关联仓库授权已变更或不可用，请联系管理员后重新提交。",
       worker_unavailable: "审计服务正在恢复，请稍后重试。",
       project_permission_required: "当前项目权限不足，请联系管理员。",
       not_found: "资源不存在或没有访问权限。",
@@ -69,7 +71,9 @@ export type GitChangeMetadata = {
   base: GitEntry | null;
   head: GitEntry | null;
 };
+export type ContextRepository = { project_id: number; sha: string };
 export type SequenceReference = {
+  repository_id?: number;
   anchor_type?: "line" | "git_metadata";
   metadata?: GitChangeMetadata;
   side: "head" | "base";
@@ -95,10 +99,18 @@ export type SequenceDiagram = {
   limitations?: string[];
   mermaid?: string;
 };
-export type FindingVerification = { model?:string; status: string; reason: string; limitations: string[]; observation_ids: string[]; base_sha: string; head_sha: string };
+export type FindingVerification = {
+  model?: string;
+  status: string;
+  reason: string;
+  limitations: string[];
+  observation_ids: string[];
+  base_sha: string;
+  head_sha: string;
+};
 export type Finding = {
- fingerprint?: string;
- verification?: FindingVerification;
+  fingerprint?: string;
+  verification?: FindingVerification;
   anchor_type?: "line" | "git_metadata";
   metadata?: GitChangeMetadata;
   investigation_id?: string;
@@ -128,6 +140,7 @@ export type Run = {
     delay_seconds?: number;
     eligible_at?: string;
   };
+  audit_policy?: { context_repositories?: ContextRepository[] };
   retry_child_id?: number;
   retry_parent_id?: number;
   retry_attempt?: number;
@@ -144,7 +157,11 @@ export type Run = {
   error: string;
   created_at: string;
   result: {
-    audit_groups?: { id: string; files: string[]; status: "running" | "completed" | "failed" | "unprocessed" }[];
+    audit_groups?: {
+      id: string;
+      files: string[];
+      status: "running" | "completed" | "failed" | "unprocessed";
+    }[];
     metadata_changes?: GitChangeMetadata[];
     findings: Finding[];
     summary: string;
@@ -197,7 +214,7 @@ export type Settings = {
   };
   project_config_sync?: { pending: boolean; generation: number; error: string };
   generate_sequence_diagrams: boolean;
- verify_findings: boolean;
+  verify_findings: boolean;
   git_audit: {
     enabled: boolean;
     history_depth: number;
@@ -214,7 +231,15 @@ export type Settings = {
   enable_webhook: boolean;
   enable_mr_comment: boolean;
   verification_model: string;
-  model_budget: { verification_pricing_configured:boolean; verification_input_price_per_million:number; verification_output_price_per_million:number; max_tokens: number; input_price_per_million: number; output_price_per_million: number; currency: string };
+  model_budget: {
+    verification_pricing_configured: boolean;
+    verification_input_price_per_million: number;
+    verification_output_price_per_million: number;
+    max_tokens: number;
+    input_price_per_million: number;
+    output_price_per_million: number;
+    currency: string;
+  };
   scan_existing_mrs: boolean;
   webhook_token: string;
   audit_workers: number;
@@ -233,19 +258,75 @@ export type Settings = {
   has_webhook_token: boolean;
 };
 
-export type RunListItem = Omit<Run, "result" | "trace" | "audit_policy" | "reviews"> & { finding_count: number };
+export type RunListItem = Omit<
+  Run,
+  "result" | "trace" | "audit_policy" | "reviews"
+> & { finding_count: number };
 
-export type CommentSync = { retry_exhausted: boolean; enabled: boolean; state: string; desired_generation: number; sent_generation: number; reason?: string; discussion_id?: string; note_id?: number; updated_at: string };
-
-export type FindingOccurrence = { run_id: number; finding_id: string; head_sha: string; run_status: string };
-export type FindingHistory = {
- finding_id: string; fingerprint: string; first_run_id: number; last_run_id: number;
- occurrences: FindingOccurrence[];
- reviews: { run_id: number; finding_id: string; status: string; reason: string; actor: number; created_at: string; imported: boolean }[];
- occurrences_truncated: boolean; reviews_truncated: boolean;
+export type CommentSync = {
+  retry_exhausted: boolean;
+  enabled: boolean;
+  state: string;
+  desired_generation: number;
+  sent_generation: number;
+  reason?: string;
+  discussion_id?: string;
+  note_id?: number;
+  updated_at: string;
 };
-export type FindingLifecycle = { history_truncated: boolean; current: FindingHistory[]; not_reobserved: FindingOccurrence[]; not_reobserved_truncated: boolean };
 
-export type ModelUsage = {calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number;complete:boolean;estimated_cost:number|null;estimate_unavailable_reason?:string;currency?:string;max_tokens:number;stages:{stage:string;calls:number;unknown_calls:number;prompt_tokens:number;completion_tokens:number}[]};
+export type FindingOccurrence = {
+  run_id: number;
+  finding_id: string;
+  head_sha: string;
+  run_status: string;
+};
+export type FindingHistory = {
+  finding_id: string;
+  fingerprint: string;
+  first_run_id: number;
+  last_run_id: number;
+  occurrences: FindingOccurrence[];
+  reviews: {
+    run_id: number;
+    finding_id: string;
+    status: string;
+    reason: string;
+    actor: number;
+    created_at: string;
+    imported: boolean;
+  }[];
+  occurrences_truncated: boolean;
+  reviews_truncated: boolean;
+};
+export type FindingLifecycle = {
+  history_truncated: boolean;
+  current: FindingHistory[];
+  not_reobserved: FindingOccurrence[];
+  not_reobserved_truncated: boolean;
+};
 
-export type RetryChainUsage = {root_id:number;attempts:{run_id:number;status:string;usage:ModelUsage}[];usage:ModelUsage};
+export type ModelUsage = {
+  calls: number;
+  unknown_calls: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  complete: boolean;
+  estimated_cost: number | null;
+  estimate_unavailable_reason?: string;
+  currency?: string;
+  max_tokens: number;
+  stages: {
+    stage: string;
+    calls: number;
+    unknown_calls: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+  }[];
+};
+
+export type RetryChainUsage = {
+  root_id: number;
+  attempts: { run_id: number; status: string; usage: ModelUsage }[];
+  usage: ModelUsage;
+};

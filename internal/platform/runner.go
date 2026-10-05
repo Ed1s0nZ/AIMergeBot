@@ -131,6 +131,10 @@ func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bo
 	if err != nil {
 		return 0, false, err
 	}
+	policy, err = r.captureContextPolicy(ctx, pid, policy)
+	if err != nil {
+		return 0, false, err
+	}
 	snap.AuditPolicy = policy
 	if actor > 0 {
 		return r.Store.EnqueueUser(ctx, snap, actor, force)
@@ -282,6 +286,24 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		r.finish(id, "incomplete", "", budgetInterruptionResult(err), run.Trace)
 		return
 	}
+	existingSources := map[int]ContextSource{}
+	if prepared, ok := auditor.(*EinoAuditor); ok {
+		existingSources = prepared.ContextSources
+	}
+	sources, contextNotes, contextCleanup, err := r.prepareContextSources(ctx, run, gitConfig, existingSources)
+	if err != nil {
+		r.finish(id, "incomplete", "", AuditResult{Summary: "Fixed context preparation interrupted", CoverageNotes: []string{"Fixed context preparation interrupted; check authorization, availability and task timeout before resubmitting"}}, run.Trace)
+		return
+	}
+	defer contextCleanup()
+	if prepared, ok := auditor.(*EinoAuditor); ok {
+		copy := *prepared
+		copy.ContextSources = sources
+		auditor = &copy
+	} else if len(sources) > 0 {
+		r.finish(id, "incomplete", "", AuditResult{Summary: "Context-aware auditor required", CoverageNotes: []string{"Configured context repositories could not be read by this auditor"}}, nil)
+		return
+	}
 	if gitConfig.Enabled {
 		remote, ok := repo.(*GitLabRepository)
 		if !ok {
@@ -318,6 +340,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		r.finish(id, "failed", "cannot obtain pinned diff: "+err.Error(), AuditResult{}, nil)
 		return
 	}
+	notes = append(notes, contextNotes...)
 	if p := run.AuditPolicy; p != nil && len(p.SelectedFiles) > 0 {
 		changes, _, err = selectAuditChanges(changes, p.SelectedFiles)
 		if err != nil {

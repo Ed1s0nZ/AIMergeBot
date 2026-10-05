@@ -29,21 +29,26 @@ type searchArgs struct {
 	Base       bool   `json:"base"`
 }
 type toolOutput struct {
-	EvidenceEligible       bool               `json:"evidence_eligible"`
-	EligibleObservationIDs []string           `json:"eligible_observation_ids,omitempty"`
-	Metadata               *GitChangeMetadata `json:"metadata,omitempty"`
-	ObservationID          string             `json:"observation_id"`
-	BaseSHA                string             `json:"base_sha"`
-	HeadSHA                string             `json:"head_sha"`
-	NextCursor             int                `json:"next_cursor,omitempty"`
-	Remaining              bool               `json:"remaining,omitempty"`
-	Text                   string             `json:"text"`
-	Files                  []string           `json:"files,omitempty"`
-	More                   bool               `json:"more,omitempty"`
-	Error                  string             `json:"error,omitempty"`
+	RepositoryID           int                       `json:"repository_id,omitempty"`
+	Repositories           []contextRepositoryStatus `json:"repositories,omitempty"`
+	EvidenceEligible       bool                      `json:"evidence_eligible"`
+	EligibleObservationIDs []string                  `json:"eligible_observation_ids,omitempty"`
+	Metadata               *GitChangeMetadata        `json:"metadata,omitempty"`
+	ObservationID          string                    `json:"observation_id"`
+	BaseSHA                string                    `json:"base_sha"`
+	HeadSHA                string                    `json:"head_sha"`
+	NextCursor             int                       `json:"next_cursor,omitempty"`
+	Remaining              bool                      `json:"remaining,omitempty"`
+	Text                   string                    `json:"text"`
+	Files                  []string                  `json:"files,omitempty"`
+	More                   bool                      `json:"more,omitempty"`
+	Error                  string                    `json:"error,omitempty"`
 }
 
 type auditTools struct {
+	contextSources     map[int]ContextSource
+	contextReaders     map[int]*auditTools
+	rawOnly            bool
 	stage              string
 	observationPrefix  string
 	pages              map[string]*paginationCoverage
@@ -93,6 +98,9 @@ func (t *auditTools) read(ctx context.Context, p string, base bool) (string, err
 	return text, nil
 }
 func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)) (toolOutput, error) {
+	if t.rawOnly {
+		return fn()
+	}
 	start := time.Now()
 	t.mu.Lock()
 	t.calls++
@@ -117,6 +125,15 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	out.ObservationID = fmt.Sprintf("%s-%d", prefix, callID)
 	out.BaseSHA = t.snap.BaseSHA
 	out.HeadSHA = t.snap.HeadSHA
+	if out.RepositoryID != 0 {
+		if source, e := t.contextSource(out.RepositoryID); e == nil {
+			out.BaseSHA = source.Snapshot.BaseSHA
+			out.HeadSHA = source.Snapshot.HeadSHA
+		} else {
+			out = toolOutput{ObservationID: out.ObservationID, BaseSHA: t.snap.BaseSHA, HeadSHA: t.snap.HeadSHA}
+			err = ErrContextRepository
+		}
+	}
 	raw, _ := json.Marshal(args)
 	trace := ToolTrace{Name: name, Stage: t.stage, Arguments: string(raw), DurationMS: time.Since(start).Milliseconds(), Partial: out.More}
 	if err != nil {
@@ -132,7 +149,7 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 				continue
 			}
 			var evidence toolOutput
-			if json.Unmarshal([]byte(prior.Output), &evidence) == nil && evidence.Error == "" && strings.TrimSpace(evidence.Text) != "" && evidence.BaseSHA == t.snap.BaseSHA && evidence.HeadSHA == t.snap.HeadSHA {
+			if json.Unmarshal([]byte(prior.Output), &evidence) == nil && evidence.Error == "" && strings.TrimSpace(evidence.Text) != "" && observationAtSnapshot(evidence, t.snap) {
 				out.EligibleObservationIDs = append(out.EligibleObservationIDs, prior.ObservationID)
 			}
 		}

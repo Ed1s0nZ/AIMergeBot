@@ -58,11 +58,14 @@ func (t *auditTools) sequenceObservations(f Finding) string {
 			continue
 		}
 		var out toolOutput
-		if json.Unmarshal([]byte(tr.Output), &out) != nil || out.BaseSHA != t.snap.BaseSHA || out.HeadSHA != t.snap.HeadSHA || out.Error != "" || strings.TrimSpace(out.Text) == "" {
+		if json.Unmarshal([]byte(tr.Output), &out) != nil || !observationAtSnapshot(out, t.snap) || out.Error != "" || strings.TrimSpace(out.Text) == "" {
 			continue
 		}
 		priority, linked := links[tr.ObservationID]
 		if !linked {
+			if out.RepositoryID != 0 {
+				continue
+			}
 			var args map[string]any
 			_ = json.Unmarshal([]byte(tr.Arguments), &args)
 			path, _ := args["path"].(string)

@@ -1,0 +1,68 @@
+.context-repositories {
+  padding: 24px;
+  margin: 24px 0;
+}
+.context-repositories h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.context-boundary {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  background: var(--surface-soft, #f6f8fc);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.context-repository-rows {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0;
+}
+.context-repository-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.context-repository-row label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.context-repository-row input,
+.context-repository-row select {
+  width: 100%;
+  min-width: 0;
+}
+.context-repository-actions {
+  flex-wrap: wrap;
+}
+.context-fixed-list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+.context-fixed-list > div {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.context-fixed-list code {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .context-repositories {
+    padding: 16px;
+  }
+  .context-repository-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .context-repository-row label:first-child {
+    grid-column: 1 / -1;
+  }
+}

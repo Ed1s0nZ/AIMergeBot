@@ -69,10 +69,13 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 				continue
 			}
 			var output toolOutput
-			if json.Unmarshal([]byte(tr.Output), &output) != nil || output.BaseSHA != snap.BaseSHA || output.HeadSHA != snap.HeadSHA || output.Error != "" || strings.TrimSpace(output.Text) == "" {
+			if json.Unmarshal([]byte(tr.Output), &output) != nil || !observationAtSnapshot(output, snap) || output.Error != "" || strings.TrimSpace(output.Text) == "" {
 				continue
 			}
 			found = true
+			if output.RepositoryID != 0 {
+				continue
+			}
 			if f.AnchorType == "git_metadata" {
 				if tr.Name == "get_change_metadata" && output.Metadata != nil && f.Metadata != nil && output.Metadata.canonical() == f.Metadata.canonical() && output.Text == f.Evidence {
 					anchor = true

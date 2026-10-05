@@ -146,7 +146,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	for _, g := range plan.Groups {
 		mergeScopeAnchors(&scope, g.Scope)
 	}
-	tools := &auditTools{repo: e.Repository, snap: snap, scope: scope, cache: map[string]string{}, trace: trace, progress: e.Config.Progress, maxCalls: e.Config.MaxToolCalls}
+	tools := &auditTools{contextSources: e.ContextSources, repo: e.Repository, snap: snap, scope: scope, cache: map[string]string{}, trace: trace, progress: e.Config.Progress, maxCalls: e.Config.MaxToolCalls}
 	tools.sequenceCheckpoint(result)
 	if ctx.Err() == nil {
 		cfg := e.Config

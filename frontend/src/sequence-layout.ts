@@ -37,7 +37,17 @@ export function sequenceLayout(
       step.kind === "note"
         ? Math.min(280, width - 180)
         : Math.max(150, Math.abs(to - from) - 30);
+    const sourceIDs = [
+      ...new Set(
+        step.evidence
+          .map((ref) => ref.repository_id)
+          .filter((id): id is number => !!id),
+      ),
+    ];
     const label =
+      (sourceIDs.length
+        ? `仓库 ${sourceIDs.map((id) => "#" + id).join(" / ")} · `
+        : "") +
       (step.certainty === "inferred" ? "推测 · " : "") +
       (step.kind === "return" ? "返回 · " : "") +
       step.label;

@@ -8,6 +8,28 @@ export function ToolObservation({ output }: { output: string }) {
   }
   return (
     <>
+      {typeof data.repository_id === "number" && (
+        <p className="muted">关联仓库 #{data.repository_id} · 固定版本</p>
+      )}
+      {Array.isArray(data.repositories) && (
+        <ul>
+          {data.repositories
+            .filter(
+              (item) =>
+                item &&
+                typeof item === "object" &&
+                typeof item.project_id === "number" &&
+                typeof item.sha === "string",
+            )
+            .map((item) => (
+              <li key={item.project_id}>
+                仓库 #{item.project_id} ·{" "}
+                <code title={item.sha}>{item.sha.slice(0, 12)}</code> ·{" "}
+                {item.available ? "可读取" : "不可用"}
+              </li>
+            ))}
+        </ul>
+      )}
       {typeof data.base_sha === "string" &&
         typeof data.head_sha === "string" && (
           <p className="muted">

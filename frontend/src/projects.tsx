@@ -1,3 +1,4 @@
+import { ContextRepositories } from "./context-repositories";
 import { useState } from "react";
 import { Plus, FolderGit2 } from "lucide-react";
 import { api, write, type Project } from "./api";
@@ -5,6 +6,7 @@ import { ErrorBox, Empty } from "./components";
 import { useResource, Heading } from "./page-utils";
 import { ProjectMembers, projectRoleNames } from "./project-members";
 export function Projects({ admin }: { admin: boolean }) {
+  const [contextProject, setContextProject] = useState<Project | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const resource = useResource<{ items: Project[] }>("/projects"),
     [id, setId] = useState(""),
@@ -95,9 +97,24 @@ export function Projects({ admin }: { admin: boolean }) {
               <button
                 aria-expanded={selectedProject?.id === p.id}
                 aria-controls="project-members-panel"
-                onClick={() => setSelectedProject(p)}
+                onClick={() => {
+                  setContextProject(null);
+                  setSelectedProject(p);
+                }}
               >
                 成员权限
+              </button>
+            )}
+            {admin && (
+              <button
+                aria-expanded={contextProject?.id === p.id}
+                aria-controls="context-repositories-panel"
+                onClick={() => {
+                  setSelectedProject(null);
+                  setContextProject(p);
+                }}
+              >
+                关联仓库
               </button>
             )}
             {admin && (
@@ -124,6 +141,18 @@ export function Projects({ admin }: { admin: boolean }) {
           </article>
         ))}
       </div>
+      {admin && contextProject && (
+        <ContextRepositories
+          key={contextProject.id}
+          project={
+            resource.data?.items.find(
+              (item) => item.id === contextProject.id,
+            ) || contextProject
+          }
+          projects={resource.data?.items || []}
+          onClose={() => setContextProject(null)}
+        />
+      )}
       {admin && selectedProject && (
         <ProjectMembers
           key={selectedProject.id}

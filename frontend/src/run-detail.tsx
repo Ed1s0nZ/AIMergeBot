@@ -1,3 +1,4 @@
+import { FrozenContextRepositories } from "./context-repositories";
 import { RetryUsagePanel } from "./retry-usage";
 import { FollowupAuditPanel } from "./followup-audit";
 import { ModelUsagePanel } from "./model-usage";
@@ -21,10 +22,10 @@ import {
   type Review,
   type Finding,
   type ProjectPermissions,
- type CommentSync,
- type FindingLifecycle,
- type ModelUsage,
- type RetryChainUsage,
+  type CommentSync,
+  type FindingLifecycle,
+  type ModelUsage,
+  type RetryChainUsage,
 } from "./api";
 import { Badge, ErrorBox, Empty, date, safeURL, statuses } from "./components";
 import { useResource, Heading } from "./page-utils";
@@ -142,23 +143,42 @@ export function RunDetail({ id }: { id: number }) {
       run: Run;
       usage?: ModelUsage;
       retry_usage?: RetryChainUsage;
-      retry_usage_error?:string;
+      retry_usage_error?: string;
       reviews: Review[];
       finding_lifecycle?: FindingLifecycle;
       permissions: ProjectPermissions;
- comment_sync?: CommentSync | null;
+      comment_sync?: CommentSync | null;
       queue_wait?: { reason: string; eligible_at?: string } | null;
     }>("/runs/" + id),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const r = resource.data?.run;
-  const chainRunning=resource.data?.retry_usage?.attempts.some(a=>["pending","running"].includes(a.status))||false;
+  const chainRunning =
+    resource.data?.retry_usage?.attempts.some((a) =>
+      ["pending", "running"].includes(a.status),
+    ) || false;
   useEffect(() => {
-    if (r && (["pending", "running"].includes(r.status) || chainRunning || (resource.data?.comment_sync?.enabled && !resource.data.comment_sync.retry_exhausted && ["pending","sending","unknown"].includes(resource.data.comment_sync.state)))) {
+    if (
+      r &&
+      (["pending", "running"].includes(r.status) ||
+        chainRunning ||
+        (resource.data?.comment_sync?.enabled &&
+          !resource.data.comment_sync.retry_exhausted &&
+          ["pending", "sending", "unknown"].includes(
+            resource.data.comment_sync.state,
+          )))
+    ) {
       const interval = setInterval(resource.load, 2000);
       return () => clearInterval(interval);
     }
-  }, [id, r?.status, chainRunning, resource.data?.comment_sync?.enabled, resource.data?.comment_sync?.state, resource.data?.comment_sync?.retry_exhausted]);
+  }, [
+    id,
+    r?.status,
+    chainRunning,
+    resource.data?.comment_sync?.enabled,
+    resource.data?.comment_sync?.state,
+    resource.data?.comment_sync?.retry_exhausted,
+  ]);
   const action = async (kind: "cancel" | "retry") => {
     setBusy(true);
     setError("");
@@ -248,6 +268,7 @@ export function RunDetail({ id }: { id: number }) {
           <code>{r.base_sha || "旧数据未记录"}</code>
         </div>
       </section>
+      <FrozenContextRepositories run={r} />
       {r.status === "pending" &&
         resource.data?.queue_wait &&
         !(
@@ -285,26 +306,86 @@ export function RunDetail({ id }: { id: number }) {
         </p>
       )}
       <RetryExplanation run={r} />
-      {resource.data?.comment_sync && <section className="panel summary">
-        <h2>GitLab 评论同步</h2>
-        <p>{!resource.data.comment_sync.enabled ? "自动同步已关闭，复核记录保存在工作台。" : ({pending:"等待同步最新复核状态。",sending:"正在核对或同步评论。",sent:"评论已同步。",unknown:"发送结果未确认，正在核对原评论，不会重复创建。",conflict:"原评论或发布身份发生变化，自动同步已停止。",stale:"MR 提交已变化，此次审计评论停止同步。",blocked:"同步条件不满足，自动同步已停止。"} as Record<string,string>)[resource.data.comment_sync.state] || "同步状态待确认。"}</p>
-        {resource.data.comment_sync.retry_exhausted && <p>自动核对次数已用尽，请管理员检查原评论和同步原因。系统不会重复创建评论。</p>}
-        {resource.data.comment_sync.note_id && safeURL(r.url) && <p><a href={`${safeURL(r.url)}#note_${resource.data.comment_sync.note_id}`} target="_blank" rel="noreferrer">查看原评论</a></p>}
-        <small>已同步版本 {resource.data.comment_sync.sent_generation} / 当前版本 {resource.data.comment_sync.desired_generation} · {date(resource.data.comment_sync.updated_at)}</small>
-      </section>}
+      {resource.data?.comment_sync && (
+        <section className="panel summary">
+          <h2>GitLab 评论同步</h2>
+          <p>
+            {!resource.data.comment_sync.enabled
+              ? "自动同步已关闭，复核记录保存在工作台。"
+              : (
+                  {
+                    pending: "等待同步最新复核状态。",
+                    sending: "正在核对或同步评论。",
+                    sent: "评论已同步。",
+                    unknown: "发送结果未确认，正在核对原评论，不会重复创建。",
+                    conflict: "原评论或发布身份发生变化，自动同步已停止。",
+                    stale: "MR 提交已变化，此次审计评论停止同步。",
+                    blocked: "同步条件不满足，自动同步已停止。",
+                  } as Record<string, string>
+                )[resource.data.comment_sync.state] || "同步状态待确认。"}
+          </p>
+          {resource.data.comment_sync.retry_exhausted && (
+            <p>
+              自动核对次数已用尽，请管理员检查原评论和同步原因。系统不会重复创建评论。
+            </p>
+          )}
+          {resource.data.comment_sync.note_id && safeURL(r.url) && (
+            <p>
+              <a
+                href={`${safeURL(r.url)}#note_${resource.data.comment_sync.note_id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                查看原评论
+              </a>
+            </p>
+          )}
+          <small>
+            已同步版本 {resource.data.comment_sync.sent_generation} / 当前版本{" "}
+            {resource.data.comment_sync.desired_generation} ·{" "}
+            {date(resource.data.comment_sync.updated_at)}
+          </small>
+        </section>
+      )}
 
       {r.error && <ErrorBox error={r.error} />}
       <section className="panel summary">
         <h2>审计摘要</h2>
         <p>{r.result.summary || "等待审计结果。"}</p>
-        {(r.result.audit_groups?.length || 0) > 0 && <details className="coverage">
-          <summary>分组审计 · {r.result.audit_groups!.filter(g => g.status === "completed").length}/{r.result.audit_groups!.length} 组完成</summary>
-          <p>按文件分配输入和预算；每组仍可检索整个固定提交的仓库。目录分组不代表调用关系。</p>
-          {r.result.audit_groups!.map(g => <details key={g.id}>
-            <summary>{g.id} · {{running:"审计中",completed:"已完成",failed:"失败",unprocessed:"未处理"}[g.status] || "未知状态"} · {g.files.length} 个文件</summary>
-            <ul>{g.files.map(file => <li key={file}>{file}</li>)}</ul>
-          </details>)}
-        </details>}
+        {(r.result.audit_groups?.length || 0) > 0 && (
+          <details className="coverage">
+            <summary>
+              分组审计 ·{" "}
+              {
+                r.result.audit_groups!.filter((g) => g.status === "completed")
+                  .length
+              }
+              /{r.result.audit_groups!.length} 组完成
+            </summary>
+            <p>
+              按文件分配输入和预算；每组仍可检索整个固定提交的仓库。目录分组不代表调用关系。
+            </p>
+            {r.result.audit_groups!.map((g) => (
+              <details key={g.id}>
+                <summary>
+                  {g.id} ·{" "}
+                  {{
+                    running: "审计中",
+                    completed: "已完成",
+                    failed: "失败",
+                    unprocessed: "未处理",
+                  }[g.status] || "未知状态"}{" "}
+                  · {g.files.length} 个文件
+                </summary>
+                <ul>
+                  {g.files.map((file) => (
+                    <li key={file}>{file}</li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </details>
+        )}
         <GitMetadataChanges changes={r.result.metadata_changes} />
         {(r.result.excluded_files?.length || 0) > 0 && (
           <details className="coverage">
@@ -329,11 +410,22 @@ export function RunDetail({ id }: { id: number }) {
           </div>
         )}
       </section>
-      <FollowupAuditPanel key={r.id} run={r} canSubmit={resource.data?.permissions.can_submit||false} />
+      <FollowupAuditPanel
+        key={r.id}
+        run={r}
+        canSubmit={resource.data?.permissions.can_submit || false}
+      />
       <ModelUsagePanel usage={resource.data?.usage} />
-      {resource.data?.retry_usage_error&&<p className="coverage">重试链用量无法核对，当前尝试的已报告用量仍保留。请联系管理员检查任务关联。</p>}
+      {resource.data?.retry_usage_error && (
+        <p className="coverage">
+          重试链用量无法核对，当前尝试的已报告用量仍保留。请联系管理员检查任务关联。
+        </p>
+      )}
       <RetryUsagePanel chain={resource.data?.retry_usage} />
-      <FindingHistoryPanel lifecycle={resource.data?.finding_lifecycle} findings={r.result.findings} />
+      <FindingHistoryPanel
+        lifecycle={resource.data?.finding_lifecycle}
+        findings={r.result.findings}
+      />
       <div className="section-heading">
         <h2>
           发现 <span className="muted">{r.result.findings.length}</span>
@@ -395,7 +487,13 @@ export function RunDetail({ id }: { id: number }) {
             >
               <summary>
                 {t.name}
-                {t.stage === "diagram" ? " · 时序图生成" : t.stage === "verification" ? " · 独立复核" : t.stage === "synthesis" ? " · 跨组汇总" : ""}{" "}
+                {t.stage === "diagram"
+                  ? " · 时序图生成"
+                  : t.stage === "verification"
+                    ? " · 独立复核"
+                    : t.stage === "synthesis"
+                      ? " · 跨组汇总"
+                      : ""}{" "}
                 <span className="muted">
                   {t.duration_ms}ms {t.error ? "· 失败" : ""}
                 </span>

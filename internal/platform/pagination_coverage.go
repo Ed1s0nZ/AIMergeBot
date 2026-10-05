@@ -12,7 +12,7 @@ type paginationCoverage struct {
 
 // Called under t.mu. Only a continuous prefix reaching a terminal page is complete.
 func (t *auditTools) paginationComplete(name, key string, args any, out toolOutput, failed bool) (bool, bool) {
-	cursorBased := name == "search_code" || name == "list_directory" || name == "get_diff" || name == "compare_files" || name == "get_history" || name == "search_history" || name == "git_blame"
+	cursorBased := name == "search_repository_code" || name == "list_repository_directory" || name == "search_code" || name == "list_directory" || name == "get_diff" || name == "compare_files" || name == "get_history" || name == "search_history" || name == "git_blame"
 	if !cursorBased && name != "list_files" {
 		return false, false
 	}

@@ -90,6 +90,20 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 		out = append(out, v)
 		return nil
 	}
+	if len(contextPolicyItems(t.snap)) > 0 {
+		if e := add(utils.InferTool("list_repositories", "List administrator-authorized fixed context repository IDs/SHA/availability. Existing read_file/search_code address the primary PR; use scoped context tools for listed IDs only. Enumeration is not source evidence.", t.contextRepositories)); e != nil {
+			return nil, e
+		}
+		if e := add(utils.InferTool("read_repository_file", "Read numbered lines from one authorized context repository at its fixed SHA, max 200 lines. repository_id is a listed context project ID, not an arbitrary destination. Context facts cannot replace primary changed-line evidence.", t.contextFile)); e != nil {
+			return nil, e
+		}
+		if e := add(utils.InferTool("search_repository_code", "Search the entire selected fixed context repository, literal/regex/path/extension/case filters, next_cursor pagination. Results are lexical candidates, not semantic call proof.", t.contextSearch)); e != nil {
+			return nil, e
+		}
+		if e := add(utils.InferTool("list_repository_directory", "List bounded directory tree in the selected fixed context repository, depth 1–20 and cursor pagination. Enumeration is not source evidence.", t.contextDirectory)); e != nil {
+			return nil, e
+		}
+	}
 	if e := add(utils.InferTool("read_file", "Read numbered lines at pinned head/base. start/end max 200 lines. remaining is unread file content, more is truncation.", t.file)); e != nil {
 		return nil, e
 	}
