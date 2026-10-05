@@ -73,3 +73,24 @@ func TestDifferentVerifierPricesNeverUsePrimaryPrice(t *testing.T) {
 		t.Fatal("same model compatibility lost")
 	}
 }
+
+func TestModelUsageMalformedTotalAndOverflow(t *testing.T) {
+	prices := ModelBudgetSettings{Currency: "USD", InputPricePerMillion: 1, OutputPricePerMillion: 1}
+	invalid := SummarizeModelUsage([]ToolTrace{{Name: "model", UsageReported: true, PromptTokens: 1, CompletionTokens: 1, TotalTokens: -1}}, prices, true)
+	if invalid.Complete || invalid.UnknownCalls != 1 || invalid.EstimatedCost != nil {
+		t.Fatalf("negative total accepted: %+v", invalid)
+	}
+	for _, stage := range []string{"primary", "verification"} {
+		for _, completion := range []bool{false, true} {
+			first := ToolTrace{Name: "model", Stage: "primary", UsageReported: true, PromptTokens: math.MaxInt64, CompletionTokens: 1}
+			second := ToolTrace{Name: "model", Stage: stage, UsageReported: true, PromptTokens: 1, CompletionTokens: 1}
+			if completion {
+				first.PromptTokens, first.CompletionTokens = 1, math.MaxInt64
+			}
+			u := SummarizeModelUsage([]ToolTrace{first, second}, prices, true)
+			if u.Complete || u.UnknownCalls != 1 || u.EstimatedCost != nil || u.EstimateUnavailableReason != "usage_overflow" || u.PromptTokens != int64(first.PromptTokens) || u.CompletionTokens != int64(first.CompletionTokens) {
+				t.Fatalf("overflow not isolated for stage %s/completion %v: %+v", stage, completion, u)
+			}
+		}
+	}
+}

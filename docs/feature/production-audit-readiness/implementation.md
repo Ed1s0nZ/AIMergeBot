@@ -387,3 +387,7 @@ CLI首轮converged后新增succeeded门控，incomplete记录停止阶段与未�
 Workflow Gate P10，现有R2预算/费用契约与f69e310独立检视为上游，允许窄修复；分支codex/production-audit-readiness，无外部写入。异常供应商响应TotalTokens为负数时，汇总未按预算逻辑标记未知；多个极大计数可能int64溢出并生成负费用。修复model_usage.go及测试，拒绝负total；每次累加前检查全局/阶段两项和是否溢出，失败时该调用计入未知且不改变已知合计。遇到溢出整个费用估计不可用，reason=usage_overflow，不用部分金额冒充可靠费用。普通未知调用仍保留已知部分费用，零total但正prompt/completion继续兼容现有接口。不改变API字段、预算策略或历史数据。测试负total、同阶段及跨阶段prompt/completion溢出、已知部分保留及无负费用。完成后记录F4/F5并秘密扫描提交推送。
 
 独立运维检视另确认PRR-003：urllib socket timeout不是总体deadline，慢响应可超过健康检查期限。此问题保留待单独设计和修复，不因PRR-002关闭而宣称完整检视或发布完成。
+
+## F4/F5 / PRR-002修复及定向回归
+
+用量汇总拒绝负TotalTokens，计数累加前检查全局及各阶段int64上限；溢出调用记未知、已知合计保持不变，费用估计为空并标明usage_overflow。新增同/跨阶段prompt与completion溢出及负total反例。go test ./internal/platform -run 'Test(ModelUsage|DifferentVerifierPrices)' -count=1通过（1.050秒），既有部分用量和独立复核价格测试保持通过。此修复不代表全分支检视或发布完成，PRR-003健康检查总体deadline仍待修复；真实外部验收及main/1234仍未完成。

@@ -49,6 +49,7 @@ func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, termin
 	out := ModelUsage{Stages: []ModelStageUsage{}, MaxTokens: settings.MaxTokens, Currency: settings.Currency}
 	out.EstimateUnavailableReason = "price_not_configured"
 	index := map[string]int{}
+	overflow := false
 	for _, tr := range trace {
 		if tr.Name != "model" {
 			continue
@@ -65,7 +66,15 @@ func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, termin
 		}
 		out.Calls++
 		out.Stages[i].Calls++
-		if !tr.UsageReported || tr.Error != "" || tr.PromptTokens < 0 || tr.CompletionTokens < 0 || tr.PromptTokens == 0 && tr.CompletionTokens == 0 {
+		if !tr.UsageReported || tr.Error != "" || tr.PromptTokens < 0 || tr.CompletionTokens < 0 || tr.TotalTokens < 0 || tr.PromptTokens == 0 && tr.CompletionTokens == 0 {
+			out.UnknownCalls++
+			out.Stages[i].UnknownCalls++
+			continue
+		}
+		prompt, completion := int64(tr.PromptTokens), int64(tr.CompletionTokens)
+		if prompt > math.MaxInt64-out.PromptTokens || completion > math.MaxInt64-out.CompletionTokens ||
+			prompt > math.MaxInt64-out.Stages[i].PromptTokens || completion > math.MaxInt64-out.Stages[i].CompletionTokens {
+			overflow = true
 			out.UnknownCalls++
 			out.Stages[i].UnknownCalls++
 			continue
@@ -106,6 +115,10 @@ func SummarizeModelUsage(trace []ToolTrace, settings ModelBudgetSettings, termin
 
 	if out.Calls == out.UnknownCalls {
 		out.EstimateUnavailableReason = "no_reported_usage"
+	}
+	if overflow {
+		out.EstimatedCost = nil
+		out.EstimateUnavailableReason = "usage_overflow"
 	}
 	return out
 }
