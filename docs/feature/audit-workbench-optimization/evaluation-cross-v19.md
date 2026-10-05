@@ -1,6 +1,6 @@
 # 跨语言、跨仓库成对 PR 回归（v19）
 
-代码 47099552cdf8080a4e01821de3519c1be37af0ec；语料摘要 7a9efebef4aac54498b39dd8d129860ccba62dff0cd071d1551ab4eba17cda5a。原始 receipt/checkpoint/标签保留在 `/tmp/aimangebot-cross-v19-evaluation-20261006`，进程退出0，未执行样例代码。
+代码 47099552cdf8080a4e01821de3519c1be37af0ec；语料摘要 7a9efebef4aac54498b39dd8d129860ccba62dff0cd071d1551ab4eba17cda5a。原始 receipt/checkpoint/标签保留在 `/Users/worker/.codex/evaluation-artifacts/aimangebot/cross-v19-20261006`，进程退出0，未执行样例代码。
 
 | 用例 | 外部期望 | 发现数 | 独立复核 | 成功上下文读/搜调用 | 报告token | 状态 |
 |---|---|---:|---|---:|---:|---|

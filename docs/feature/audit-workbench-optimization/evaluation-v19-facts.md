@@ -1,7 +1,7 @@
 # v19 自建 PR 回归：运行事实（待逐项质量判定）
 
 代码版本：66b2dcfd1670eff4e3f737dc48de4dfebfc605c9；策略：eino-audit-contract-v19；语料摘要：bda2c67ece912b5d4ed0fa03a27016248f9e8c1f7df4db23541c337b07727319。
-原始证据目录：`/tmp/aimangebot-v19-evaluation-20261006`，11个结束 receipt 均保留；此轮不包含关联仓库。连接探测 HTTP200，未修改配置。
+原始证据目录：`/Users/worker/.codex/evaluation-artifacts/aimangebot/v19-20261006`，11个结束 receipt 均保留；此轮不包含关联仓库。连接探测 HTTP200，未修改配置。
 
 | 用例 | 外部期望 | 执行状态 | 发现数 | 主调查置信 | 独立静态复核 | 毫秒 | 报告token |
 |---|---|---|---:|---|---|---:|---:|
