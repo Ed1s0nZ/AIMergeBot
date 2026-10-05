@@ -38,3 +38,7 @@
 保留现有ReAct，使用MessageRewriter适配官方summarization.BeforeModelRewriteState；每次Audit独立状态和可取消子context，摘要失败取消该主审上下文，服务端保留提交结果。摘要模型采用同模型/接口但不设置JSONObject，并用budgetModel共享累计预算；调用显式替换callback上下文，compression阶段独立检查点/用量。原始trace/cache/ledger不删除，摘要为不可信调查导航，不可作为源码观察。系统及初始用户任务原样保留；Finalize加入有界摘要、完整调查/已接受发现状态和原始观察索引；最近完整assistant/tool交换只有满足容量时保留，不能保留孤立tool。固定字节阈值128KiB保守触发（含工具schema计数）；压缩后消息112KiB上限，摘要16KiB/状态48KiB上限，超过即显式incomplete而非删证据。重复触发最多8次。默认自动启用，无需新增配置/API，合约升级v14。已有固定对象工具可重新读取摘要中索引对应源码，原观察仍可按原ID核验；不添加新源码资格工具。
 
 CI采用GitHub Actions push/PR只读contents权限，Go全测/race/vet、Python工具测试、前端锁文件安装/typecheck/build；超时和并发取消，固定action提交、无真实模型/GitLabkey。部署仍手动受当前用户授权，CI不部署。
+
+## F3 / 实现计划及维护门控
+
+新增agent_compression.go/test以隔离消息计数、Finalize、官方适配和callback；agent.go仅初始化/挂钩/错误说明，runs_store.go仅升级策略常量。这些文件分别281行/小型编排，允许narrow_fix/adapter_extraction，不扩大大型模块。测试纯消息配对/状态保留/尺寸/取消和真实本机HTTP多轮压缩成功/失败/预算/用量，无真实凭据。新增.github/workflows/ci.yml及文档说明，不改生产权限。保留原部署备份，代码验证/检视后再合并和部署；任何真实模型质量声明需独立证据。补充CI和上下文正式文档/CHANGELOG，并完成原队列核查。
