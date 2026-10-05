@@ -190,3 +190,7 @@ CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata�
 每组注入自身ID/文件清单完整JSON及说明：总manifest只导航、只有当前组diff可提交、先前规范finding由服务器保留无需重提，跨组可读但旧观察不能授予新锚点。普通单组不添加，16KiB超限省略文件列表但保留完整JSON及数量。ValidateFindings对未在当前scope的路径明确拒绝，原side/line/source边界不变。汇总成功及分组最终投影稳定去重完全相同coverage字符串，首次顺序和不同文字/不同来源说明保留；不改raw trace/历史，去重说明不能当工具失败次数。策略v28。
 
 实际SDK后一组初始消息含当前group-2与不重复提交说明、保留旧来源导航；模拟综合回传重复原gap及重复新gap，最终精确保留原gap+新gap两条。纯helper无源审计不变、超限完整JSON、顺序/无别名、越组路径错误定向通过；初定向1.137s，补SDK去重后0.580s，race1.862s，Go全量通过（platform45.436s），git diff --check通过。SDK增加的去重断言在全量编译后定向补跑通过，生产代码没有再改。真实模型行为未以测试代替，下一轮生产两组诊断保持上一失败证据及预算，不宣称已避免所有重复调查或完整链路。
+
+## v28 真实多组回归
+
+同生产两组诊断结束：group2只有两次read_file，没有重复调查或越组提交；主风险/规范来源保留，两组completed、1发现、最终incomplete。覆盖9条全部不同。154401token/23733ms，相较v27 256290token/46391ms只报告样本差别，不宣称普遍效率/提示单因素效果。首组2个工具修复错误、PRContext双方来源/逐边缺口和模型计数叙述错误仍保留。SHA256原始归档与evaluation-grouped-v28.md记录全事实；真实多组所发现的两个问题本轮恢复，整体质量/UI/新隔离验收与生命周期审查仍需补齐。
