@@ -42,3 +42,9 @@ CI采用GitHub Actions push/PR只读contents权限，Go全测/race/vet、Python�
 ## F3 / 实现计划及维护门控
 
 新增agent_compression.go/test以隔离消息计数、Finalize、官方适配和callback；agent.go仅初始化/挂钩/错误说明，runs_store.go仅升级策略常量。这些文件分别281行/小型编排，允许narrow_fix/adapter_extraction，不扩大大型模块。测试纯消息配对/状态保留/尺寸/取消和真实本机HTTP多轮压缩成功/失败/预算/用量，无真实凭据。新增.github/workflows/ci.yml及文档说明，不改生产权限。保留原部署备份，代码验证/检视后再合并和部署；任何真实模型质量声明需独立证据。补充CI和上下文正式文档/CHANGELOG，并完成原队列核查。
+
+## F4 / 主审压缩与CI首切片
+
+主审通过Eino官方summarization接入ReAct MessageRewriter，可取消子context阻止失败后下一HTTP请求。摘要模型不使用业务JSONObject，callbacks显式替换为compression阶段，SDK预算和检查点共享；Finalize保留固定原始输入、完整服务端调查/发现、观察导航和完整最近工具交换（容量不足时整组摘要，不拆工具配对）。源码trace/cache/账本不删除；摘要没有源码资格。升级策略v14，旧报告不重写。修复所有模型生成/空输出/解析失败结果遗漏Investigations，并增加实际工具调用后的异常反例。React新增阶段中文显示，生成构建资源与源码对应。
+
+实际HTTP长调查五模式：成功继续、HTTP失败、空摘要、usage缺失和token阈值全部通过；摘要请求计数等于compression用量阶段且总数无重复。纯Finalize验证固定输入、调查/反证导航、完整工具配对及超限停止。定向race3.754秒通过；首轮全Go通过platform33.519秒，随后只补调查结果字段和测试需再验证；go vet通过，React构建1.27秒通过。CI actions提交已通过官方仓库git ls-remote核对，固定SHA且contents只读/persist-credentials=false；远端CI尚未运行验证。独立复核/时序图压缩扩展与其余发布队列仍待完成，不将首切片当完整正式发布。

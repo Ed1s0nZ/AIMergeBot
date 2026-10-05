@@ -493,7 +493,9 @@ export function RunDetail({ id }: { id: number }) {
             >
               <summary>
                 {t.name}
-                {t.stage === "diagram"
+                {t.stage === "compression"
+                  ? " · 上下文压缩"
+                  : t.stage === "diagram"
                   ? " · 时序图生成"
                   : t.stage === "verification"
                     ? " · 独立复核"

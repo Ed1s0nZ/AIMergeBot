@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CGO_ENABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.27.x'
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Go tests and race checks
+        run: |
+          go test ./...
+          go test -race ./internal/platform
+          go vet ./...
+      - name: Operations tooling tests
+        run: python3 -W error::ResourceWarning -m unittest discover -s scripts -p 'test_*.py' -q
+      - name: Frontend build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+      - name: Embedded application build
+        run: go build -o "$RUNNER_TEMP/aimangebot" .
