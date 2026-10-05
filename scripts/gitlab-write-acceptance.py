@@ -81,13 +81,13 @@ def run(args, credentials, record, send=request, pause=time.sleep, clock=time.mo
             raise ValueError('run mismatch')
         if r['status'] in ('failed', 'cancelled'):
             raise ValueError('audit failed')
-        if d.get('comment_sync', {}).get('state') in ('blocked', 'conflict', 'stopped'):
+        if (d.get('comment_sync') or {}).get('state') in ('blocked', 'conflict', 'stopped'):
             raise ValueError('comment unavailable')
         return d
 
     def converged(min_generation=1):
         d = detail()
-        s = d.get('comment_sync', {})
+        s = d.get('comment_sync') or {}
         return d if d['run']['status'] in ('succeeded', 'incomplete') and s.get('state') == 'sent' and s.get('sent_generation', 0) >= min_generation and s.get('sent_generation') == s.get('desired_generation') else None
 
     first = wait(converged)

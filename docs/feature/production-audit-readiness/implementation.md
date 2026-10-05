@@ -335,3 +335,9 @@ Workflow Gate P10，R7授权范围及现有Webhook/Review/评论generation/只�
 ## F2/F3 / 切片11C原生写入程序联测
 
 P10验收阶段，11B程序及现有原生恢复fixture为上游，允许窄范围联测。smoke-worker-recovery新增--gitlab-write-preview，拒绝与会占用MR92的metadata等其他preview混用，预算崩溃模式也互斥；保持既有恢复先验。仅此模式启用合成Webhook token与评论，fixture MR响应补真实GitLab receipt需要的project_id/sha。使用现有合成登录session启动验收CLI子进程，目标MR92固定b SHA；脚本凭据只传子进程环境，证明JSONL0600不输出。核对原生run/投递数据库conflict、upstream一次create/两次PUT（应用更新与显式人工编辑），命令退出成功。无需构建新应用代码，使用已经编译含readyz的隔离二进制；失败保留私有目录。此证明是真实应用/Eino/Worker对合成上游，不是用户GitLab投递/模型质量。
+
+## F4/F5 / 切片11C原生写入联测与等待修复
+
+新增独立--gitlab-write-preview、合成Webhook凭据及评论开关、MR project_id/sha与CLI环境session传递。首轮因macOS /var实际symlink的私有目录检查拒绝，在调用端传root.resolve真实路径，未降低工具规则。第二轮已创建pending run但真实API comment_sync=null触发程序AttributeError提前退出，原生证明未成立；修复detail/converged将null视为尚未建立同步，补真实HTTP首轮pending/null再终态测试。9项工具测试2.221秒通过。
+
+第三轮19264/19265原生演练exit0：实例自然租约过期恢复保持既有证明；MR92通过Webhook新run5、去重同run、真实Eino两次HTTP、同discussion/note更新、显式人工编辑、第二次review进入conflict并保留正文。fixture核对create=1、PUT=2（应用更新+验收人工编辑），证明JSONL/总体proof本机0600。使用已有干净c789432应用二进制，当前脚本来自工作区；未声称此二进制包含最新脚本提交版本，未改1234。该证据完成程序与真实Worker本机集成，不证明用户GitLab网络投递或真实模型质量；授权外部MR和其他验收继续未完成。

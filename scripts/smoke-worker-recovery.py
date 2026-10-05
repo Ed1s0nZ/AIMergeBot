@@ -16,6 +16,7 @@ import re
 import signal
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -36,6 +37,7 @@ def wait_for(check, timeout=15):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True)
+    parser.add_argument("--gitlab-write-preview", action="store_true", help="Run the dedicated MR write acceptance CLI against the native application")
     parser.add_argument("--lifecycle-preview", action="store_true", help="Verify recurring and absent findings across three pinned heads")
     parser.add_argument("--group-preview", action="store_true", help="Verify actual grouped25-file audit and synthesis")
     parser.add_argument("--metadata-preview", action="store_true", help="Also verify a metadata-only finding and note-only diagram")
@@ -49,8 +51,10 @@ def main():
     parser.add_argument("--app-port", type=int, default=19234)
     parser.add_argument("--upstream-port", type=int, default=19235)
     args = parser.parse_args()
-    if args.budget_crash_preview and any((args.capacity_preview, args.backup_preview, args.metadata_preview, args.lifecycle_preview, args.group_preview, args.comment_preview, args.verification_preview, args.ui_preview, args.followup_preview)):
+    if args.budget_crash_preview and any((args.capacity_preview, args.backup_preview, args.metadata_preview, args.lifecycle_preview, args.group_preview, args.comment_preview, args.verification_preview, args.ui_preview, args.followup_preview, args.gitlab_write_preview)):
         parser.error("--budget-crash-preview must run alone")
+    if args.gitlab_write_preview and any((args.metadata_preview, args.comment_preview, args.verification_preview, args.followup_preview, args.backup_preview, args.capacity_preview, args.group_preview, args.lifecycle_preview, args.ui_preview)):
+        parser.error("--gitlab-write-preview must run alone")
     if args.backup_preview and not (args.metadata_preview and args.lifecycle_preview and args.comment_preview):
         parser.error("--backup-preview requires --metadata-preview --lifecycle-preview --comment-preview")
     if args.followup_preview and not args.metadata_preview:
@@ -152,7 +156,7 @@ def main():
                 version.update(state="collected", real_size=str(len(diffs)), diffs=diffs)
                 self.send_json(version)
             else:
-                self.send_json({"iid": int(match.group(1)), "source_project_id": 1, "title": "合成验证：重试与恢复", "web_url": "", "diff_refs": {"base_sha": base_sha, "head_sha": version["head_commit_sha"]}})
+                self.send_json({"iid": int(match.group(1)), "project_id": 1, "sha": version["head_commit_sha"], "source_project_id": 1, "title": "合成验证：重试与恢复", "web_url": "", "diff_refs": {"base_sha": base_sha, "head_sha": version["head_commit_sha"]}})
 
         def do_POST(self):
             match_comment = re.fullmatch(r"/api/v4/projects/1/merge_requests/(90|91|92|93|94)/discussions", self.path)
@@ -273,7 +277,7 @@ def main():
 
     upstream = ThreadingHTTPServer(("127.0.0.1", args.upstream_port), Fixture)
     threading.Thread(target=upstream.serve_forever, daemon=True).start()
-    config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": False, "enable_mr_comment": args.comment_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "verify_findings": args.verification_preview, "generate_sequence_diagrams": args.metadata_preview}
+    config = {"listen": f"127.0.0.1:{args.app_port}", "gitlab": {"url": f"http://127.0.0.1:{args.upstream_port}", "token": "synthetic-token"}, "openai": {"url": f"http://127.0.0.1:{args.upstream_port}/v1", "api_key": "synthetic-key", "model": "synthetic-recovery"}, "projects": [{"id": 1, "name": "合成验证项目", "enabled": True}], "enable_polling": False, "enable_webhook": args.gitlab_write_preview, "webhook_token": "synthetic-webhook" if args.gitlab_write_preview else "", "enable_mr_comment": args.comment_preview or args.gitlab_write_preview, "audit_workers": 1, "audit_timeout_seconds": 90, "whitelist_extensions": [], "react": {"enabled": True, "temperature": 0.1, "max_steps": 16}, "mcp": {"enabled": False}, "git_audit": {"enabled": False}, "verify_findings": args.verification_preview, "generate_sequence_diagrams": args.metadata_preview}
     if args.budget_crash_preview:
         config["model_budget"] = {"max_tokens": 100}
     if args.capacity_preview:
@@ -283,7 +287,8 @@ def main():
     env = dict(os.environ, AIM_ADMIN_USERNAME="recovery-fixture-admin", AIM_ADMIN_PASSWORD="recovery-fixture-password")
     processes, logs = [], []
     base_url = f"http://localhost:{args.app_port}"
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    session_jar = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(session_jar))
     db = None
 
     def start(name, directory=None):
@@ -356,6 +361,22 @@ def main():
         assert recovered["retry_attempt"] == 1 and recovered["retry_info"]["kind"] == "worker_interrupted"
         assert calls[90] == 1 and calls[91] == 3, "unexpected hidden/early HTTP retry"
         proof = {"fixture": str(root), "rate_parent": rate_parent, "rate_child": rate_child, "crash_parent": crash_parent, "crash_child": crash_child, "retry_after_seconds": info["delay_seconds"], "heartbeat_renewed": True, "sigkill_restart_rejected_until_expiry": True, "original_lease_waited": True, "parent_checkpoint_identical": True, "recovered_child_succeeded": True, "model_calls": calls, "preview_url": base_url + f"/#/runs/{rate_child}", "synthetic_only": True}
+        if args.gitlab_write_preview:
+            sessions = [cookie.value for cookie in session_jar if cookie.name == "aim_session"]
+            assert len(sessions) == 1
+            write_env = dict(os.environ, AIM_ACCEPT_SESSION=sessions[0], AIM_ACCEPT_GITLAB_TOKEN="synthetic-token", AIM_ACCEPT_WEBHOOK_TOKEN="synthetic-webhook")
+            command = [sys.executable, str(Path(__file__).with_name("gitlab-write-acceptance.py").resolve()), "--app-url", base_url, "--gitlab-url", f"http://127.0.0.1:{args.upstream_port}", "--project-id", "1", "--mr-iid", "92", "--head-sha", head_sha, "--output", str(root.resolve() / "write-acceptance.jsonl"), "--wait-seconds", "60", "--allow-test-mr-writes"]
+            checked = subprocess.run(command, env=write_env, capture_output=True, text=True, timeout=80)
+            assert checked.returncode == 0, "write acceptance failed; inspect private stage evidence"
+            stages = [json.loads(line) for line in (root / "write-acceptance.jsonl").read_text().splitlines()]
+            assert stages[-1]["stage"] == "conflict_preserved"
+            write_run = stages[-1]["run_id"]
+            delivery = api(f"/runs/{write_run}")["comment_sync"]
+            assert delivery["state"] == "conflict" and delivery["desired_generation"] > delivery["sent_generation"]
+            with lock:
+                assert comment_creates[92] == 1 and comment_updates[92] == 2
+                assert "manual-edit conflict acceptance" in comments[92]
+            proof.update(native_write_acceptance_run=write_run, native_comment_conflict_preserved=True, single_create_same_note_update=True, webhook_replay_only=True)
         if args.metadata_preview:
             metadata_run = api("/runs", {"project_id": 1, "mr_iid": 92})["id"]
             wait_for(lambda: row(metadata_run)[0] == "succeeded", timeout=15)

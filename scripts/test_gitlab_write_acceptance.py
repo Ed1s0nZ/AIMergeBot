@@ -23,7 +23,7 @@ class WriteAcceptanceTests(unittest.TestCase):
     def exercise(self, mode='success'):
         sha = 'a' * 40
         marker = '<!-- AIMergeBot:' + 'b' * 64 + ' -->'
-        state = {'body': marker + '\noriginal', 'generation': 1, 'desired': 1, 'sync': 'sent', 'hooks': 0, 'writes': [], 'reads': 0}
+        state = {'body': marker + '\noriginal', 'generation': 1, 'desired': 1, 'sync': 'sent', 'hooks': 0, 'writes': [], 'reads': 0, 'detail_reads': 0}
         prefix = '/api/v4/projects/2/merge_requests/3'
         stages = []
 
@@ -50,6 +50,9 @@ class WriteAcceptanceTests(unittest.TestCase):
                 if self.path == prefix + '/discussions/discussion':
                     return self.respond(discussion)
                 if self.path == '/api/v1/runs/1':
+                    state['detail_reads'] += 1
+                    if state['detail_reads'] == 1:
+                        return self.respond({'run': {'id': 1, 'project_id': 2, 'mr_iid': 3, 'head_sha': sha, 'status': 'pending'}, 'comment_sync': None})
                     return self.respond({'run': {'id': 1, 'project_id': 2, 'mr_iid': 3, 'base_sha': 'd' * 40, 'head_sha': sha, 'status': 'succeeded', 'result': {'findings': [] if mode == 'empty' else [{'id': 'finding'}]}}, 'comment_sync': {'state': state['sync'], 'sent_generation': state['generation'], 'desired_generation': state['desired'], 'discussion_id': 'discussion', 'note_id': 4}})
                 self.respond({}, 404)
 
@@ -87,7 +90,7 @@ class WriteAcceptanceTests(unittest.TestCase):
         try:
             error = None
             try:
-                module.run(args, ('synthetic-session', 'synthetic-token', 'synthetic-webhook'), lambda stage, **facts: stages.append({'stage': stage, **facts}))
+                module.run(args, ('synthetic-session', 'synthetic-token', 'synthetic-webhook'), lambda stage, **facts: stages.append({'stage': stage, **facts}), pause=lambda seconds: None)
             except (ValueError, urllib.error.HTTPError) as caught:
                 error = caught
             return state, stages, error

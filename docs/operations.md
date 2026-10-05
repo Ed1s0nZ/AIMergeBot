@@ -189,3 +189,5 @@ python3 scripts/gitlab-write-acceptance.py \
 程序先核对就绪和当前HEAD，每次写入前重验HEAD；需要新建run，有去重历史时停止，零发现时保留新run并停止，不凭空创建风险。成功验证同run Webhook去重、唯一任务评论标记、同note更新及人工编辑冲突。失败可能已经产生副作用，以私有阶段记录为准，不能盲目重跑或删除已有记录。GitLab人工编辑的读取检查与PUT不是原子条件更新，专用测试对象必须排除并发编辑。最多核对10页评论，超出明确拒绝证明唯一性。
 
 程序向应用重放Webhook，只证明应用事件入口。真实GitLab网络投递还需MR实际事件与GitLab delivery记录对照；本机HTTP合成测试不是实际GitLab验收，更不证明模型准确率。
+
+原生本机联测可运行 `python3 scripts/smoke-worker-recovery.py --binary /absolute/aimangebot --gitlab-write-preview --app-port 19264 --upstream-port 19265`（选择空闲隔离端口）。该模式单独运行，创建合成Webhook/评论，先验证原生租约恢复再运行完整写入CLI，核对一次create、同note更新与人工冲突保留。上游仅localhost，不访问真实配置或GitLab。
