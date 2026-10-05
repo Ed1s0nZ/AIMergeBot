@@ -42,3 +42,7 @@ model_budget新增input_price_per_million、output_price_per_million、currency�
 ## F2/F3 / 切片3：本机真实历史PR语料
 
 沿用audit-eval的私有结果目录、顺序执行、checkpoint/receipt、严格resume与失败保留。在语料case中新增git字段{directory,base_sha,head_sha}，仅本机绝对路径与40/64位完整SHA；禁止与base_files/head_files混用，kind为real-git-history-not-representative-benchmark。Case ID保持中性，期望/rationale/锚点留在私有ground-truth，不传入Agent；模型只收到固定SHA、neutralID和实际Git差异。读取授权本机对象，不联网、不检出、不执行源码、不发送评论。启动case前验证两个对象均为commit；当前不接受branch/tag可移动ref。既有静态语料行为保留；快照使用已有GitRepository只读及输出预算边界。测试真实本机Git提交/内容/错误SHA/路径/混合语料/标签隔离；真实模型评测待用户提供仓库，不能用本地fixture测试替代。
+
+## F4/F5 / 切片3实现与验证
+
+历史PR语料使用本机仓库根目录和完整固定SHA，CLI预先验证所有源对象后才创建产物/调用模型。Git对象读取复用既有保护，不检出/联网/执行源码。真实源和fixture不能混用；ground-truth/output路径含符号链接的真实位置校验阻止标签进入任何源仓库，并拒绝用子目录冒充仓库根来绕过边界。测试验证固定BASE/HEAD读取、脏工作树保留、neutralID/标签隔离、无效ref/缺失commit、混合输入、直接与symlink路径隔离、嵌套源目录拒绝。完整Go(platform19.579秒)与vet通过，新增入口定向检查独立通过；没有真实授权PR质量记录，等待用户提供测试对象。已请求测试项目/MR与验收评论授权，不要求用户发送密钥。

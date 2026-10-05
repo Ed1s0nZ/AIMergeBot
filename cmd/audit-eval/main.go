@@ -107,6 +107,18 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if err = evaluation.ValidateEvaluationLocation(corpus, *output); err != nil {
+		return err
+	}
+	// Validate all immutable sources before creating artifacts or invoking a model.
+	for _, item := range corpus.Cases {
+		if item.Git == nil {
+			continue
+		}
+		if _, _, _, e := evaluation.PrepareCase(context.Background(), "", item); e != nil {
+			return e
+		}
+	}
 	if *onlyCase != "" {
 		found := false
 		for _, c := range corpus.Cases {
@@ -175,11 +187,10 @@ func run() error {
 		if err = os.Mkdir(caseDir, 0700); err != nil {
 			return fmt.Errorf("unfinished case directory requires inspection: %s", c.ID)
 		}
-		base, head, e := evaluation.BuildRepository(ctx, filepath.Join(caseDir, "repository"), c)
+		repo, base, head, e := evaluation.PrepareCase(ctx, filepath.Join(caseDir, "repository"), c)
 		if e != nil {
 			return e
 		}
-		repo := &platform.GitRepository{Directory: filepath.Join(caseDir, "repository")}
 		snap := platform.Snapshot{ProjectID: 1, SourceProjectID: 1, MRIID: i + 1, BaseSHA: base, HeadSHA: head, Title: c.ID}
 		caseCtx, cancel := context.WithTimeout(ctx, time.Duration(*timeout)*time.Second)
 		changes, notes, e := repo.Changes(caseCtx, snap)

@@ -13,3 +13,29 @@ go run ./cmd/audit-eval --config config.yaml --output /tmp/aimangebot-evaluation
 `expected_anchor_matched_preliminary_only` 只是机械匹配，不是TP结论。必须人工检查风险机制和保护条件，允许合法相邻锚点，不根据标题关键词给分。区分候选发现、主调查支持和独立静态复核，不声称运行利用验证。连接失败/覆盖不足单列，不能把无结果当成安全，也不能移除失败后伪造高分；usage缺失时不能报告实际计费为0。配置或代码修复后完整重跑要保留旧轮次及原因。
 
 首次真实尝试见 [连接失败报告](../docs/feature/audit-contract-hardening/evaluation-connection-failure.md)：当前凭据返回401 invalid_api_key，暂无有效检测质量结果。
+
+## 真实历史 PR 输入
+
+已授权的本机 Git 仓库可以用独立、私有的语料文件指定固定提交。语料与结果目录必须在被审计仓库之外（含符号链接路径）；此模式不联网、不检出、不执行代码，也不创建 GitLab 评论。
+
+```json
+{
+  "version": 1,
+  "kind": "real-git-history-not-representative-benchmark",
+  "cases": [{
+    "id": "case-001",
+    "expectation": "positive",
+    "git": {
+      "directory": "/absolute/path/to/authorized/repository",
+      "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "expected_anchor": {"file": "path/to/file", "side": "head", "line": 1},
+    "rationale": "人工标注的风险机制、假设和反证"
+  }]
+}
+```
+
+替换示例 SHA 为仓库中实际完整 commit ID，不能使用 HEAD、分支、标签或 blob ID。不能同时提供 `base_files/head_files`。使用 `--corpus /private/path/pr-corpus.json --output /private/path/new-results`；结果权限0600、目录0700，但含源码，仍需按仓库敏感级别保管。模型只收到中性编号、固定提交和实际差异，期望/理由留在仓库外，不用于模型输入。工作树未提交的修改不影响固定对象读取。
+
+机械锚点匹配仍不是检测准确率；真实PR应由人工逐项判定误报、漏报、触发假设与覆盖不足，保留无结果、失败及不确定案例。没有真实仓库样本时，入口测试只能证明输入与隔离流程，不能生成真实质量结论。

@@ -19,7 +19,13 @@ type Anchor struct {
 	Side string `json:"side"`
 	Line int    `json:"line"`
 }
+type PinnedGitCase struct {
+	Directory string `json:"directory"`
+	BaseSHA   string `json:"base_sha"`
+	HeadSHA   string `json:"head_sha"`
+}
 type Case struct {
+	Git            *PinnedGitCase    `json:"git,omitempty"`
 	ID             string            `json:"id"`
 	Expectation    string            `json:"expectation"`
 	BaseFiles      map[string]string `json:"base_files"`
@@ -58,6 +64,22 @@ func LoadCorpus(path string) (Corpus, string, error) {
 		if c.Expectation != "positive" && c.Expectation != "negative" && c.Expectation != "uncertain" {
 			return corpus, "", fmt.Errorf("invalid expectation")
 		}
+
+		if c.Git != nil {
+			if corpus.Kind != "real-git-history-not-representative-benchmark" || len(c.BaseFiles) > 0 || len(c.HeadFiles) > 0 {
+				return corpus, "", fmt.Errorf("cannot mix pinned Git cases and synthetic files")
+			}
+			if err := validatePinnedCase(*c.Git); err != nil {
+				return corpus, "", err
+			}
+			if !safeFixturePath(c.ExpectedAnchor.File) || c.ExpectedAnchor.Line < 1 || (c.ExpectedAnchor.Side != "base" && c.ExpectedAnchor.Side != "head") || c.Rationale == "" {
+				return corpus, "", fmt.Errorf("invalid historical PR ground truth")
+			}
+			continue
+		}
+		if corpus.Kind == "real-git-history-not-representative-benchmark" {
+			return corpus, "", fmt.Errorf("historical corpus requires pinned Git cases")
+		}
 		for _, files := range []map[string]string{c.BaseFiles, c.HeadFiles} {
 			if len(files) == 0 || len(files) > 100 {
 				return corpus, "", fmt.Errorf("invalid fixture files")
@@ -78,6 +100,9 @@ func LoadCorpus(path string) (Corpus, string, error) {
 		if !ok || c.ExpectedAnchor.Line < 1 || c.ExpectedAnchor.Line > len(strings.Split(strings.TrimSuffix(text, "\n"), "\n")) || c.Rationale == "" {
 			return corpus, "", fmt.Errorf("invalid ground truth anchor")
 		}
+	}
+	if err := ValidateEvaluationLocation(corpus, path); err != nil {
+		return corpus, "", err
 	}
 	digest := sha256.Sum256(raw)
 	return corpus, hex.EncodeToString(digest[:]), nil
