@@ -84,3 +84,7 @@ GitHub真实CI已启动：run37290267404、head e799a08；工具安装已通过�
 CI push对纯docs/README/CHANGELOG跳过，PR仍完整验证，减少阶段记录提交打断同源码CI；workflow/source变化仍触发，不借此绕过源码验证。只读发布核查另确认standalone Git入口未复用Worker分组计划，超过96KiB时只能返回空输入，后续应实现同固定Git分组与覆盖契约；它不在上述已完成声明内。
 
 完整platform race91.788秒通过；其后Finalize补充总容量不足时整组省略可选最近交换（保留原始证据）、计数序列化失败保守停止，定向回归1.297秒通过；新增80KiB固定输入+30KiB完整工具交换反例，不能因可选历史而使可压缩的任务失败。阶段与价格/终态/SQLite定向race和vet随后验证。远端e9cb5af实际CI37291948186已全部success，证明该快照（此前源码/依赖）；不将它冒充当前未提交切片CI结果。
+
+## F2/F3 / 纯Git入口大差异分组
+
+AuditGit当前只有96KiB整体BuildDiff，未使用已有PlanAuditGroups/单文件整行分片；较大单文件会在进入Agent前整体省略。复用Worker的分组选择（计划多组，或整体输入为空但计划有组），保持相同8组/256KiB/固定坐标、共享预算和一次补充阶段。仓库变更读取notes只汇入当前路径，省略/排除记录不丢。无可审文本但全部策略排除且无其他缺口时skipped，其他空输入incomplete；不会调用模型。原始Snapshot仍固定，CLI不触发GitLab评论、不执行仓库代码。实际Git提交生成>96KiB大文件，HTTP模拟模型接收各组与synthesis结果，检查SHA/组完成、超预算显式缺口及无模型请求的排除路径；小差异原有路径保留。低复杂度standalone84行，窄委托，无新语言分析器。
