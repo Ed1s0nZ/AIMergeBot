@@ -99,3 +99,9 @@ PRContext 新增可选 BASE/HEAD 观察链接、风险结果与已检查反例�
 
 
 两轮原始证据已复制到 /Users/worker/.codex/evaluation-artifacts/aimangebot 下 v19-20261006 和 cross-v19-20261006，逐文件SHA256清单验证通过，仍保留原临时轮次。摘要报告引用耐久路径，源码/结果未上传远端。
+
+## 切片11：评测反馈的来源修复指引与复核约束
+
+PRContext 的缺失/重复引用错误现在报出具体 ID，并指明补入当前提交 observation_ids/counter_observation_ids 或移除无依据引用；不自动补关系、不放宽证据权限。一般非来源错误明确 evidence_eligible=true 和目录/知识清单不能使用。独立复核提示新增逐项检查约束/后果，名字/类型/单位不能替代代码校验；附带推断无证据必须列入limitations，核心风险依赖该假设则inconclusive。策略v20，无DB/API/UI迁移。
+
+定向来源/关系/复核测试通过1.341s；定向race通过2.714s；Go全量通过（platform44.277s）；git diff --check通过。测试证明拒绝/明确ID/显式修复和非来源门槛，不把提示字符串存在当语义质量证明。实际模型效果另轮同语料/预算回归保留；不能凭本次消息改动宣称减少token或杜绝过强推断。

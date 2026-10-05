@@ -36,7 +36,7 @@ func (t *auditTools) validateObservationIDs(ids []string) error {
 			}
 		}
 		if !found {
-			return fmt.Errorf("observation %s is not a successful source observation", id)
+			return fmt.Errorf("observation %q is not a successful source observation; use an exact observation_id from evidence_eligible=true source output, never directory/checklist IDs", id)
 		}
 	}
 	return nil

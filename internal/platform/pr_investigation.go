@@ -59,8 +59,11 @@ func validatePRContext(a Investigation) error {
 			}
 			seen := map[string]bool{}
 			for _, id := range fact.ObservationIDs {
-				if !allowed[id] || seen[id] {
-					return fmt.Errorf("PR context fact observations must be unique and linked to this investigation")
+				if seen[id] {
+					return fmt.Errorf("duplicate PR fact observation %q; include each source ID once", id)
+				}
+				if !allowed[id] {
+					return fmt.Errorf("PR fact observation %q is absent from this investigation's observation_ids/counter_observation_ids; add the successful source ID to the submitted investigation list, or remove the unsupported fact reference", id)
 				}
 				seen[id] = true
 			}
@@ -73,8 +76,11 @@ func validatePRContext(a Investigation) error {
 		}
 		seen := map[string]bool{}
 		for _, id := range ids {
-			if !allowed[id] || seen[id] {
-				return fmt.Errorf("PR relationship source must belong to this investigation")
+			if seen[id] {
+				return fmt.Errorf("duplicate PR relationship observation %q; include each source ID once", id)
+			}
+			if !allowed[id] {
+				return fmt.Errorf("PR relationship observation %q is absent from this investigation's observation_ids/counter_observation_ids; add the successful source ID to the submitted investigation list, or remove the unsupported relationship reference", id)
 			}
 			seen[id] = true
 		}

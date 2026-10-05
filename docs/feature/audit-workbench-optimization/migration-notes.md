@@ -20,3 +20,5 @@ SARIF 导出新增 GET /runs/:id/sarif（viewer 权限、application/sarif+json�
 重复读取保护令策略版本升为 eino-audit-contract-v18；旧任务继续保存其原策略，依既有策略一致性检查不按新契约自动重试。没有数据库字段变化，新的审计使用 v18。
 
 PR 风险链扩展可选字段，旧 JSON 可继续读取；新的字段包含来源观察链接与逐边静态确定性，不表示运行复现。审计策略升为 eino-audit-contract-v19，仍沿用既有策略一致性/重试检查，不新增数据库迁移。
+
+来源修复提示与逐项独立复核约束令策略升为 eino-audit-contract-v20；来源门槛、工具字段与存储模型不变，旧策略任务依既有版本一致性规则处理。

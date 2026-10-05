@@ -153,3 +153,24 @@ func TestPRSnapshotLinksRejectWrongSideAndContextRepository(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestPRReferenceErrorsIdentifyRepairAndKeepSourceGate(t *testing.T) {
+	p := riskRelationshipFixture()
+	err := validatePRContext(Investigation{PRContext: p})
+	if err == nil || !strings.Contains(err.Error(), `"source"`) || !strings.Contains(err.Error(), "observation_ids/counter_observation_ids") {
+		t.Fatal("reference repair unclear", err)
+	}
+	if err := validatePRContext(Investigation{PRContext: p, ObservationIDs: []string{"source"}}); err != nil {
+		t.Fatal("explicit repair rejected", err)
+	}
+	p.EntryPoints[0].ObservationIDs = []string{"source", "source"}
+	if err := validatePRContext(Investigation{PRContext: p, ObservationIDs: []string{"source"}}); err == nil || !strings.Contains(err.Error(), "duplicate") {
+		t.Fatal("duplicates not distinguished", err)
+	}
+	tools := &auditTools{}
+	knowledge, _ := tools.riskChecklist(context.Background(), riskChecklistArgs{Category: "access_control"})
+	out, _ := tools.record(context.Background(), Investigation{ID: "test", Claim: "unsupported", ObservationIDs: []string{knowledge.ObservationID}})
+	if !strings.Contains(out.Error, knowledge.ObservationID) || !strings.Contains(out.Error, "evidence_eligible=true") || len(tools.ledger) > 0 {
+		t.Fatal("source repair bypassed gate", out.Error)
+	}
+}
