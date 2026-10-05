@@ -251,3 +251,7 @@ R7先提供只读采证脚本：明确app/gitlab地址、run/project/MR、expect
 ## F4/F5 / 切片11A只读GitLab收据工具
 
 新增gitlab-acceptance-receipt.py，只GET readyz/run/MR/discussion，明确目标ID与full SHA、结果terminal、MR当前SHA和评论generation/标识对应。环境变量读取凭据，禁止跨重定向传递，HTTPS远端/本机HTTP限制，2MiB响应上限/10秒超时；只保存私有0600摘要，不覆盖。3项单元测试通过：正确收据不复制正文、任务/MR漂移/未完成/评论未收敛拒绝、地址传输规则。py_compile/diff检查通过。未实际连接用户GitLab/发送评论，完整Webhook/审计/更新/冲突及当前真实对象授权仍待11B，不能将该工具标记整个R7已完成。
+
+## F2/F3 / 切片10C6单次就绪监控
+
+P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围实现。纯标准库ops-healthcheck.py每次只GET明确endpoint/readyz，HTTPS远端/本机HTTP、不含凭据URL、不跟重定向，响应上限1KiB、超时1–10秒。仅HTTP200且精确JSON status ready算成功，退出0；其他状态/断连/超时/畸形/超限退出1并固定unavailable JSON，不输出URL/异常/正文。不会重启服务或写外部消息，适合现有监控定时调用；生产最终切换后验证真实1234。测试实际本机HTTP成功、503、302、非ready及超限，不把worker就绪解释为远端模型可用。
