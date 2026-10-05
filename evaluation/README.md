@@ -52,4 +52,6 @@ go run ./cmd/audit-eval --config config.yaml --output /tmp/aimangebot-evaluation
 
 ## 隔离验收语料
 
-`corpus-acceptance-v1.json` 是6例未参与此前调优的自建验收输入，冻结及逐项评分规则见 [验收协议](../docs/feature/audit-workbench-optimization/acceptance-protocol.md)。仍不代表生产准确率。若根据这组输出修改审计策略，它将转为回归集，不能继续宣称是隔离验收。使用独立新输出目录并保留全部失败；尚无实际结果时不报告准确率。
+`corpus-acceptance-v1.json` 是6例首次在v25隔离运行的自建验收输入，冻结及逐项评分规则见 [验收协议](../docs/feature/audit-workbench-optimization/acceptance-protocol.md)。仍不代表生产准确率。若根据这组输出修改审计策略，它将转为回归集，不能继续宣称是隔离验收。使用独立新输出目录并保留全部失败；尚无实际结果时不报告准确率。
+
+该6例结果已用于v26上下文预检与覆盖改进，因此从v26开始只能作为回归集，不能用来宣称当前策略未见验收。v25原始独立运行仍保留，详见 [v25验收事实](../docs/feature/audit-workbench-optimization/evaluation-acceptance-v25.md)。206原外部锚点行8有标注勘误（实际变更行7），冻结原输入不改。后续隔离验收应使用新版本。

@@ -32,3 +32,7 @@ PR 风险链扩展可选字段，旧 JSON 可继续读取；新的字段包含�
 ### v25 全文复核范围
 
 FindingVerification新增可选claim_coverage（full/partial/unknown），无数据库迁移。历史已保存记录保持原判定，不追溯改写；新复核缺失字段按unknown，supported且非full降inconclusive，原因和原limitations保留。客户端原有inconclusive展示、覆盖说明与SARIFverification属性继续适用。字段只表示独立模型范围声明，不能当作运行时证明，也不能保证模型没有遗漏事实。
+
+### v26 上下文预检
+
+有配置关联源时，主模型首次请求前多一次list_repositories授权预检，计入原工具预算并保存trace/checkpoint；无关联源不增加调用。预检失败/取消/进度持久化失败停止请求，不降级为无关联源审计。来源列表明确非源码，不能支持调查或finding。主调查未读取的固定源会有服务器覆盖说明，后续独立复核不抹去该主阶段缺口。现有列表工具新增聚合后授权复查，不改变单次源码工具前后授权。无API/DB迁移。

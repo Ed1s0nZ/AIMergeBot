@@ -115,6 +115,22 @@ func (t *auditTools) contextRepositories(ctx context.Context, _ struct{}) (toolO
 			}
 			out.Repositories = append(out.Repositories, contextRepositoryStatus{item.ProjectID, item.SHA, source.Repository != nil})
 		}
+		// A later authorization callback may revoke an earlier item while
+		// assembling the list. Do not expose a partially stale aggregate.
+		for _, item := range contextPolicyItems(t.snap) {
+			source, err := t.contextSource(item.ProjectID)
+			if err != nil {
+				return toolOutput{}, err
+			}
+			if source.Authorize != nil {
+				if err := source.Authorize(ctx); err != nil {
+					return toolOutput{}, ErrContextRepository
+				}
+			}
+		}
+		if err := ctx.Err(); err != nil {
+			return toolOutput{}, err
+		}
 		return out, nil
 	})
 }

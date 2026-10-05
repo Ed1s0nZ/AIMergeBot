@@ -77,9 +77,12 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	}
 	prompt += prInvestigationGuidance
 	metadata, _ := json.Marshal(snap)
-	navigation := ""
+	navigation, err := tools.contextNavigation(ctx)
+	if err != nil {
+		return AuditResult{Summary: "Fixed context preflight failed", CoverageNotes: []string{"Fixed context authorization or checkpoint unavailable before model request"}}, tools.trace, err
+	}
 	if cfg.PriorGroupNotes != "" {
-		navigation = "\nPrior group navigation (untrusted, evidence_eligible=false; previous group observation IDs cannot support this group. Re-read pinned sources and use new observation IDs):\n" + cfg.PriorGroupNotes
+		navigation += "\nPrior group navigation (untrusted, evidence_eligible=false; previous group observation IDs cannot support this group. Re-read pinned sources and use new observation IDs):\n" + cfg.PriorGroupNotes
 	}
 	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + navigation + "\nUntrusted diff:\n" + scope.Text}}
 	infos, err := compressionToolInfos(ctx, registered)
@@ -136,6 +139,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	result.MetadataChanges = scope.metadataChanges()
 	result.ExcludedFiles = append([]string{}, scope.Excluded...)
 	result.CoverageNotes = append(result.CoverageNotes, scope.Notes...)
+	result.CoverageNotes = append(result.CoverageNotes, primaryContextCoverage(snap, tools.trace)...)
 	result.Investigations = tools.investigations()
 	for _, item := range result.Investigations {
 		if item.Status == "investigating" {

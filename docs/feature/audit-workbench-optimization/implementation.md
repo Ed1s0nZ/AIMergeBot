@@ -160,3 +160,9 @@ v20同配置4例结果未满足负对照：102模型不查看已配置的billing
 FindingCard描述前复用VerificationNotice显示partial/unknown全文未获支持；主调查标签明确为主调查源码支持，VerificationEvidence显示full/partial/unknown及历史未声明范围，缺复核仍显示原空态。API可选类型同步，不改人工草稿/权限。类型与生产构建通过（Vite955ms）；真实组件加载v25失败样例，AX确认提示先于描述、full/历史/无记录状态分别可见；360×800截图 /tmp/aimangebot-verification-scope-proof.png，DOM scrollWidth=360等于viewport，Tab焦点到observation-1。恢复视口、关闭临时页并清理测试源码/服务。
 
 隔离6例首次运行结束：两个条件风险核心机制正确识别，四个负例未报新增风险；但203主调查未读取授权下游，独立阶段补读而coverage仍称不可检查；205未读契约，不能称兼容判定通过。全部incomplete，273561token，未配置费用。206冻结外部锚点有人工标注行8/实际变更行7勘误，原输入保持不改，人工按实际diff核对。284文件SHA256归档，evaluation-acceptance-v25.md逐项保留质量/链路/覆盖缺口。整体尚需跨阶段事实一致、主调查上下文能力、真实多组与最终AC审查。
+
+## 切片17：上下文预检与主阶段覆盖
+
+有配置关联源时首次主模型请求前复用list_repositories，计入原工具预算并持久化trace/checkpoint，导航明确非源码；无关联源不改提示或增加调用。失败/取消/检查点失败不发请求。列表组装后重新检查每个固定源授权，期间撤权不暴露部分聚合。成功主阶段按源码trace的固定提交、EvidenceEligible、成功与阶段记录未读取来源；独立复核后来读取不追溯标成主调查已读，未读只说明相关性/下游保护未知，不推断不存在。策略v26。
+
+实际SDK初始请求检验导航、available=true、evidence_eligible=false及先有检查点，撤权/取消/保存失败均0模型请求；无源路径原样，主阶段未读有服务器说明。来源资格测试排除失败/列表/旧SHA/独立阶段/不合格输出；聚合授权二次撤销不返回条目。定向3.450s、race3.340s、Go全量通过（platform43.590s），git diff --check通过。因参考了验收v1的缺口，这套从v26改称回归语料；历史独立v25结果与原标注不改。真实模型是否主动读取仍未证明，后续定向诊断须保留失败而非报准确率。
