@@ -279,3 +279,7 @@ P10运维迭代，readyz契约与原生launchd实证为上游，允许窄范围�
 ## F4/F5 / 切片12B补审流程实证
 
 MR92合成模型改按system阶段与本轮tool observation响应，支持多次独立审计，新增--followup-preview。第一轮修正fixture后发现补审status=incomplete且有有效发现/复核/时序图，原“成功必须succeeded”断言不符合选择范围契约。修正断言为终态incomplete+1有效发现+显式范围说明，未改变应用状态来迎合测试。19254/19255完整原生重跑退出0，MR92累计10模型HTTP，任务6固定父5 BASE/HEAD、entry.any selection、父结果/reviews保持、子review空。Followup race6.440秒通过，py_compile/diff检查通过。真实浏览器已验证0选择禁用、1选择启用、创建任务/路由和错误响应拒绝；修复后的成功流程还需浏览器重验。未证明真实质量，main/1234未替换，截图和DB仅本机私有。
+
+## F5 / 切片12C历史关联真实交互
+
+在隔离19250实例使用seed_move_report由历史6构造明确标记的移动报告11；此fixture不证明Git/Agent质量。真实浏览器展开候选6/7，明确多候选不自动选择；填写理由确认6后显示已确认与风险独立。再确认7触发真实API冲突，界面刷新并保留理由；撤回6后待确认且历史保留；拒绝7后已拒绝并展开操作者/时间/理由历史。SQL核对追加序列confirmed→pending→rejected，当前11风险review零，旧6仍fixed。私有截图association-decisions.jpg 0600，不上传。完成确认/冲突/撤回/拒绝交互；权限只读、跨仓库与补审成功浏览器以及最终main/1234继续待验收。
