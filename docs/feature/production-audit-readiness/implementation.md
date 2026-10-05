@@ -38,3 +38,7 @@ model_budget新增input_price_per_million、output_price_per_million、currency�
 ## F4/F5 / 切片2实现与验证
 
 详情API新增服务端usage摘要，独立前端面板和设置价格字段；CLI receipt记录同结构。SDK失败回调仅固定错误文本，已验证401/403/404/422单次失败均保留一条未知用量记录且不泄露提供商正文。计价采用冻结策略，不给旧任务套当前价格；无调用/无价格的估算为null。修复CLI取消caseContext后错误判为不完整的时序，先计算完成状态再释放上下文。价格验证、分阶段统计、缺失/负数/零usage、运行中状态、秘密保留与冻结往返均通过。定向race2.162秒、完整Go(platform19.733秒)、vet、CLI及前端构建915ms通过。详情HTTP冻结价格验收单独执行。下一片R1真实PR入口；跨重试与部署/外部实证仍待完成。
+
+## F2/F3 / 切片3：本机真实历史PR语料
+
+沿用audit-eval的私有结果目录、顺序执行、checkpoint/receipt、严格resume与失败保留。在语料case中新增git字段{directory,base_sha,head_sha}，仅本机绝对路径与40/64位完整SHA；禁止与base_files/head_files混用，kind为real-git-history-not-representative-benchmark。Case ID保持中性，期望/rationale/锚点留在私有ground-truth，不传入Agent；模型只收到固定SHA、neutralID和实际Git差异。读取授权本机对象，不联网、不检出、不执行源码、不发送评论。启动case前验证两个对象均为commit；当前不接受branch/tag可移动ref。既有静态语料行为保留；快照使用已有GitRepository只读及输出预算边界。测试真实本机Git提交/内容/错误SHA/路径/混合语料/标签隔离；真实模型评测待用户提供仓库，不能用本地fixture测试替代。
