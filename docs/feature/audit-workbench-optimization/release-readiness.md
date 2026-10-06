@@ -2,11 +2,11 @@
 
 更新：接口已恢复，原六例v35回归完成，393448 tokens、六例均incomplete；HTTP402已不再阻塞。质量缺口仍未解决，详见 regression-v35-restored.md，旧402记录为历史失败。
 
-## 当前状态（594e44c / v35）
+## 当前状态（生产591fe99 / v36）
 
-当前为部分交付，整体验收未完成；以下旧 v28 叙述保留为历史。新增来源检查/调查计划、记录导航、分组预算、服务器停止原因及执行器停止机制已推送 codex/audit-quality-loop；最后 context 分类丢失修复的本地 SDK 与 race 通过；生产代码594e44c CI已全部成功（https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37421390134），后续ee98d75仅文档。8e6bf31 CI 已成功。真实 v35 六例回归因HTTP402全部失败，不能报告零误报或总体质量提升。详细证据及范围见 overall-review-v35.md、acceptance-v34-results.md 和 verification-matrix.md。
+当前为部分交付，优化目标仍未通过逐项完成审计。最新生产代码591fe996415120aa2b9b8501cdea0d7c9acf5b14 CI全部成功（https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37423152398），后续提交为评测文档；context执行器停止修复及SDK/race验证通过。接口已恢复：v35恢复回归393448tokens，v36回归459281tokens，均六例incomplete。v36部分负例补账本/显式收尾，但Claim与rejected极性不一致；独立复核引用失败、关系缺项与过强部署断言仍是质量限制。详见regression-v35-restored.md、regression-v36.md与verification-matrix.md。HTTP402旧运行是保留的历史失败，不是当前阻塞。
 
-当前PR描述补充：审计记录缺少来源关联或调查计划时明确保留缺口；模型步骤和工具预算保持原值；执行器不可用后停止后续计费请求并保留候选；分组停止原因由服务器生成，前端显示。模型质量验收未通过，恢复接口后继续；未创建PR、未合并或部署。
+当前PR描述补充：四方面来源检查、调查计划、记录导航与未收尾计数增强可追踪性；固定来源、证据资格、步骤和工具预算保持原约束；不可用执行器后停止后续模型请求并保留候选，分组停止原因由服务器生成。记录结构合法不保证语义正确，真实回归仍有上列限制；未创建PR、未合并或部署。
 
 ## 历史 v28 交付记录
 
