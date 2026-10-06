@@ -1,0 +1,13 @@
+# v42 命题评估输入定向回归
+
+冻结源码b19ff4677f475d15bd5ab7d04e0da7c27bdd5807，策略eino-audit-contract-v42；原deepseek-chat、temperature0.1、15steps/80tools/240秒。已有corpus SHA2561851b934d057b5a5696ac9a26c461ab38087a5db04f86d90b7742ffac2e46b4b，仅case-802，一次完整流程，无改真值/预算或盲重跑；不是新独立验收。
+
+真实结果incomplete、0findings，16605ms、6轮模型，71451输入+3616输出=75067tokens，usage_complete=true、无402/API失败。价格未配置，费用未知；较v40此例102808tokens更少，但单次随机结果及工作量不同，不能据此推断普遍效率或准确率。
+
+模型实际读取BASE/HEAD release.go、caller.go、workflow.md及两次检索。record_hypothesis(6)因PR入口引用不在顶层来源列表失败，后续同Claim成功record(9)、update(10)后显式resolve_recording_errors(11)退休6→10，原失败历史保留。
+
+update实际提交claim_assessment=evidence_supports_claim，并同时保留兼容的status=supported；规范化ledger为supported。Claim说明审批守卫改善，证据真正支持该命题；相较v40错误rejected，本例极性正确。五项checked计划含四核心检查与契约，记录Handle→Release来源关系；input_control reason明确State设置在fixture之外，next_steps和unresolved_edges保留上游未知。关系来源包括caller全文及调用检索，未执行样本。
+
+模型仍未填before_observation_ids和after_observation_ids；before/after文字括号中的ID不能替代结构化来源。服务器最终保留两条BASE/HEAD缺口，模型保留上游未知、未运行及词法检索非穷尽说明，故继续incomplete。零finding不等于整体安全；fixture没有证明上游授权和实际资金操作。其他语言/跨项目样本及805未运行，AER-001保持open。
+
+归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/regression-v42-assessment-20261006，40文件SHA256逐项复核一致。原v40/v37回执与真值不修改。

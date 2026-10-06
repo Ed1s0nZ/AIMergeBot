@@ -1,8 +1,14 @@
 # R3 交付核对矩阵
 
-## 当前增量：83671ea（策略 v41），整体仍未完成
+## 当前增量：b19ff46（策略 v42），整体仍未完成
 
-无finding调查也用共享PR recording gaps保留最终BASE/HEAD来源与关系缺口；metadata-only依固定来源分类，同步feedback/live/final，不制造执行路径。最终生产源码full Go exit0 platform111.423s、广泛定向race8.043s、追加SDK/worker/SARIF race4.447s、vet/diffcheck通过。独立切片COMMENT、无blocking，定向9.457s/自设计8类来源边界0.709s通过；非整分支批准。源码CI run37434193201运行中。
+模型update_investigation改明确claim_assessment有限枚举，隐藏顶层旧status、保留plan.status，兼容旧JSON和直接Go调用。矛盾新旧值/未知枚举拒绝；原提交trace与规范化状态分别留存，来源/计划/PRContext及8000字节门禁不变。本地全量Go exit0 platform137.600s、定向1.157s、race3.329s、vet/diffcheck通过。独立fresh-context切片COMMENT、无blocking，自行定向0.788s通过，非整体批准；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v42-b19ff46/PR_REVIEW_REPORT.md。源码CI run37435634059最后核对in_progress。
+
+原模型同预算802真实回归：75067tokens、6轮、0findings，守卫改善命题正确supported并记录调用关系与上游未知；仍缺结构化BASE/HEAD链接，最终两条对应缺口保留、状态incomplete。只有一个已知样本，不能推广准确率或费用改善。详见regression-v42-assessment.md；其他语言/跨项目与805本轮未运行，AER-001仍open。未合并、未部署。
+
+## 历史增量：83671ea（策略 v41），整体仍未完成
+
+无finding调查也用共享PR recording gaps保留最终BASE/HEAD来源与关系缺口；metadata-only依固定来源分类，同步feedback/live/final，不制造执行路径。最终生产源码full Go exit0 platform111.423s、广泛定向race8.043s、追加SDK/worker/SARIF race4.447s、vet/diffcheck通过。独立切片COMMENT、无blocking，定向9.457s/自设计8类来源边界0.709s通过；非整分支批准。源码CI run37434193201终态success。
 
 旧真实v40-802离线投影新增三条缺口，全部Claim/status/原记录JSON未变，无新模型请求，不当作准确率/效果回归。原真实模型的错误Claim极性、跨项目关系及部分入口质量仍未充分证明，AER-001 open；v41只防止最终说明丢失，不修复语义判断。未合并、未部署。
 
