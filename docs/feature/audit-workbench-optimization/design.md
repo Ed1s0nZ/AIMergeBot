@@ -256,3 +256,7 @@ v40真实802 plan四项checked、status错误rejected、无finding，却缺befor
 追加说明会经既有Run结果持久化、group合并、UI覆盖列表和SARIF不可完成状态传播，无新字段/前端迁移。来源与判断门禁不变，策略v41。已有v40极性错误保持open，不把更多incomplete当判断修复或新完成标准。当前v40 CI37432182646已success；v41另验。
 
 V41一致性补充：metadataOnly来源分类同时用于工具recording_gaps、live recording progress和最终调查coverage（共用同一source-basis helper），避免运行提示反复要求纯metadata来源虚构execution关系，而最终却豁免。保留纯默认investigationRecordingGaps wrapper供无trace上下文调用；只有持锁且有真实固定trace的调用点能使用分类，不由模型字段授予。验证正metadata record回执与live都不出现pr_context_missing，所有反例仍保留；plan/status门禁不变。
+
+### v42 命题评估输入契约（P10/F2）
+
+v40真实802把“守卫加强，无安全回归”命题写成rejected，反证实际上支持命题。模型工具update_investigation改用claim_assessment：evidence_supports_claim、evidence_refutes_claim、insufficient_evidence，分别映射原supported/rejected/investigating。模型schema隐藏顶层旧status；嵌套plan.status保持。旧JSON status及直接Go调用继续兼容；同时提交矛盾新旧值拒绝，未知枚举拒绝。绝不按Claim文字或是否存在finding推断结论。原证据、计划、PR来源校验与预算完全保留。原提交含assessment进入trace，规范化状态进入ledger；输入及保留字段仍受8000字节限制。历史/UI/API结构不迁移。此输入澄清不证明模型语义正确，AER-001仍open。
