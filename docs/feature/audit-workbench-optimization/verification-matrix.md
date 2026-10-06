@@ -1,5 +1,10 @@
 # v46 当前增量
 
+## 当前增量：v47 原预算收尾已验证，整体仍incomplete
+
+297e610主审共享原决策硬上限，并对合法提前final最多请求一次补录；候选、压缩、token/取消门禁保持。full205.620s、受影响race39.055s、vet/diffcheck、精确CI37455551443 success；独立scoped APPROVE/PFR-001 resolved（full96.142s、race23.639s、481文件一致）。真实原模型802/803各一次已保存实际BASE/HEAD引用及cited调用/部署关系；803初审全读三份PHP上下文，不再把可用部署映射说成缺失。fresh claim漏相关仓库被正确保留unknown；具体SQL载荷条件/full coverage仍需改善。详见regression-v47-finalization.md；AER-001 open，未合并main/部署，不承诺总体准确率。
+
+
 精确c5aa4d7：原子上下文工具/schema/唯一primary来源/固定SHA/side/20条及8000字节/同family恢复/旧finding与计划保留，full156.137s、race60.011s+9.047s、vet/diffcheck、CI37450141111success及独立delta APPROVE。真实802/803各一次，803采用新工具但两个样本漏双侧ID，803漏可用部署映射；当前AC003/005/完整质量仍incomplete、AER-001 open。详见regression-v46-context.md；其余R3继承范围见completion-audit-v45.md，不把切片批准扩为全部完成。
 
 # R3 交付核对矩阵

@@ -1,6 +1,11 @@
 # R3 分支交付
 
-## 当前增量：v46 PR上下文原子补录已验证，整体仍incomplete
+## 当前增量：v47 原预算收尾已验证，整体仍incomplete
+
+297e610主审共享原决策硬上限，并对合法提前final最多请求一次补录；候选、压缩、token/取消门禁保持。full205.620s、受影响race39.055s、vet/diffcheck、精确CI37455551443 success；独立scoped APPROVE/PFR-001 resolved（full96.142s、race23.639s、481文件一致）。真实原模型802/803各一次已保存实际BASE/HEAD引用及cited调用/部署关系；803初审全读三份PHP上下文，不再把可用部署映射说成缺失。fresh claim漏相关仓库被正确保留unknown；具体SQL载荷条件/full coverage仍需改善。详见regression-v47-finalization.md；AER-001 open，未合并main/部署，不承诺总体准确率。
+
+
+## 前一增量：v46 PR上下文原子补录已验证，整体仍incomplete
 
 c5aa4d7提供typed record_pr_context，仅明确更换PRContext/合并显式来源，不改原命题判断、计划、反证及历史；full156.137s、race60.011s+9.047s、vet/diffcheck、精确CI37450141111success，独立新契约delta scoped APPROVE（476文件一致），不批准整分支。真实原模型802/803各一次：803确实采用并保存关系，但双方引用仍漏、可用deployment映射漏读且主审提前终止；详见regression-v46-context.md。AER-001 open，下一步原预算内收尾控制，未合并main/部署。
 

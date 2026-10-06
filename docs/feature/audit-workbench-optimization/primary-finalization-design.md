@@ -19,3 +19,5 @@ F4/F5实现：primary_recording_model在WithTools后保留同counter与单次ask
 验证：初始AssistantMessage SDK签名编译问题已按实际v0.9.21接口补nil工具数组；旧纯读取/空scope压缩fixture暴露过度触发后，收尾限定included PR行/metadata并增无PRscope反例，不提高预算或缩减老压缩测试。基础定向31.911s、主体/候选门禁测试114.950s、初步race73.650s；实际SDK补录及累计7calls/70tokens、token-stop/最后工具不执行race3.659s。最终覆盖追加压缩/actual control保留、原长上下文及五种失败模式、supplemental压缩、token/重试预算、claim/分组取消/worker等race80.873s通过。先前扩展race37.891s失败已以真实空PR scope门禁修复，保留失败事实；full/精确CI/冻结独立检视及原模型实际效果尚待，AER-001 open。
 
 独立冻结检视18513f5为REQUEST_CHANGES（PFR-001）：精确CI37454288020和本地full均发现五个旧固定响应fixture在新增收尾请求后错序；同五项在v46通过，未发现额外生产预算/信任门禁缺陷。修正只调整测试模拟协议：补录final明确算在本audit，metadata从跨audit奇偶改为每audit三响应，第二组400在第一组补录完成后注入；保留来源/coverage/候选/metadata/分组handoff与取消断言，新增原server补录指令断言。禁止删测试、提高生产预算或用新定向通过代替full；受影响五项race39.055s与vet/diffcheck通过，最终full exit0（platform205.620s）；新精确CI/冻结re-review尚待。原失败报告和CI留存，不继承旧批准。
+
+最终工程证据：297e610 exact CI37455551443 all stages success；冻结re-review scoped APPROVE/PFR-001 resolved，独立full96.142s、race23.639s/vet/diffcheck，481hash匹配；先前失败与pending报告保留。原模型802/803各一次已完成，原预算无增加，完整真实归档与未完成项见regression-v47-finalization.md；不能继承为整体R3批准。
