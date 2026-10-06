@@ -53,3 +53,7 @@ F6补验：发现内嵌web/dist尚未同步最新来源分项/计划/停止原�
 当前交付核对代码1601410：go test ./... exit0（platform51.699s，其余cached）；go test -race ./internal/platform exit0 220.263s；Python运维27项7.843s通过；go vet ./...与嵌入app go build exit0；npm完整内嵌build2.92s通过。临时PATH同版本已安装Apple Git，默认启动器延迟历史失败不抹除。原六例回归326332tokens、两个有条件风险正确定位但6/6未完整（404JSON syntax失败），详见当前报告和verification-matrix。此核对发现实际质量缺口，不以工程通过替代R3全验收，后续F6/隔离评测/覆盖记录仍需继续。
 
 远端CI补核：GitHub Actions run37418314830绑定1601410cbdf9d4c58ff16ce28ca4dc399025c0c0，gh run view实际返回completed/success。前两次源码push被新run取消，不能称失败或通过；本次终态覆盖当前源码/内嵌产物，后续0c2d1e3仅文档。
+
+第八切片接入：工具成功回复optional recording_gaps，有限码区分未记录/未完成plan、BASE/HEAD来源、关系缺失/推测；不改变账本语义、校验或持久finding快照，不能作为source。真实原生Git测试record早期提示→错误BASE来源仍拒绝→补有效BASE/HEAD/关系/checked plan清除记录缺项；既有finding不会被账本更新隐式升级，明确resubmit后重新保存。实际SDK record回复计划缺项在下一请求可见，后续update仍受source/plan门禁。对应专项73.358s通过；补充完整修订/再提交race9.743s通过，耗时含Git启动/主机负载不作性能宣称。全量与其余race仍待结果；go vet专项与diffcheck通过，前端无改动，当前内嵌产物保持一致。策略v34仅改变新请求，历史不重写。真实模型实际是否采纳提示尚待固定代码后回归/新隔离样本，不宣称完成率提升。
+
+第八切片当前全量go test ./... exit0：CLI34.506s/evalcmd4.089s/evaluation49.792s/platform218.960s；相关含PR/旧policy/SDK计划race38.851s，补充修订/再提交race9.743s，均实际终态通过。最终Go运行期间只追加测试与文档，生产代码未变化，新增测试专项已覆盖。原预算与source gates不变，无前端改动无需新UI构建；第八切片完整真实质量证据仍待固定代码后的回归及新隔离评测。

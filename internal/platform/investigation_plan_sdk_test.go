@@ -36,6 +36,23 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 			} else if planned && n == 2 {
 				toolCall("record_hypothesis", Investigation{ID: "plan", Claim: "static candidate examined", Plan: pendingPlan()})
 			} else if planned && n == 3 {
+				seenGap := false
+				for _, m := range req.Messages {
+					var out toolOutput
+					if m.Role == "tool" && json.Unmarshal([]byte(m.Content), &out) == nil {
+						for _, gap := range out.RecordingGaps {
+							if gap == "plan_unfinished" {
+								seenGap = true
+								if out.EvidenceEligible {
+									t.Error("SDK recording feedback is source evidence")
+								}
+							}
+						}
+					}
+				}
+				if !seenGap {
+					t.Error("SDK did not receive timely plan gap")
+				}
 				id := ""
 				for _, m := range req.Messages {
 					var out toolOutput

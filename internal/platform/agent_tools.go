@@ -30,6 +30,7 @@ type searchArgs struct {
 	Base       bool   `json:"base"`
 }
 type toolOutput struct {
+	RecordingGaps          []string                  `json:"recording_gaps,omitempty"`
 	RepositoryID           int                       `json:"repository_id,omitempty"`
 	Repositories           []contextRepositoryStatus `json:"repositories,omitempty"`
 	EvidenceEligible       bool                      `json:"evidence_eligible"`
