@@ -333,3 +333,6 @@ F5/F6 v44：冻结217db2101696eb57293d7ecd98092bf9cebe1df9，修正SDK断言后r
 契约初版e52525d full Go通过（root11.105s、audit-eval1.460s、evaluation29.721s、platform132.783s），定向race2.795s、vet/diffcheck通过。但独立fresh-context REQUEST_CHANGES发现CVR-001 S2：compare_files只检查HEAD path，忽略实际BASE old_path，错误授予双侧覆盖；旧报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v45-contract-e52525d/PR_REVIEW_REPORT.md 必须保留，绿色测试不覆盖此反例。
 
 CVR-001修复：get_diff和compare_files分开处理，compare BASE真实old_path必须匹配同路径或固定有效metadata的OldPath→NewPath关系；真实新增条目无BASE不能用compare替代。新增普通同路径/无关旧路径/规范rename/省略旧路径负例及真实本地Git工具反例，未执行审计源码。补充grouped Added/Removed anchors来源覆盖（group scope没有Included）；复合命题仍由模型检查，不把读取数量当语义证明。parser进一步拒绝重复顶层JSON字段，避免冲突verdict取最后值。修正相关race2.700s、vet/diffcheck通过；后续full与独立re-review尚未完成，不继承旧head报告/CI。runner/UI/SARIF仍待接入，策略保持v44。
+
+
+契约修复F5/F6：冻结814c60a572d6e5d1976a44f67522678ebd219902，最终full Go exit0（root13.830s、audit-eval缓存、evaluation17.110s、platform110.823s）；相关race2.700s、vet/diffcheck通过，无后续生产修改。独立fresh-context re-review在原3f493d3→814c60a完整契约切片APPROVE，CVR-001 resolved、无新blocking，自行定向2.921s及外部反例0.781s通过。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v45-contract-814c60a/PR_REVIEW_REPORT.md supersedes旧e52525d scoped REQUEST_CHANGES；历史报告未改，整分支/runner/UI/SARIF/AER不在此批准范围。源码已推送，CI37441430651尚待终态核对；e52525d CI37440918505 success不是当前修复验收。未新增真实模型调用，AER-001 open。

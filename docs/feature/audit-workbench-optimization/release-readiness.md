@@ -1,6 +1,13 @@
 # R3 分支交付
 
-## 当前增量：217db21（策略 v44），整体仍未完成
+## 当前基础：814c60a（策略仍v44），命题复核尚待接入
+
+新增共享原40次/60秒复核pool及server-owned调查命题复核契约；模型写入注入清除、严格JSON和fresh固定来源校验已实现。独立检视发现compare_files误算BASE路径的CVR-001，已修复并以真实本地Git反例验证；最终全量Go platform110.823s、定向race2.700s、vet/diffcheck通过。独立契约切片re-review APPROVE/CVR-001 resolved，不批准整分支；报告见implementation.md。源码CI37441430651仍待终态。
+
+当前supplement仍只执行原finding复核，没有调查命题复核请求。runner、UI/配置/SARIF和原模型真实质量验证继续待做；不能把数据契约测试当语义判断改善，AER-001保持open。已推送codex/audit-quality-loop，未自动合并/部署。
+
+
+## 历史增量：217db21（策略 v44），整体仍未完成
 
 空/未知update ID错误增加本次audit已有ID的有界排序JSON及复制说明；不自动选择记录或按Claim匹配。原验证顺序、源码门禁、未知ID拒绝、ledger/history/pending保持；跨identity resolver继续拒绝。相关race4.648s、vet/diffcheck通过；独立切片COMMENT、无blocking，自行定向1.000s/race4.265s通过，非整分支批准。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v44-217db21/PR_REVIEW_REPORT.md。最终full Go exit0 platform127.828s，源码CI run37437834569终态success。
 

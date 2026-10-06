@@ -1,8 +1,12 @@
-# 调查命题独立复核（v45设计，尚未实现）
+# 调查命题独立复核（v45设计，契约已实现，执行与界面待接入）
 
 ## Workflow Gate / Lifecycle
 
 用户目标：Confirmed R3完整最佳实践优化，语言无关、授权跨项目、PR增量。上一轮为progress（v44源码及SDK/独立/full/CI证据）。阶段P10/F2；AC002/003/005/006/007/010/011/012与v42/v43真实命题极性/空ID回执具备，允许设计与实现，不需新增权限/账号/运行时执行。现有复核只检查finding，无告警resolved investigation缺独立判断。缺口：新的持久化/模型/UI契约须先本文定义；不改用户确认需求，不提高预算以获得completed。分支codex/audit-quality-loop，无自动合并部署。
+
+## 当前实现状态
+
+共享预算基础3f493d3及server-owned/parser/来源契约814c60a已实现并通过全量Go、定向race和独立切片检视。调查复核runner、共享pool接入、UI/配置/SARIF和真实模型效果尚未完成；策略仍v44，没有新增调查复核调用。CVR-001比较BASE路径缺口已在814c60a修复，初版e52525d检视否决保留为历史。
 
 ## 依据与边界
 

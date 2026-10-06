@@ -1,6 +1,6 @@
 # PR审计优化实施计划
 
-输入：Confirmed R3；设计design.md；分支codex/audit-workbench-optimization。阶段F3，生产代码尚未修改。
+输入：Confirmed R3；设计design.md；当前实施分支codex/audit-quality-loop。以下保留原切片计划；既有实现与证据见implementation.md及verification-matrix.md。当前v45契约基础已完成，执行接入与真实质量验证仍进行中。
 
 | 切片 | 需求 | 文件/边界 | 验证与交付 |
 | --- | --- | --- | --- |
@@ -79,3 +79,6 @@ Workflow Gate：Confirmed R3 AC003/006/011/012、v43真实空ID及F2设计齐备
 完整目标与新契约见claim-verification-design.md（7bf1616）；本切片只是其必要基础，命题复核/UI/实际质量未实现，不代表目标完成。Workflow Gate：Confirmed R3/F2设计/现有verification实现及实际极性缺口齐备；允许实现共享预算基础，无新权限/产品决定。Maintainability Gate：verification_agent195行包含模型初始化/调度/结果校验，私有helper抽取预算降低耦合；medium风险，zero_behavior_refactor，旧wrapper保留模型初始化后才创建pool的顺序，nil pool兼容，无跨UI变更。策略v44保持，未来feature接入后才v45。
 
 抽取verification_budget.go的phase ctx/cancel、60秒与deadline−10秒、40工具余量、单项min10及consume；现有verifyFindings薄wrapper调用withBudget(nil)，原模型选择、callback、source资格、单项15秒/graph8、排序/缺口/persistence保持。新pool可复用但本切片尚无第二consumer，不能声称已实现共享命题复核。测试余量/耗尽/overcount/取消/短deadline，以及同一pool跨两次finding调用不可额外消费；旧finding/context/checkpoint/model usage/停止/race/full/vet。独立预算边界fresh-context review按pr-review公共信任预算改动要求；源码freeze，未运行样本/真实API，不用实现foundation代替原AC。单helper可回退，后续继续完成契约/parser/runner/UI/SARIF/实际评测。先计划提交推送再代码。
+
+
+v45当前切片状态：共享预算基础3f493d3、server-owned/parser/provenance及CVR-001修复814c60a已完成切片验证。下一步执行器接入：resolved调查稳定顺序、finding优先同pool、fresh prompt不给首审判断/理由、实际模型与压缩usage正确归入复核价目、取消/检查点/故障停止、未完成coverage、worker/SARIF持久化；随后UI和当前源码真实模型回归。不得以契约切片批准代替整体完成或自动合并。
