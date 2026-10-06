@@ -69,3 +69,7 @@ Workflow Gate：Confirmed R3 AC003/006/011/012及真实802失败证据具备；�
 ### v43 计划身份反馈（P10/F3）
 
 Workflow Gate：Confirmed R3 AC003/006/011/012、真实805原始冲突及design具备，允许局部错误恢复；无新权限/UI决定。Maintainability Gate：investigation_plan约140行，单计划校验职责，新增单职责错误helper；低风险narrow_fix，不需先广泛重构。分支codex/audit-quality-loop，设计22ce281已推送；本计划先提交推送再实现。保留旧校验顺序与拒绝规则，收集identity冲突，返回有界原tuple JSON，异常数据safe fallback；schema question复制说明。测试多冲突、遗漏、更改kind、非法/超限旧数据、注入字符串仅tool输出、门禁不松、ledger未变、合法恢复与显式resolver原历史，实际SDK错误及source flag/ID校验；race/full/vet、冻结SHA独立review（pr-review re-review-gates要求契约/恢复新上下文）。不重复803/805真实请求直到新源码与边界验证完成；真实极性仍open。不自动合并部署。
+
+### v44 空/未知ID反馈（P10/F3）
+
+Workflow Gate：Confirmed R3 AC003/006/011/012、v43真实空ID及F2设计齐备，允许局部恢复，不改权限/UI契约。Maintainability Gate：agent_investigation约200行连接1处、types只字段schema描述、新helper单职责；低风险narrow_fix，无广泛重构。分支codex/audit-quality-loop；design80c1f0d先推送，本计划先提交推送。新增未知IDerror helper仅投影当前ledger键，有限排序/JSON编码/80bytes/UTF8/NUL/30条/8000bytes上限fallback，保留全部旧验证和拒绝。字段说明同record返回ID；测试空/未知/多记录不推断、异常datafallback/注入仅tool、source不能提升、wrongID不写ledger、复制ID后仍需计划来源门禁，SDK未知ID→复制明确ID→合法更新→显式resolver保持history。race/full/vet，冻结源码独立新上下文（pr-review恢复契约要求），不盲重跑模型。AER-001极性仍open，无合并部署。
