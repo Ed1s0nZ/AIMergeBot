@@ -91,8 +91,12 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	defer cancel()
 	summaries := []string{}
 	var repositoryFailure error
+	minimumCalls := 2 // HEAD inventory plus at least one source tool.
+	if len(contextPolicyItems(snap)) > 0 {
+		minimumCalls++ // Configured context authorization/navigation preflight.
+	}
 	for i, g := range plan.Groups {
-		if repositoryFailure != nil || primaryCtx.Err() != nil || remaining <= 0 {
+		if repositoryFailure != nil || primaryCtx.Err() != nil || remaining < minimumCalls {
 			result.CoverageNotes = append(result.CoverageNotes, "Unprocessed audit group: "+g.ID)
 			continue
 		}
@@ -111,10 +115,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 				result.CoverageNotes = append(result.CoverageNotes, limitation)
 			}
 		}
-		child.Config.MaxToolCalls = priorityCallBudget(remaining, plan.Groups[i:])
-		if child.Config.MaxToolCalls < 1 {
-			child.Config.MaxToolCalls = 1
-		}
+		child.Config.MaxToolCalls = priorityCallBudget(remaining, plan.Groups[i:], minimumCalls)
 		completed := result
 		completedTrace := append([]ToolTrace{}, trace...)
 		child.Config.Progress = func(part AuditResult, current []ToolTrace) error {

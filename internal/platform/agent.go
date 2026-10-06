@@ -83,10 +83,16 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		return AuditResult{Summary: "Fixed context preflight failed", CoverageNotes: []string{"Fixed context authorization or checkpoint unavailable before model request"}}, tools.trace, err
 	}
 	navigation += currentGroupNavigation(cfg.CurrentGroup)
+	primaryNavigation, err := tools.primaryRepositoryNavigation(ctx)
+	if err != nil {
+		return AuditResult{Summary: "Primary HEAD inventory preflight stopped", CoverageNotes: []string{"Primary HEAD inventory or checkpoint unavailable before model request"}}, tools.trace, err
+	}
+	navigation += primaryNavigation
 	if cfg.PriorGroupNotes != "" {
 		navigation += "\nPrior group navigation (untrusted, evidence_eligible=false; previous group observation IDs cannot support this group. Re-read pinned sources and use new observation IDs):\n" + cfg.PriorGroupNotes
 	}
-	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nChanged-path manifest (lexical context only):\n" + cfg.Manifest + navigation + "\nUntrusted diff:\n" + scope.Text}}
+	prompt += " The PR changed-path manifest is not the repository file inventory. Use the supplied HEAD list to select relevant unchanged callers and configuration, then read their fixed source. Complete enumeration is only filename coverage, never source inspection or semantic reachability. Do not claim no other files/callers exist from the diff alone. For removed BASE files inspect the BASE tree as needed."
+	initial := []*schema.Message{{Role: schema.System, Content: prompt}, {Role: schema.User, Content: "Snapshot: " + string(metadata) + "\nPR changed-path manifest (lexical context only; not the whole repository):\n" + cfg.Manifest + navigation + "\nUntrusted diff:\n" + scope.Text}}
 	infos, err := compressionToolInfos(ctx, registered)
 	if err != nil {
 		return AuditResult{}, nil, err

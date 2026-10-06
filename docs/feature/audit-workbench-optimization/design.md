@@ -234,3 +234,5 @@ Workflow Gate Report：Confirmed R3 AC002/003/005/006/011/012，AER-001真实802
 Maintainability Gate Report：agent.go325行，新primary_repository_navigation.go局部单职责helper；连接替换原初始user导航，低风险narrow_fix。现有list_files输出有16000byte上限、More分页和pending；重用而不重复实现列表缓存/权限。普通列表失败保留trace/pending且允许工具恢复；执行器不可用、ctx取消或checkpoint失败必须在模型请求前停止。父预算不增，首次source编号正常顺延（不伪造/跳过模型工具计数），SDK测试改为真实回执编号。
 
 验收：实际首HTTP请求包括未修改caller/config路径，system不含路径；首list导航不可引用为source，当前snapshot/分页与失败保持；普通失败允许修正、不强制语言解析器；执行器不可用及checkpoint失败0模型请求；单组/多组总工具预算仍有界。新增有限导航primary_head_inventory_state/count，只依据成功主阶段list_files完整页序列投影；分页不完整不伪装full，未读文件仍不是已取证。策略v39，无UI/DB迁移，不改变记录/验证语义。真实模型取证改善另验证，不以预取目录证明调查完整。
+
+v39低预算反例：原group只预留1调用；新增inventory消耗它，首组无法获得任何source。因此生产调度的最小有效组预算为HEAD inventory1+至少1source；配置context再加list_repositories1，即2或3。总预算不足时保留先前完整产物，优先给当前组最小有效预算，剩余不足的组明确unprocessed，不能只列文件便称已审；不增原全局预算。定向保留发现fixture预算从1到2是测试新启动成本，另验1调用不能虚构source。

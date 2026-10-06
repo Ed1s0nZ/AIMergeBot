@@ -3,6 +3,8 @@ package platform
 import "encoding/json"
 
 type primaryRecordingProgress struct {
+	PrimaryHeadInventoryState    string                `json:"primary_head_inventory_state"`
+	PrimaryHeadListedFileCount   int                   `json:"primary_head_listed_file_count"`
 	EligibleRecordingCorrections []recordingCorrection `json:"eligible_recording_corrections,omitempty"`
 	UninspectedContextIDs        []int                 `json:"uninspected_context_ids,omitempty"`
 	LedgerCount                  int                   `json:"ledger_count"`
@@ -18,6 +20,7 @@ func (t *auditTools) primaryProgressNavigation() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	state := primaryRecordingProgress{LedgerCount: len(t.ledger), EligibleRecordingCorrections: t.eligibleRecordingCorrectionsLocked()}
+	state.PrimaryHeadInventoryState, state.PrimaryHeadListedFileCount = t.primaryHeadInventoryLocked()
 	inspected := map[int]bool{}
 	seenIDs := map[string]bool{}
 	for i := len(t.trace) - 1; i >= 0; i-- {

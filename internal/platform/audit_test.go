@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -22,8 +23,24 @@ func (f fixtureRepo) ReadFile(_ context.Context, _ Snapshot, p string, _ bool) (
 	}
 	return s, nil
 }
-func (f fixtureRepo) ListFiles(context.Context, Snapshot, int) ([]string, bool, error) {
-	return []string{}, false, nil
+func (f fixtureRepo) ListFiles(_ context.Context, _ Snapshot, page int) ([]string, bool, error) {
+	paths := make([]string, 0, len(f.files))
+	for name := range f.files {
+		paths = append(paths, name)
+	}
+	sort.Strings(paths)
+	if page < 1 {
+		page = 1
+	}
+	start := (page - 1) * 100
+	if start >= len(paths) {
+		return []string{}, false, nil
+	}
+	end := start + 100
+	if end > len(paths) {
+		end = len(paths)
+	}
+	return paths[start:end], end < len(paths), nil
 }
 
 func TestDiffAndEvidence(t *testing.T) {

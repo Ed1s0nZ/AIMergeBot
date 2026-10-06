@@ -52,26 +52,29 @@ func TestRiskPriorityKeepsUnknownLanguagesAndChangedLines(t *testing.T) {
 
 func TestPriorityBudgetsReserveNormalGroupsAndStayBounded(t *testing.T) {
 	groups := []AuditGroup{{PriorityWeight: 3}, {PriorityWeight: 1}, {PriorityWeight: 1}}
-	if got := priorityCallBudget(80, groups); got != 47 {
+	if got := priorityCallBudget(80, groups, 2); got != 46 {
 		t.Fatal("wrong weighted allocation", got)
 	}
-	if got := priorityCallBudget(80, []AuditGroup{{}, {}, {}}); got != 26 {
+	if got := priorityCallBudget(80, []AuditGroup{{}, {}, {}}, 2); got != 26 {
 		t.Fatal("neutral allocation changed", got)
 	}
 	for _, budget := range []int{0, 1, 2, 3, 4, 8, 80, math.MaxInt} {
 		remaining := budget
 		for i := range groups {
-			calls := priorityCallBudget(remaining, groups[i:])
+			calls := priorityCallBudget(remaining, groups[i:], 2)
 			if calls < 0 || calls > remaining {
 				t.Fatal("budget overrun", budget, calls, remaining)
 			}
-			if remaining >= len(groups)-i && calls < 1 {
+			if remaining/2 >= len(groups)-i && calls < 2 {
 				t.Fatal("normal group starved")
 			}
 			remaining -= calls
 		}
 	}
-	if priorityCallBudget(80, nil) != 0 {
+	if priorityCallBudget(1, groups, 2) != 0 || priorityCallBudget(2, groups, 2) != 2 || priorityCallBudget(2, groups, 3) != 0 || priorityCallBudget(3, groups, 3) != 3 {
+		t.Fatal("minimum effective preflight/source budget violated")
+	}
+	if priorityCallBudget(80, nil, 2) != 0 {
 		t.Fatal("empty group allocation")
 	}
 	if got := priorityTimeBudget(100*time.Second, groups); got != 60*time.Second {

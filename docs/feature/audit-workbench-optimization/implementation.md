@@ -242,3 +242,11 @@ v37独立复查固定256b6f9、base4946659，COMMENT，原子性/固定trace/源
 首次定向测试失败5.343s：测试将提示中固定unknowns单词误当任意unknown源泄露；另一个夹具update缺少合法status。改为检测实际引用字符串并补investigating，随后recording/navigation/SDK/readOnly定向race exit0 4.608s。没有放宽生产门禁适配测试。真实旧801回执重建仅一个合格pair，另一同参submit已自然清除；详见regression-v37.md。临时检查文件不入仓库，无新真实模型请求，预算不变，策略v38。全量go test ./... -count=1 exit0：root9.641s、audit-eval1.404s、evaluation16.200s、platform111.645s，web无测试；go vet ./...、git diff --check exit0。首次定向失败和本地回执检查失败均保留。最终review/CI另观察，不由本地绿灯外推真实模型质量。
 
 F5补充：da039f3源码CI run37427483339 success；三份独立冻结范围报告保存在工作区外，详情见completion-audit-v38.md。新面板当前RunDetail实际IAB集成补验已归档并独立核对、临时环境清理；工作台scope闭环，整体AER-001仍open。F6为部分交付，无批准/合并/部署。新的文字仅记录事实，不把历史真实评测改成当前v38执行。
+
+## v39 主仓库 HEAD 目录预导航
+
+首个模型请求前调用既有 list_files 第1页，计入原工具预算、原观察编号与持久化链路。目录仅进入不可信 user 消息；系统仅投影 not_inspected/unavailable/partial/complete 与文件计数，不能据此宣称已读源码或调用关系。普通失败保留待办并允许后续恢复，执行器不可用、取消和检查点失败在模型请求前停止。明确 PR changed-path manifest 并非整个仓库，删除文件仍需 BASE 检视。
+
+分组最低有效预算为 HEAD 目录加一次源读取（2次）；有固定跨仓库配置再计已有授权导航（3次）。预算不足保留未处理组，不提高总预算。SDK夹具来源编号因真实新增首观察顺延；大仓库仅列第一页的 bounded list_files 缺口保留，未改生产门禁适配测试。
+
+验证：首轮定向暴露旧编号与最低预算问题；校正后相关定向2.685s通过。后续原生Git/跨仓库定向29.399s失败于 worker 仍假设只有一个覆盖说明，更新为计划缺口加真实分页缺口，单测3.822s通过。首次全量135.091s同样是该旧断言失败；最终 go test ./... exit0，platform137.901s，其他包通过或缓存。新增导航/纠正SDK/进度/优先级 race exit0 7.244s，go vet ./... 和 diff --check exit0。UI未改动。策略v39；尚未运行v39真实模型，不能把工程验证当效果证明。整体完成阻塞 AER-001 仍未关闭，不自动合并/部署。

@@ -14,7 +14,7 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 	for _, mode := range []string{"failure", "budget"} {
 		t.Run(mode, func(t *testing.T) {
 			repo, snap, f, _ := sequenceFixture()
-			f.ObservationIDs = []string{"group-1-observation-1"}
+			f.ObservationIDs = []string{"group-1-observation-2"}
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var request struct {
@@ -27,13 +27,13 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 				}
 				n := calls.Add(1)
 				if n == 3 {
-					if len(request.Messages) < 2 || !strings.Contains(request.Messages[1].Content, "Current audit group") || !strings.Contains(request.Messages[1].Content, "do not resubmit") || !strings.Contains(request.Messages[1].Content, `"id":"group-2"`) || !strings.Contains(request.Messages[1].Content, "Prior group navigation") || !strings.Contains(request.Messages[1].Content, "unsafe sink") || !strings.Contains(request.Messages[1].Content, "source_locators") || !strings.Contains(request.Messages[1].Content, "group-1-observation-1") {
+					if len(request.Messages) < 2 || !strings.Contains(request.Messages[1].Content, "Current audit group") || !strings.Contains(request.Messages[1].Content, "do not resubmit") || !strings.Contains(request.Messages[1].Content, `"id":"group-2"`) || !strings.Contains(request.Messages[1].Content, "Prior group navigation") || !strings.Contains(request.Messages[1].Content, "unsafe sink") || !strings.Contains(request.Messages[1].Content, "source_locators") || !strings.Contains(request.Messages[1].Content, "group-1-observation-2") {
 						t.Error("later group lost source handoff")
 					}
 					w.WriteHeader(400)
 					return
 				}
-				if n == 1 && !strings.Contains(request.Messages[1].Content, "Changed-path manifest") {
+				if n == 1 && !strings.Contains(request.Messages[1].Content, "PR changed-path manifest") {
 					t.Error("cross-group manifest missing")
 				}
 				message := map[string]any{"role": "assistant"}
@@ -50,7 +50,7 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 			defer server.Close()
 			budget := 80
 			if mode == "budget" {
-				budget = 1
+				budget = 2 // One inventory and one actual source read.
 			}
 			checkpoints := []AuditResult{}
 			auditor := &EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "group-fixture", MaxSteps: 8, MaxToolCalls: budget, Progress: func(result AuditResult, _ []ToolTrace) error { checkpoints = append(checkpoints, result); return nil }}}

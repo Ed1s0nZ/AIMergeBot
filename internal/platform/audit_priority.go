@@ -56,17 +56,21 @@ func remainingPriority(groups []AuditGroup) int {
 	return total
 }
 
-// Reserve one call for each remaining group when the budget permits, then distribute the extra.
-func priorityCallBudget(remaining int, groups []AuditGroup) int {
-	if remaining <= 0 || len(groups) == 0 {
+// Reserve preflight plus a source call for every remaining group when possible.
+// Insufficient budget leaves groups unprocessed instead of funding inventory only.
+func priorityCallBudget(remaining int, groups []AuditGroup, minimum int) int {
+	if minimum < 1 {
+		minimum = 1
+	}
+	if remaining < minimum || len(groups) == 0 {
 		return 0
 	}
-	if remaining < len(groups) {
-		return 1
+	if remaining/minimum < len(groups) {
+		return minimum
 	}
-	extra := remaining - len(groups)
+	extra := remaining - minimum*len(groups)
 	weight, total := groupPriority(groups[0]), remainingPriority(groups)
-	return 1 + (extra/total)*weight + (extra%total)*weight/total
+	return minimum + (extra/total)*weight + (extra%total)*weight/total
 }
 func priorityTimeBudget(remaining time.Duration, groups []AuditGroup) time.Duration {
 	if remaining <= 0 || len(groups) == 0 {

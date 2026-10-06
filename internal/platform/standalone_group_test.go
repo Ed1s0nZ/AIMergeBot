@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -146,7 +147,7 @@ func TestStandaloneNativeGitLargeDiffGroupsAndExclusions(t *testing.T) {
 					t.Fatal("synthesis failure discarded coverage", run.Status, synthCalls)
 				}
 			}
-			if mode == "grouped" && (run.Status != "incomplete" || len(run.Result.CoverageNotes) != 1 || !hasPlanGap(run.Result.CoverageNotes)) {
+			if mode == "grouped" && (run.Status != "incomplete" || len(run.Result.CoverageNotes) != 2 || !hasPlanGap(run.Result.CoverageNotes) || !slices.Contains(run.Result.CoverageNotes, "Bounded tool output: list_files")) {
 				t.Fatal("complete native diff omitted", run.Status, run.Result.CoverageNotes)
 			}
 			if mode == "over_budget" && (run.Status != "incomplete" || len(run.Result.CoverageNotes) == 0 || len(run.Result.AuditGroups) > 8) {

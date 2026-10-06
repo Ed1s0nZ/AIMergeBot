@@ -31,7 +31,7 @@ func TestRecordingCorrectionSDKRetiresOnlyCorrectedWork(t *testing.T) {
 				continue
 			}
 			if n == 4 {
-				advertised.Store(strings.Contains(msg.Content, `"eligible_recording_corrections":[{"failed_observation_id":"observation-2","corrected_observation_id":"observation-3"}]`))
+				advertised.Store(strings.Contains(msg.Content, `"eligible_recording_corrections":[{"failed_observation_id":"observation-3","corrected_observation_id":"observation-4"}]`))
 			}
 			if n == 5 {
 				removed.Store(!strings.Contains(msg.Content, `"eligible_recording_corrections"`))
@@ -53,10 +53,10 @@ func TestRecordingCorrectionSDKRetiresOnlyCorrectedWork(t *testing.T) {
 			args = Investigation{ID: "inv", Claim: "conditional candidate", ObservationIDs: []string{"unknown"}}
 		case 3:
 			name = "record_hypothesis"
-			args = Investigation{ID: "inv", Claim: "conditional candidate", ObservationIDs: []string{"observation-1"}}
+			args = Investigation{ID: "inv", Claim: "conditional candidate", ObservationIDs: []string{"observation-2"}}
 		case 4:
 			name = "resolve_recording_errors"
-			args = recordingCorrectionsArgs{Corrections: []recordingCorrection{{"observation-2", "observation-3"}}}
+			args = recordingCorrectionsArgs{Corrections: []recordingCorrection{{"observation-3", "observation-4"}}}
 		default:
 			finish = "stop"
 			message["content"] = `{"findings":[],"summary":"fixture retains unfinished plan","coverage_notes":[]}`
