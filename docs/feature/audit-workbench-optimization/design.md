@@ -238,3 +238,11 @@ Maintainability Gate Report：agent.go325行，新primary_repository_navigation.
 v39低预算反例：原group只预留1调用；新增inventory消耗它，首组无法获得任何source。因此生产调度的最小有效组预算为HEAD inventory1+至少1source；配置context再加list_repositories1，即2或3。总预算不足时保留先前完整产物，优先给当前组最小有效预算，剩余不足的组明确unprocessed，不能只列文件便称已审；不增原全局预算。定向保留发现fixture预算从1到2是测试新启动成本，另验1调用不能虚构source。
 
 V39-001独立反例确认：首次目录检查点普通失败或ErrConflict之后，外层Progress恢复会继续下一组请求。修复保持每组callback首错误（并发同步），合并保留已有结果与trace后立即返回；禁止外层再次尝试、后续组及补充模型请求，errors.Is保留冲突分类。后续组明确unprocessed，不把持久化瞬时恢复当作本轮授权恢复；无新增公共字段/工具/预算。
+
+## v40 按运行状态给出下一步记录动作
+
+依据v39 case-802：真实读了三个HEAD文件后直接final，ledger为0；已有长说明未促成计划。保持Confirmed R3 AC003/005/006/011和ASM只读/固定来源/原预算。把通用导航改成有限 next_recording_action：inspect_changed_source、record_changed_behavior、repair_plan、inspect_plan、link_pr_context、link_pr_sides、inspect_context、record_relationships、resolve_hypotheses、resolve_recording_errors、summarize_with_limits。按服务器已有ledger/gap/source/context/correction元数据稳定选择；动作只有建议，不是证据或自动授权。状态不带模型claim/path/error/源码。
+
+每个动作只有相应固定操作说明；无未读context或合格纠正pair时不反复附加无关长说明。记录动作明确无告警也需changed-behavior检查和四方面pending计划；safe/compatibility claim有证据时supported且无需finding，rejected仅表示反证否定实际claim。相关关系必须实际两端/连接来源，缺失用unresolved_edges。末轮严格JSON和原硬预算优先，不能为清状态补造记录或强行重试。无 tool_choice=required、无新provider参数或接口假设（官方DeepSeek不同模式存在兼容差异，https://api-docs.deepseek.com/api/create-chat-completion/）；不变更原模型/工具校验与历史。
+
+只改变导航/局部工具说明和策略v40，不声称强制记录或自动消除语义错误。单样本后续真实回归绑定新源码，依然是已知回归；是否改善由实际ledger/plan/来源关系检查，不用completed数量替代。没有新UI/DB/API字段。
