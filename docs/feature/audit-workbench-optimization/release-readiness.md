@@ -1,8 +1,8 @@
 # R3 分支交付
 
-## 当前实现：v45 命题复核执行与检查点已验证，UI消费待冻结检视
+## 当前实现：v45 命题复核、检查点和UI消费已完成切片验证
 
-986b336接入实际调查复核SDK、finding优先同40次/60秒pool、fresh来源/独立模型/usage/SARIF；其full194.834s/CI37444342848通过但独立REQUEST_CHANGES发现EXR-001取消冻结检查点漏review。dfc6340以每次checkpoint副本投影修复，原ledger与成功final不污染、group在ID合并后处理；实际Store/worker/group SDK取消、恢复与fence回归通过。最终full134.292s/CI37445789011success、独立scoped APPROVE/EXR-001 resolved；不批准全分支。UI五态/初审命题文案/长ID/键盘focus与配置消费已实现，实际360px/fresh source及running/cancelled/failed历史空态验证见claim-verification-ui-qa.md；该UI的独立检视/CI仍待完成。原模型805一次known regression已在53331c8验证fresh true捕获首审rejected实际命题分歧，27.005s/116724tokens/0finding/incomplete；详见regression-v45-claim.md。这不是整体准确率或blind验收，R3完整证据尚未证明，AER-001 open，无合并部署。
+986b336接入实际调查复核SDK、finding优先同40次/60秒pool、fresh来源/独立模型/usage/SARIF；其full194.834s/CI37444342848通过但独立REQUEST_CHANGES发现EXR-001取消冻结检查点漏review。dfc6340以每次checkpoint副本投影修复，原ledger与成功final不污染、group在ID合并后处理；实际Store/worker/group SDK取消、恢复与fence回归通过。最终full134.292s/CI37445789011success、独立scoped APPROVE/EXR-001 resolved；不批准全分支。UI五态/初审命题文案/长ID/键盘focus与配置消费已实现，实际360px/fresh source及running/cancelled/failed历史空态验证见claim-verification-ui-qa.md；53331c8 UI独立scoped APPROVE、无确认finding，冻结464文件、15项SSR状态检查、10项浏览器产物和8项源码hash复核通过；精确源码CI37447550923已核对success。该批准只覆盖dfc6340→53331c8 UI/文案/生成资源，不覆盖整分支语义质量。原模型805一次known regression已在53331c8验证fresh true捕获首审rejected实际命题分歧，27.005s/116724tokens/0finding/incomplete；详见regression-v45-claim.md。802/803原模型各一次回归见regression-v45-paired.md：安全改善判断正确、跨语言风险定位正确，但结构化关系/双侧引用及条件措辞仍缺口。这不是整体准确率或blind验收，R3完整证据尚未证明，AER-001 open，无合并部署。
 
 ## 历史基础：814c60a（策略v44），仅契约
 

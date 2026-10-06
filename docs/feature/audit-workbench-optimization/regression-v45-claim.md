@@ -12,4 +12,4 @@
 
 这是一项真实语义分歧检测的正向证据，超出模拟SDK测试；不是整体准确率提升证明或盲验收。初审还把单文件无caller、静态未运行及未看其他部署放入coverage，存在方法说明/必要未知的混杂；原未解决record失败与真实分歧同样保留。不得为取得completed删除限制、自动替换首审或提高预算。任务仍incomplete，AER-001保持open，需成对不同语言/风险正负例及R3逐项证据继续验证。
 
-外部完整归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/regression-v45-claim-20261006（corpus/freeze/metadata/ground-truth/最终receipt/checkpoints/原trace/run.log/固定Git项目及sha256-manifest.json），0700/0600保护，不存真实config/credentials。源码head53331c8 CI37447550923已核对completed/success；UI独立检视仍待当前最终报告，不把CI作语义结论。
+外部完整归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/regression-v45-claim-20261006（corpus/freeze/metadata/ground-truth/最终receipt/checkpoints/原trace/run.log/固定Git项目及sha256-manifest.json），0700/0600保护，不存真实config/credentials。源码head53331c8 CI37447550923已核对completed/success；UI独立检视已scoped APPROVE（review-v45-ui-53331c8/PR_REVIEW_REPORT.md），只覆盖UI增量，不把CI作语义结论。
