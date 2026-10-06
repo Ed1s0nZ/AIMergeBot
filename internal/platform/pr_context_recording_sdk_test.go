@@ -29,6 +29,17 @@ func TestRecordPRContextThroughSDKPreservesOmittedContextAndSchema(t *testing.T)
 			t.Error(err)
 		}
 		if n == 1 {
+			schemas := 0
+			for _, tool := range request.Tools {
+				switch tool.Function.Name {
+				case "record_hypothesis", "update_investigation", "record_pr_context", "submit_finding":
+					assertRelationshipSDKSchema(t, tool.Function.Parameters.Properties["pr_context"])
+					schemas++
+				}
+			}
+			if schemas != 4 {
+				t.Error("shared relationship schema missing from real SDK tools", schemas)
+			}
 			found := false
 			for _, tool := range request.Tools {
 				if tool.Function.Name == "record_pr_context" {
@@ -117,5 +128,58 @@ func TestRecordPRContextThroughSDKPreservesOmittedContextAndSchema(t *testing.T)
 	}
 	if contextCalls != 1 || inv.ClaimVerification == nil || inv.ClaimVerification.Status != "disabled" {
 		t.Fatal(contextCalls, inv)
+	}
+}
+
+func assertRelationshipSDKSchema(t *testing.T, raw json.RawMessage) {
+	t.Helper()
+	var context struct{ Properties map[string]json.RawMessage }
+	if json.Unmarshal(raw, &context) != nil {
+		t.Error("invalid SDK PR context schema")
+		return
+	}
+	var edges struct {
+		Items struct {
+			Required   []string
+			Properties map[string]struct {
+				Type      string
+				MinLength int
+				MaxLength int
+				MinItems  int
+				MaxItems  int
+				Enum      []string
+			}
+		}
+	}
+	if json.Unmarshal(context.Properties["relationships"], &edges) != nil {
+		t.Error("invalid SDK relationship schema")
+		return
+	}
+	for _, field := range []string{"from", "to", "relation", "certainty", "observation_ids"} {
+		required := false
+		for _, name := range edges.Items.Required {
+			required = required || name == field
+		}
+		if !required {
+			t.Error("relationship field not required", field)
+		}
+	}
+	for _, name := range []string{"from", "to", "relation"} {
+		field := edges.Items.Properties[name]
+		limit := 200
+		if name == "relation" {
+			limit = 500
+		}
+		if field.Type != "string" || field.MinLength != 1 || field.MaxLength != limit {
+			t.Error("SDK bounds differ from server", name, field)
+		}
+	}
+	field := edges.Items.Properties["certainty"]
+	if len(field.Enum) != 2 || field.Enum[0] != "cited" || field.Enum[1] != "inferred" {
+		t.Error("wrong certainty enum", field.Enum)
+	}
+	ids := edges.Items.Properties["observation_ids"]
+	if ids.Type != "array" || ids.MinItems != 1 || ids.MaxItems != 8 {
+		t.Error("wrong SDK source ID bounds", ids)
 	}
 }

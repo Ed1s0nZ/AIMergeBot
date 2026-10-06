@@ -13,11 +13,11 @@ type InvestigationFact struct {
 }
 
 type InvestigationRelationship struct {
-	From           string   `json:"from"`
-	To             string   `json:"to"`
-	Relation       string   `json:"relation"`
-	Certainty      string   `json:"certainty"`
-	ObservationIDs []string `json:"observation_ids"`
+	From           string   `json:"from" jsonschema:"minLength=1,maxLength=200" jsonschema_description:"Nonempty source endpoint. Use inspected facts or explicitly inferred endpoints; never invent a missing endpoint."`
+	To             string   `json:"to" jsonschema:"minLength=1,maxLength=200" jsonschema_description:"Nonempty target endpoint. If unknown, omit this relationship and retain the gap in unresolved_edges; do not send an empty target."`
+	Relation       string   `json:"relation" jsonschema:"minLength=1,maxLength=500" jsonschema_description:"Nonempty bounded description of the specific static connection, with actual uncertainty preserved."`
+	Certainty      string   `json:"certainty" jsonschema:"enum=cited,enum=inferred" jsonschema_description:"cited requires inspected connection evidence; inferred preserves an unconfirmed relationship. Names alone do not establish a contract."`
+	ObservationIDs []string `json:"observation_ids" jsonschema:"minItems=1,maxItems=8" jsonschema_description:"One to eight unique successful source observation IDs also linked at investigation level. Recording feedback is not source evidence."`
 }
 
 // Source links support review of these static claims, not proof of call semantics.
@@ -91,9 +91,17 @@ func validatePRContext(a Investigation) error {
 			return err
 		}
 	}
-	for _, edge := range p.Relationships {
-		if !boundedFact(edge.From, 200) || !boundedFact(edge.To, 200) || !boundedFact(edge.Relation, 500) || (edge.Certainty != "cited" && edge.Certainty != "inferred") {
-			return fmt.Errorf("invalid PR relationship or certainty")
+	for i, edge := range p.Relationships {
+		for _, field := range []struct {
+			name, value string
+			limit       int
+		}{{"from", edge.From, 200}, {"to", edge.To, 200}, {"relation", edge.Relation, 500}} {
+			if !boundedFact(field.value, field.limit) {
+				return fmt.Errorf("pr_context.relationships[%d].%s must be nonempty valid UTF-8 without NUL and at most %d characters; explicitly supply the endpoint or relation. If unknown, omit this relationship and preserve the gap in pr_context.unresolved_edges; never invent a value", i, field.name, field.limit)
+			}
+		}
+		if edge.Certainty != "cited" && edge.Certainty != "inferred" {
+			return fmt.Errorf("pr_context.relationships[%d].certainty must be cited or inferred; cited requires inspected connection evidence and inferred preserves uncertainty. If the relationship is unknown, omit it and preserve the gap in pr_context.unresolved_edges", i)
 		}
 		if err := validateIDs(edge.ObservationIDs, true); err != nil {
 			return err

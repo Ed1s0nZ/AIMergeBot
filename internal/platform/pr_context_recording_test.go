@@ -83,6 +83,8 @@ func TestRecordPRContextFailuresAreAtomic(t *testing.T) {
 		mutate func(*auditTools, *prContextRecording)
 	}{
 		{"missing_context", func(_ *auditTools, a *prContextRecording) { a.PRContext = nil }},
+		{"empty_relationship_target", func(_ *auditTools, a *prContextRecording) { a.PRContext.Relationships[0].To = "" }},
+		{"invalid_relationship_certainty", func(_ *auditTools, a *prContextRecording) { a.PRContext.Relationships[0].Certainty = "unknown" }},
 		{"unknown_id", func(_ *auditTools, a *prContextRecording) { a.ID = "unknown" }},
 		{"claim_changed", func(_ *auditTools, a *prContextRecording) { a.Claim = "different claim" }},
 		{"wrong_side", func(_ *auditTools, a *prContextRecording) {
