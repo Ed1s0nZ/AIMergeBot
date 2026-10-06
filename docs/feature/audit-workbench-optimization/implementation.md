@@ -300,3 +300,9 @@ F5 v42：冻结b19ff4677f475d15bd5ab7d04e0da7c27bdd5807；全量Go exit0 platfor
 F5 v43：冻结d8fff2219552f697006fc70e45bb4785a57c54d2，最终全量Go exit0 platform124.978s；相关race3.675s、vet/diffcheck通过，UI/嵌入资源未变。旧v42-805真实三个失败输入离线反馈投影0.845s通过，p3/p5原身份精确、不改原ledger/回执；仅模拟身份恢复后plan可通过，但故意保留原错误refutes/rejected，不能称语义修复或模型采用。归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/v43-frozen-v42-plan-feedback-20261006，5文件SHA与当前helper源SHA核对一致。源码CI run37436813700终态success；独立fresh-context切片COMMENT/无blocking，自行定向0.967s及19类旧新门禁接受/产物一致性overlay0.939s通过；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v43-d8fff22/PR_REVIEW_REPORT.md，非整分支批准。AER-001仍open，不需要盲目所有样本重跑，但实际命题极性/必要来源记录未通过。
 
 F5补充真实v43-805：一次原模型/预算已知回归，59222tokens、完整usage、无API错误；question保持原文，拟提交双侧链接/跨项目关系，但id为空导致unknown hypothesis，实际ledger未变。最终错误归因“generated id not accepted”不符原record成功inv-1/更新空id事实。未触发v43身份feedback，不能宣称实际采用；错误assessment和复合Claim仍混淆。详见regression-v43-recovery.md，66文件SHA核验一致；AER-001 open。
+
+### v44 未知调查ID反馈实现
+
+未知ID继续拒绝；错误投影当前audit ledger键，排序且30条/80bytes/UTF8/NUL/8000JSONbytes上限，异常退回固定错误。只含ID、不含Claim/plan/reason/source，字段schema要求更新复制成功record ID，非源tool数据不入trusted system。未自动从同Claim/单ledger匹配，未新增调用或放宽验证/预算；策略v44，无UI/DB/API字段迁移。
+
+SDK新增空ID拒绝→用户模型显式复制已知ID→合法update→跨identity resolver仍拒绝的实际HTTP路径；原空ID错误继续pending/保留历史和最终说明。最初race失败是测试误以为resolver自身也作为pending工具错误列出，实际仅原update失败保留，resolver错误仍在trace；只修断言，不改生产门禁。相关race重新运行；全量检查进行中。实际模型采用及语义极性仍未证明，AER-001 open。

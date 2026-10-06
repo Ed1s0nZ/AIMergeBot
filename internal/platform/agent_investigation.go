@@ -77,7 +77,7 @@ func (t *auditTools) ledgerChangeWithInput(name string, a Investigation, submitt
 			a.Status = "investigating"
 		} else {
 			if _, exists := t.ledger[a.ID]; !exists {
-				return toolOutput{}, fmt.Errorf("unknown hypothesis")
+				return toolOutput{}, unknownInvestigationError(t.ledger)
 			}
 			if a.Status != "investigating" && a.Status != "supported" && a.Status != "rejected" {
 				return toolOutput{}, fmt.Errorf("invalid investigation status")

@@ -16,6 +16,9 @@ func assertAssessmentSchema(t *testing.T, schema map[string]any) {
 	if _, found := props["status"]; found {
 		t.Fatal("legacy status advertised")
 	}
+	if !strings.Contains(props["id"].(map[string]any)["description"].(string), "exact nonempty id") {
+		t.Fatal("SDK missing exact update id guidance")
+	}
 	assessment := props["claim_assessment"].(map[string]any)
 	want := []any{"evidence_supports_claim", "evidence_refutes_claim", "insufficient_evidence"}
 	if !reflect.DeepEqual(assessment["enum"], want) {

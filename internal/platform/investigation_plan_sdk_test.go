@@ -11,9 +11,10 @@ import (
 )
 
 func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
-	for _, mode := range []string{"unplanned", "planned", "recover"} {
+	for _, mode := range []string{"unplanned", "planned", "recover", "recover_id"} {
 		planned := mode != "unplanned"
-		recoverPlan := mode == "recover"
+		recoverPlan := mode == "recover" || mode == "recover_id"
+		recoverID := mode == "recover_id"
 		repo, snap, _, _ := sequenceFixture()
 		var calls atomic.Int32
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -83,12 +84,12 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 					seen := false
 					for _, m := range req.Messages {
 						var out toolOutput
-						if m.Role == "tool" && json.Unmarshal([]byte(m.Content), &out) == nil && strings.Contains(out.Error, "expected_task_identities=") {
+						if m.Role == "tool" && json.Unmarshal([]byte(m.Content), &out) == nil && out.Error != "" {
 							seen = true
-							if out.EvidenceEligible || !strings.Contains(out.Error, `"question":"Inspect input_control"`) || !strings.Contains(out.Error, `"question":"Inspect outcome"`) {
+							if out.EvidenceEligible || (recoverID && !strings.Contains(out.Error, `known_investigation_ids=["plan"]`)) || (!recoverID && (!strings.Contains(out.Error, `"question":"Inspect input_control"`) || !strings.Contains(out.Error, `"question":"Inspect outcome"`))) {
 								t.Error("SDK missing exact non-source identities", out)
 							}
-							if strings.Contains(req.Messages[0].Content, "expected_task_identities=") {
+							if strings.Contains(req.Messages[0].Content, "expected_task_identities=") || strings.Contains(req.Messages[0].Content, "known_investigation_ids=") {
 								t.Error("untrusted identity inserted in system")
 							}
 						}
@@ -110,11 +111,15 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 					plan[i].Reason = "synthetic counterevidence judgment, not semantic proof"
 					plan[i].ObservationIDs = []string{id}
 				}
-				if recoverPlan && n == 3 {
+				if recoverPlan && !recoverID && n == 3 {
 					plan[0].Question = "paraphrased input"
 					plan[3].Question = "paraphrased outcome"
 				}
-				toolCall("update_investigation", investigationAssessmentUpdate{Investigation: Investigation{ID: "plan", Claim: "static candidate examined", Counterevidence: []string{"fixture judgment"}, CounterObservationIDs: []string{id}, Plan: plan}, ClaimAssessment: "evidence_refutes_claim"})
+				updateID := "plan"
+				if recoverID && n == 3 {
+					updateID = ""
+				}
+				toolCall("update_investigation", investigationAssessmentUpdate{Investigation: Investigation{ID: updateID, Claim: "static candidate examined", Counterevidence: []string{"fixture judgment"}, CounterObservationIDs: []string{id}, Plan: plan}, ClaimAssessment: "evidence_refutes_claim"})
 			} else if recoverPlan && n == 5 {
 				toolCall("resolve_recording_errors", recordingCorrectionsArgs{Corrections: []recordingCorrection{{"observation-4", "observation-5"}}})
 			} else {
@@ -135,7 +140,7 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 			}
 			badRetained := false
 			for _, tr := range trace {
-				if tr.ObservationID == "observation-4" && strings.Contains(tr.Error, "expected_task_identities=") {
+				if tr.ObservationID == "observation-4" && ((recoverID && strings.Contains(tr.Error, "known_investigation_ids=")) || (!recoverID && strings.Contains(tr.Error, "expected_task_identities="))) {
 					badRetained = true
 				}
 			}
@@ -143,7 +148,20 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 				t.Fatal("original failed trace erased")
 			}
 		}
-		if planned {
+		if recoverID {
+			resolverRejected := false
+			for _, tr := range trace {
+				if tr.Name == "resolve_recording_errors" && tr.Error != "" {
+					resolverRejected = true
+				}
+			}
+			if !resolverRejected {
+				t.Fatal("cross-identity resolver allowed to retire error")
+			}
+			if len(result.Investigations) != 1 || result.Investigations[0].Status != "rejected" || hasPlanGap(result.CoverageNotes) || !strings.Contains(strings.Join(result.CoverageNotes, " "), "Tool failed: update_investigation") {
+				t.Fatal("unknown identity error was hidden or legitimate selected update failed", result)
+			}
+		} else if planned {
 			if len(result.CoverageNotes) != 1 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") || hasPlanGap(result.CoverageNotes) || len(result.Investigations) != 1 || result.Investigations[0].Status != "rejected" || len(trace) < 4 {
 				t.Fatal("planned recording not preserved", result)
 			}

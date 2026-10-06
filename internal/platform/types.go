@@ -45,7 +45,7 @@ type Investigation struct {
 	PRContext             *PRInvestigationContext `json:"pr_context,omitempty"`
 	ObservationIDs        []string                `json:"observation_ids,omitempty"`
 	CounterObservationIDs []string                `json:"counter_observation_ids,omitempty"`
-	ID                    string                  `json:"id"`
+	ID                    string                  `json:"id" jsonschema:"description=On update copy the exact nonempty id from a successful record_hypothesis response. Never generate or leave empty an update id. On record an omitted or empty id is assigned by the server."`
 	Claim                 string                  `json:"claim"`
 	Status                string                  `json:"status"`
 	Evidence              []string                `json:"evidence"`
