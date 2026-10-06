@@ -266,3 +266,7 @@ V39-001修复冻结源码0e7db81bb84f2e0ba1b7d1f9f3291b6f27f75979。最终go tes
 新增纯next_recording_action建议，用原来源/ledger/plan/context/correction状态稳定选择；固定文字按动作说明操作，不把Claim/path/source/error插入系统。无context/纠正pair时不重复附无关说明；未解决关系和必要证据仍保留。明确每个PR/组包括no-findings也记录changed-behavior检查，创建仍investigating，safe claim可supported且不需finding。原模型参数、工具校验、末轮预算与调查记录语义不变，没有forced tool_choice或自动填计划/关系。策略v40。
 
 定向exit0 2.866s；原计划/纠正/导航/分组停止与新增SDK/action race exit0 7.774s；vet/diffcheck通过。真实SDK三轮依次inspect_changed_source、record_changed_behavior、inspect_plan，实际记录四项pending、无checked来源/PR关系自动生成，仍incomplete。全量Go运行中；真实v40模型未执行，不把合成检查当质量证明。上一源码0e7db81 CI run37431241936已success；这不是v40 CI。
+
+F5：最终full go test ./... exit0（root10.043s、audit-eval1.343s、evaluation26.160s、platform134.382s，web无测试）；race7.774s、vet/diffcheck通过。新源码23d3bc3独立scope COMMENT/mergeable=false、无新blocking，独立两批定向0.756/0.843s，actual SDK/有限枚举投影/来源/预算连接已核。不代表整分支批准，AER-001 open。真实802实际记录四项checked计划与显式纠正，但safeClaim错误rejected、关系/BASE HEAD链接缺失；102808tokens、高于v39，详见regression-v40-actions.md。无新增真实验收或全部completed门槛。
+
+源码CI run37432182646（23d3bc3）目前in_progress，待终态，不继承0e7db81成功。最终覆盖实现另已定位：agent.go只把investigationPlanCoverage加到所有调查，PR recording gaps只对findingPRCoverage加入。因而safe/no-findings调查即使BASE/HEAD链接和关系缺失，也可能仅靠模型自行写coverage；导航与最终缺口来源需要统一，不能靠假设status或四项checked就当记录充分。下一切片同时保持原Claim极性问题open，不将增加覆盖告警冒充语义修复。

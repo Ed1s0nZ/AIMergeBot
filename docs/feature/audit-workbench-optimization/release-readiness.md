@@ -1,10 +1,16 @@
 # R3 分支交付
 
-## 当前增量：0e7db81（策略 v39），整体仍未完成
+## 当前增量：23d3bc3（策略 v40），整体仍未完成
+
+新增状态对应next_recording_action，建议真实源码/计划/PR链接/上下文/关系/收尾/纠正操作，未改变来源校验或自动确认记录。full Go exit0（platform134.382s）、race7.774s、vet/diffcheck通过；独立边界scope COMMENT/mergeable=false，无新blocking，非整体批准。源码CI run37432182646运行中。
+
+真实case-802在原模型/预算下102808tokens、四项checked计划与显式同陈述纠正已观察，但safeClaim错误rejected、结构化关系与BASE/HEAD链接仍缺，状态incomplete。详见regression-v40-actions.md；不能用结构化字段或0finding当质量证明，未重跑803/805，AER-001 open。只交付分支，未合并或部署。
+
+## 历史增量：0e7db81（策略 v39），整体仍未完成
 
 新增HEAD路径预导航保持非源身份和原预算。真实case-802定向回归绑定dda3eda：17910tokens、原API正常、caller.go/workflow.md确实读取，0finding但无调查计划仍incomplete；仅一个已知样本，不是普遍质量证明。详见regression-v39-navigation.md。
 
-独立dda3eda检视发现V39-001检查点失败后仍继续分组；已在0e7db81修复，首错阻断后组与补充、保留原错误链和trace。当前全量Go exit0 platform102.421s、定向race2.930s、vet/diffcheck通过；源码CI run37431241936运行中，独立修复复查COMMENT、V39-001 resolved，无新blocking（仅边界scope，非整体批准）。未修改UI，历史UI证据适用无变化组件，不当作全分支新批准。AER-001整体完成阻塞仍open：调查计划/跨项目关系/部分命题极性未充分证明；未合并、未部署。
+独立dda3eda检视发现V39-001检查点失败后仍继续分组；已在0e7db81修复，首错阻断后组与补充、保留原错误链和trace。当前全量Go exit0 platform102.421s、定向race2.930s、vet/diffcheck通过；源码CI run37431241936 success，独立修复复查COMMENT、V39-001 resolved，无新blocking（仅边界scope，非整体批准）。未修改UI，历史UI证据适用无变化组件，不当作全分支新批准。AER-001整体完成阻塞仍open：调查计划/跨项目关系/部分命题极性未充分证明；未合并、未部署。
 
 ## 历史状态（源码 da039f3 / v38）
 
