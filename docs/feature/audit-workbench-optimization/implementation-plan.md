@@ -125,3 +125,7 @@ P10/F3，设计734acf2先推送；Confirmed R3/真实803必要context漏读及fu
 ### v49 关系schema/字段诊断适配（执行前）
 
 P10/F3；design24d3618已先推送，Confirmed R3与v48重复空to失败输入足够，Workflow允许，Maintainability low-medium narrow。pr_investigation.go共享DTO标签声明原非空/长度/枚举/source数上限，validation逐字段有界错误/index/未知edge处理说明，不回显untrusted值；agent_investigation仅工具说明，policy49。实际SDK nested schema和失败/纠正路径、字段negative/正例/atomic/无secret echo、v48实际失败离线请求反馈和显式修正产物；原PR/source/recording/history/取消/finding/收尾回归race/full/vet/精确CI。冻结公共工具schema/反馈边界fresh-context检视后原803一次，原预算/真值/源不变，不盲重跑或以契约测试代替真实采用。文档CHANGELOG随实现/实际效果更新，失败保留；无自动merge/deploy。
+
+### v50 独立漏洞复核结构失败诊断（执行前）
+
+P10/F3，design8e60227已提交推送，R3与v49诊断缺失具备。verification_diagnostics.go增加只接受服务器固定错误/JSON类型的有限分类；verification_agent.go parse失败追加既有有界shape诊断；parser/check validator接受规则及错误文案保持，policy50。新增真实parser畸形/枚举/大小/check来源分类与secret负例，扩实际SDK invalid路径断言trace/checkpoint/状态。相关race/full/vet/diffcheck及精确CI；新增公共trace内容需独立trust切片检视。完成后依据诊断可观测性选择一次原803，不反推v49原始失败、不自动修正/重试/放宽门禁，无merge/deploy。回退诊断连接与policy不会改变原validator。
