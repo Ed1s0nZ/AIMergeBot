@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -24,6 +25,12 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 				t.Error(err)
 			}
 			n := calls.Add(1)
+			if len(req.Messages) == 0 || !strings.Contains(req.Messages[0].Content, "Server-owned recording progress") {
+				t.Error("SDK missing current progress navigation")
+			}
+			if planned && n == 3 && !strings.Contains(req.Messages[0].Content, `"ledger_count":1`) {
+				t.Error("SDK progress did not refresh after recording")
+			}
 			message := map[string]any{"role": "assistant"}
 			finish := "stop"
 			toolCall := func(name string, args any) {

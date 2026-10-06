@@ -95,7 +95,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err != nil {
 		return AuditResult{}, nil, err
 	}
-	agent, err := react.NewAgent(ctx, &react.AgentConfig{ToolCallingModel: budgetModel(model), ToolsConfig: compose.ToolsNodeConfig{Tools: registered}, MessageRewriter: primaryRoundRewriter(cfg.MaxSteps, prompt, compression.rewrite), MaxStep: agentGraphSteps(cfg.MaxSteps)})
+	agent, err := react.NewAgent(ctx, &react.AgentConfig{ToolCallingModel: budgetModel(model), ToolsConfig: compose.ToolsNodeConfig{Tools: registered}, MessageRewriter: primaryRoundRewriter(cfg.MaxSteps, prompt, compression.rewrite, tools.primaryProgressNavigation), MaxStep: agentGraphSteps(cfg.MaxSteps)})
 	if err != nil {
 		return AuditResult{}, nil, err
 	}

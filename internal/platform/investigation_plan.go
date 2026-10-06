@@ -65,8 +65,11 @@ func prepareInvestigationPlan(a *Investigation, previous Investigation) error {
 		}
 		seen := map[string]bool{}
 		for _, id := range task.ObservationIDs {
-			if !allowed[id] || seen[id] {
-				return fmt.Errorf("plan source ID must be unique and linked to this investigation")
+			if seen[id] {
+				return fmt.Errorf("plan[].observation_ids contains a duplicate; include each source ID once per task")
+			}
+			if !allowed[id] {
+				return fmt.Errorf("plan[].observation_ids must also appear in this investigation's top-level observation_ids or counter_observation_ids; add the already successful source ID to that list before referencing it in plan, or remove the unsupported citation. Never cite recording feedback as source evidence")
 			}
 			seen[id] = true
 		}

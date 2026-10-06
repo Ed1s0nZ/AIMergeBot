@@ -59,3 +59,9 @@ F6补验：发现内嵌web/dist尚未同步最新来源分项/计划/停止原�
 第八切片当前全量go test ./... exit0：CLI34.506s/evalcmd4.089s/evaluation49.792s/platform218.960s；相关含PR/旧policy/SDK计划race38.851s，补充修订/再提交race9.743s，均实际终态通过。最终Go运行期间只追加测试与文档，生产代码未变化，新增测试专项已覆盖。原预算与source gates不变，无前端改动无需新UI构建；第八切片完整真实质量证据仍待固定代码后的回归及新隔离评测。
 
 F5新隔离样本执行：85e5a5b freeze/metadata一致，首次六例，总434946tokens，全部用量返回/价格未配置；286证据文件SHA256复读归档。及时recording反馈对模型可见，但其未补齐前后source，705未查下游，704五次plan ID关联失败。没有清除失败/修改真值/放宽门禁/重跑求通过，不宣称完成率或准确率提高。新样本已用作分析，后续转回归；仍需通用决策导航/明确字段反馈与最终F6验收。
+
+第九切片实现：primary_progress_navigation只投影有限runtime状态，不读新源码、不公开Claim/Reason/Question/path/snippet；context ID最多8，主仓base/head source ID各最多4且<=80byte，须成功eligible/trace ID一致/固定SHA/primary阶段；混合side batch不能被归入单一side，独立复核不补算primary。每轮system替换导航，未读取context不能说不可用；zero ledger提示可记录rejected/no-risk检查，不要求finding。重复plan ID与未关联ID错误分开，并明确顶层observation_ids/counter_observation_ids修正，错误不反射任意输入。反馈将缺项代码映射具体pr_context字段，仍不得自动造边或引用反馈作source。policyv35，原预算/持久化/取消边界不变。
+
+相关race含SDK请求状态刷新/预算最后一轮/组server-owned状态/旧policy/源侧/导航替换29.483s通过；追加stale SHA与verification不回填primary、源码/模型私有文本不进system的原生Gitrace8.561s通过；字段诊断先前race4.973s，vet与diffcheck通过。生产代码未在全量运行期间变化；全量Go终态待当前进程。无前端改动，内嵌产物无需更改。原v34新样本已分析，之后只称回归，未据代码测试宣称模型已采纳或质量改善。
+
+第九切片go test ./...实际exit0：CLI33.853s/evalcmd2.909s/evaluation74.187s/platform197.218s。全量期间只有补充测试/文档，生产代码固定，补充privacy/stale/phase测试专项8.561s通过；耗时受主机/原生Git启动影响，不宣称性能提升。当前功能机制与安全边界验证通过，真实模型采纳/兼容判断仍须固定代码后回归，原已失败隔离样本不改成通过。

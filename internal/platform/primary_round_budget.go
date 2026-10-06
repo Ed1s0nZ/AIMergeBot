@@ -10,7 +10,7 @@ import (
 
 // primaryRoundRewriter adds bounded navigation, never source evidence. Each
 // auditor owns its counter; the SDK remains responsible for the hard limit.
-func primaryRoundRewriter(limit int, trustedPrompt string, rewrite func(context.Context, []*schema.Message) []*schema.Message) func(context.Context, []*schema.Message) []*schema.Message {
+func primaryRoundRewriter(limit int, trustedPrompt string, rewrite func(context.Context, []*schema.Message) []*schema.Message, navigation ...func() string) func(context.Context, []*schema.Message) []*schema.Message {
 	var mu sync.Mutex
 	round := 0
 	return func(ctx context.Context, messages []*schema.Message) []*schema.Message {
@@ -24,6 +24,9 @@ func primaryRoundRewriter(limit int, trustedPrompt string, rewrite func(context.
 			guidance += " This is the final primary decision. Return the required strict final JSON now; do not request more tools. Preserve submitted findings and report concrete unresolved investigations and missing evidence in coverage_notes. Never invent evidence or certify safety to finish."
 		} else if limit-current <= 2 {
 			guidance += " Prepare to finish within the remaining decisions. Update source-linked investigation plans and submit evidenced findings; avoid repeated reads or searching unavailable dependency bodies. Record actual unresolved evidence gaps instead of assuming safety."
+		}
+		if len(navigation) > 0 && navigation[0] != nil {
+			guidance += navigation[0]()
 		}
 		out := append([]*schema.Message(nil), messages...)
 		system := schema.SystemMessage(trustedPrompt + guidance)
