@@ -19,3 +19,5 @@
 第六切片文件：primary_round_budget.go/测试、agent最小重写包装、分组stop_reason/合并来源保护、audit-eval失败分类、UI类型与已有分组状态显示原因。验证原2/4/8轮最后一次请求可报告、不增加配置轮数、提醒不累计或污染原消息、原源码/工具消息不变、未完成不伪装通过、分组budget类型由真实SDK错误产生、模型伪造组原因被清除、receipt分类。Go相关/race/全量及前端构建/受控实际UI，保留现有真实失败而不为单例调高预算。
 
 第六切片UI接线：沿用服务端optional stop_reason字段；failed组展开显示原因，未知/历史缺失分别提示，不显示模型自行宣称的原因，不将失败算完成。既有details键盘交互与移动端布局沿用。契约/设计已具备；P6→P9增量验证，实际组件控制fixture及TS/Vite检查。
+
+第八切片：recording_feedback.go pure有限码与测试；toolOutput optional字段，ledgerChange/submit最小接线和prompt；真实SDK验证record后回复非源码缺项→update补有效来源→submit无gap，旧预算/坏ID仍拒绝。检查真实BASE/HEAD源关联与accepted快照，未完成feedback不能伪装source。相关/race/fullGo，不改前端，原真实失败保留；完成后先固定代码再比较原正/负例，并准备未用于调试的新隔离样例。
