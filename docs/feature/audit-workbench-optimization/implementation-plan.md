@@ -113,3 +113,7 @@ P9/F5；Confirmed R3 AC002/003/005/006/011及原805错误极性/空ID回执具�
 ### v46 PR上下文原子记录适配（执行前）
 
 P10/F3；design de20cfc先提交推送，Confirmed R3和v45真实遗漏齐备，Workflow允许，Maintainability medium/adapter_extraction。新增pr_context_recording.go typed DTO和锁内复制/合并/验证/保存；agent_investigation仅注册；primary_recording_action定向三种导航；recording_corrections独立family匹配；runs_store策略46。测试真实Go固定源双侧及context、错误来源/side/claim/size/无context/原子失败、保留计划/状态/字段及不自动填ID、同family显式纠正/历史、实际SDK schema与record→补context→正常final保存；原调查/PRcoverage/finding/correction/verification/group/cancel/recovery定向race、vet/full，精确CI。冻结SHA后按pr-review公共契约/恢复独立fresh-context检视。后续原预算真实802/803各一次用于适配效果，先证明工程边界后调用；不增加预算/执行样本/隐藏失败/自动main合并部署。文档/CHANGELOG随实现及验证提交；新family不跨artifact解除旧错误；rollback保持旧工具路径。
+
+### v47 原决策预算内收尾适配（执行前）
+
+P10/F3，design13fd1dd先推送；Confirmed R3和真实v46早停足够，Workflow允许，Maintainability medium/adapter_extraction。新增primary_finalization_model.go（WithTools共享counter/callback委托/硬cap/一次finalization/源状态门禁/早draft合法candidate经原validator保留）；primary_round_budget提示抽纯helper复用，agent.go一处连接，compression/源/Store不改；policy47，文档CHANGELOG。实际SDK覆盖early final→补记录→final与失败/ctxcancel/最后工具阻断、WithTools重新绑定同cap、完整/nil源/无余量/重复final不续、usage无双callbacks/原token/compression/group/取消回归；race/full/vet/精确CI和冻结独立公共预算/信任边界检视后原802/803各一次。保留当前error/recovery/gap；禁止自动source/cited/status/summary同步、扩大15/80/240或复核pool，无部署合并。回退adapter连接和policy，旧record工具仍用。
