@@ -43,3 +43,5 @@
 ### v39 主仓库路径预导航（P10/F3）
 
 先设计计划提交推送。实现helper调用tools.list page1，ctx/checkpoint/executor停止传播；agent初始user明确PR manifest非整个仓库与HEAD清单非source。复用正常计数及ID；有限primary inventory投影不含paths/modeltext，不新增source资格。测试首模型请求真实list回执/未修改源、拒绝列表作为证据、partial恢复、普通失败、执行器/取消/持久化失败0模型调用，以及组预算。现有受控SDK需按新增真实首导航ID更新，不改真值/门禁/预算。定向/race、全量/vet与独立边界review；后续802式回归检视是否实际查关联源及停止虚构单文件仓库，不追求全部completed。回滚单helper+初始连接即可，旧报告只读。
+
+V39-001修复计划：grouped_agent child Progress wrapper串行化并记首error；child返回后立即停止，保存当前失败与后组未处理说明。独立原始反例转换为普通失败/ErrConflict回归，断言callback仅1次、SDK HTTP0次、原list trace保留、后组unprocessed和error identity；增加先成功后失败检查点覆盖。Workflow/Maintainability Gate：已有Confirmed R3持久化安全范围局部修复，单函数连接，无DB/UI迁移。修复后重新定向/race、全量/vet，独立复查绑定新SHA；dda3eda真实回归不得改称修复后执行。

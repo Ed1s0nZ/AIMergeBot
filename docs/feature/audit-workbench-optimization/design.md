@@ -236,3 +236,5 @@ Maintainability Gate Report：agent.go325行，新primary_repository_navigation.
 验收：实际首HTTP请求包括未修改caller/config路径，system不含路径；首list导航不可引用为source，当前snapshot/分页与失败保持；普通失败允许修正、不强制语言解析器；执行器不可用及checkpoint失败0模型请求；单组/多组总工具预算仍有界。新增有限导航primary_head_inventory_state/count，只依据成功主阶段list_files完整页序列投影；分页不完整不伪装full，未读文件仍不是已取证。策略v39，无UI/DB迁移，不改变记录/验证语义。真实模型取证改善另验证，不以预取目录证明调查完整。
 
 v39低预算反例：原group只预留1调用；新增inventory消耗它，首组无法获得任何source。因此生产调度的最小有效组预算为HEAD inventory1+至少1source；配置context再加list_repositories1，即2或3。总预算不足时保留先前完整产物，优先给当前组最小有效预算，剩余不足的组明确unprocessed，不能只列文件便称已审；不增原全局预算。定向保留发现fixture预算从1到2是测试新启动成本，另验1调用不能虚构source。
+
+V39-001独立反例确认：首次目录检查点普通失败或ErrConflict之后，外层Progress恢复会继续下一组请求。修复保持每组callback首错误（并发同步），合并保留已有结果与trace后立即返回；禁止外层再次尝试、后续组及补充模型请求，errors.Is保留冲突分类。后续组明确unprocessed，不把持久化瞬时恢复当作本轮授权恢复；无新增公共字段/工具/预算。
