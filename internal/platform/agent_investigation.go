@@ -15,6 +15,7 @@ func (t *auditTools) investigations() []Investigation {
 	defer t.mu.Unlock()
 	out := []Investigation{}
 	for _, v := range t.ledger {
+		v.Plan = cloneInvestigationPlan(v.Plan)
 		out = append(out, v)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
@@ -76,6 +77,9 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 			if a.Status == "supported" && (len(a.Evidence) == 0 || len(a.ObservationIDs) == 0) || a.Status == "rejected" && (len(a.Counterevidence) == 0 || len(a.CounterObservationIDs) == 0) {
 				return toolOutput{}, fmt.Errorf("resolved hypothesis needs evidence/counterevidence and successful source observation IDs")
 			}
+		}
+		if err := prepareInvestigationPlan(&a, t.ledger[a.ID]); err != nil {
+			return toolOutput{}, err
 		}
 		a.PRContext = clonePRContext(a.PRContext)
 		t.ledger[a.ID] = a

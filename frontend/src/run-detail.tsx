@@ -1,3 +1,4 @@
+import { InvestigationPlan } from "./investigation-plan";
 import { ResourceRefreshFailure } from "./resource-feedback";
 import { FindingWorkbench } from "./finding-workbench";
 import { FrozenContextRepositories } from "./context-repositories";
@@ -531,6 +532,7 @@ export function RunDetail({ id }: { id: number }) {
                 </span>
               </summary>
               <p className="muted">这里记录代码调查结果，不代表已运行复现。</p>
+              <InvestigationPlan plan={item.plan} />
               <PRInvestigationPanel context={item.pr_context} />
               <p>证据：{item.evidence?.join("；") || "尚未记录"}</p>
               <ObservationLinks ids={item.observation_ids} />

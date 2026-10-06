@@ -185,7 +185,7 @@ func TestAuditHTTPWorkflowAndFilters(t *testing.T) {
 	if err := json.Unmarshal(detail.Body.Bytes(), &payload); err != nil || len(payload.Run.Result.Findings) != 1 {
 		t.Fatal("result missing", err)
 	}
-	if len(payload.Run.Result.CoverageNotes) != 1 || !strings.Contains(payload.Run.Result.CoverageNotes[0], "PR impact recording gap") {
+	if len(payload.Run.Result.CoverageNotes) != 2 || !hasPlanGap(payload.Run.Result.CoverageNotes) || !strings.Contains(payload.Run.Result.CoverageNotes[1], "PR impact recording gap") {
 		t.Fatal("persisted incomplete reason missing", payload.Run.Result)
 	}
 	f := payload.Run.Result.Findings[0]

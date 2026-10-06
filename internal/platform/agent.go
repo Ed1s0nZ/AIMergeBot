@@ -76,7 +76,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if len(contextPolicyItems(snap)) > 0 {
 		prompt += " list_repositories exposes only administrator-authorized fixed context snapshots. Related repository facts can support trigger assumptions or counterevidence; they never replace a primary changed-line anchor. Cite the repository_id and fixed SHA when describing cross-repository facts. No recursive linkage or runtime call proof."
 	}
-	prompt += prInvestigationGuidance
+	prompt += prInvestigationGuidance + investigationPlanGuidance
 	metadata, _ := json.Marshal(snap)
 	navigation, err := tools.contextNavigation(ctx)
 	if err != nil {
@@ -143,6 +143,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	result.CoverageNotes = append(result.CoverageNotes, scope.Notes...)
 	result.CoverageNotes = append(result.CoverageNotes, primaryContextCoverage(snap, tools.trace)...)
 	result.Investigations = tools.investigations()
+	result.CoverageNotes = append(result.CoverageNotes, investigationPlanCoverage(result.Investigations)...)
 	for _, item := range result.Investigations {
 		if item.Status == "investigating" {
 			result.CoverageNotes = append(result.CoverageNotes, "Unresolved hypothesis: "+item.ID)

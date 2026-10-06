@@ -145,6 +145,14 @@ export type Finding = {
   suggestion: string;
   confidence: string;
 };
+export type InvestigationTask = {
+  id: string;
+  kind: "input_control" | "pr_causality" | "guards" | "outcome" | "contract";
+  question: string;
+  status: "pending" | "checked" | "unavailable";
+  reason?: string;
+  observation_ids?: string[];
+};
 export type Run = {
   retry_info?: {
     kind: string;
@@ -184,6 +192,7 @@ export type Run = {
     coverage_notes: string[];
     excluded_files?: string[];
     investigations?: {
+      plan?: InvestigationTask[];
       pr_context?: PRInvestigationContext;
       id: string;
       claim: string;

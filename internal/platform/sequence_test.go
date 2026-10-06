@@ -179,7 +179,7 @@ func TestEinoConditionalSequenceGenerationPreservesFindings(t *testing.T) {
 			if mode != "disabled" && graphCalls.Load() != 1 {
 				t.Fatal("unexpected graph calls")
 			}
-			if len(result.CoverageNotes) != 1 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") {
+			if len(result.CoverageNotes) != 2 || !hasPlanGap(result.CoverageNotes) || !strings.Contains(result.CoverageNotes[1], "PR impact recording gap") {
 				t.Fatal("supplemental diagram changed primary chain coverage")
 			}
 		})

@@ -204,7 +204,7 @@ func TestContextToolsAreCallableThroughRealEinoSDK(t *testing.T) {
 	defer server.Close()
 	e := &EinoAuditor{Repository: root, ContextSources: sources, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "context-fixture", MaxSteps: 4, MaxToolCalls: 4}}
 	result, trace, err := e.Audit(context.Background(), snap, BuildDiff([]Change{{NewPath: "guard.any", Diff: "@@ -1 +1,2 @@\n safe\n+danger(input)"}}, nil, 96000))
-	if err != nil || len(result.CoverageNotes) != 0 || calls.Load() != 2 {
+	if err != nil || (len(result.CoverageNotes) != 1 || !hasPlanGap(result.CoverageNotes)) || calls.Load() != 2 {
 		t.Fatal("SDK context audit", err, result.CoverageNotes)
 	}
 	count := 0
@@ -247,7 +247,7 @@ func TestContextToolsAreCallableThroughRealEinoSDK(t *testing.T) {
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
-		if run.Status != "succeeded" || calls.Load() != 2 {
+		if run.Status != "incomplete" || len(run.Result.CoverageNotes) != 1 || !hasPlanGap(run.Result.CoverageNotes) || calls.Load() != 2 {
 			t.Fatal("worker context audit failed", run.Status, run.Error, calls.Load(), run.Result.CoverageNotes)
 		}
 		observations := 0

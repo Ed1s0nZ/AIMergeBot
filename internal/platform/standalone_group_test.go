@@ -139,14 +139,14 @@ func TestStandaloneNativeGitLargeDiffGroupsAndExclusions(t *testing.T) {
 				if stageCalls != summaries {
 					t.Fatal("synthesis usage missing or duplicated", stageCalls, summaries)
 				}
-				if mode == "synthesis_compressed" && (run.Status != "succeeded" || synthCalls != 4 || run.Result.Summary != "native synthesis fixture") {
+				if mode == "synthesis_compressed" && (run.Status != "incomplete" || !hasPlanGap(run.Result.CoverageNotes) || synthCalls != 4 || run.Result.Summary != "native synthesis fixture") {
 					t.Fatal("synthesis did not resume", run.Status, synthCalls, run.Result.CoverageNotes)
 				}
 				if mode == "synthesis_compression_failed" && (run.Status != "incomplete" || len(run.Result.CoverageNotes) == 0 || synthCalls >= 4) {
 					t.Fatal("synthesis failure discarded coverage", run.Status, synthCalls)
 				}
 			}
-			if mode == "grouped" && (run.Status != "succeeded" || len(run.Result.CoverageNotes) != 0) {
+			if mode == "grouped" && (run.Status != "incomplete" || len(run.Result.CoverageNotes) != 1 || !hasPlanGap(run.Result.CoverageNotes)) {
 				t.Fatal("complete native diff omitted", run.Status, run.Result.CoverageNotes)
 			}
 			if mode == "over_budget" && (run.Status != "incomplete" || len(run.Result.CoverageNotes) == 0 || len(run.Result.AuditGroups) > 8) {

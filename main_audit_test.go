@@ -43,7 +43,7 @@ func TestNativeAuditCLIReportsIncompleteWithNonzeroExit(t *testing.T) {
 	}
 	git("add", "source.any")
 	git("commit", "-m", "head fixture")
-	for _, mode := range []string{"completed", "incomplete", "failed"} {
+	for _, mode := range []string{"missing_plan", "incomplete", "failed"} {
 		t.Run(mode, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if mode == "failed" {
@@ -75,7 +75,7 @@ func TestNativeAuditCLIReportsIncompleteWithNonzeroExit(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			want := map[string]int{"completed": 0, "incomplete": 2, "failed": 1}[mode]
+			want := map[string]int{"missing_plan": 2, "incomplete": 2, "failed": 1}[mode]
 			if code != want {
 				var stderr []byte
 				if exit, ok := err.(*exec.ExitError); ok {
@@ -88,8 +88,8 @@ func TestNativeAuditCLIReportsIncompleteWithNonzeroExit(t *testing.T) {
 				t.Fatalf("nonzero exit lost JSON: %v %s", err, stdout)
 			}
 			status := mode
-			if mode == "completed" {
-				status = "succeeded"
+			if mode == "missing_plan" {
+				status = "incomplete"
 			}
 			if run.Status != status {
 				t.Fatal("wrong terminal status", run.Status)

@@ -336,7 +336,7 @@ func TestMetadataOnlyAuditUsesEinoAndRunnerPersistsCanonicalEvidence(t *testing.
 	defer server.Close()
 	auditor := &EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "metadata-fixture", MaxSteps: 5}}
 	result, trace, err := auditor.Audit(context.Background(), snap, scope)
-	if err != nil || len(result.Findings) != 1 || result.Findings[0].Metadata == nil || len(result.MetadataChanges) != 1 || len(result.CoverageNotes) != 0 || len(trace) < 2 {
+	if err != nil || len(result.Findings) != 1 || result.Findings[0].Metadata == nil || len(result.MetadataChanges) != 1 || (len(result.CoverageNotes) != 1 || !hasPlanGap(result.CoverageNotes)) || len(trace) < 2 {
 		t.Fatal(result, trace, err)
 	}
 	store := testStore(t)
@@ -353,7 +353,7 @@ func TestMetadataOnlyAuditUsesEinoAndRunnerPersistsCanonicalEvidence(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	waitStatus(t, store, id, "succeeded")
+	waitStatus(t, store, id, "incomplete")
 	run, err := store.Run(ctx, id)
 	if err != nil || len(run.Result.Findings) != 1 || run.Result.Findings[0].Line != 0 || run.Result.Findings[0].Metadata.Head.Mode != "100755" || len(run.Result.MetadataChanges) != 1 || calls.Load() != 4 {
 		t.Fatal(run, err, calls.Load())
