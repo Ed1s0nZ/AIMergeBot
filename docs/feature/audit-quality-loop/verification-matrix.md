@@ -15,6 +15,6 @@
 |009|detail_version轻量轮询/权限复查、git_path_cache原生Git计数/SHA隔离与界限，16MB源码缓存|机制有证据；未测总体生产性能，不新增无依据持久化改造|
 |010|SARIF固定BASE/HEAD/contextURI、等级和uncertainty，不产伪codeFlows；requireRun导出前后授权|机制及原官方schema/下载验证有证据；新checks是properties扩展|
 |011|已冻结独立v1/v2初次记录、人工真值；当前回归freeze/hash、分别位置/来源/判断/等级/不足/tokens，历史真实Git样本保留失败|框架与失败记录有证据；当前真实样本未完成，现回归不等于新的隔离质量验收|
-|012|current fullGo、lease/checkpoint/model_request先持久化、撤权/取消/重试/评论；策略v33隔离，JSON可选字段不改历史|Go全量51.699s、Python27项、vet/build通过，平台全量race220.263s通过；远端CI仍待当前结果|
+|012|current fullGo、lease/checkpoint/model_request先持久化、撤权/取消/重试/评论；策略v33隔离，JSON可选字段不改历史|Go全量51.699s、Python27项、vet/build通过，平台全量race220.263s通过；远端CI run37418314830（绑定1601410）success，已实际读取终态|
 
 本轮不标总体完成：F6最终审查/变更日志尚未收尾；模型逐边记录、兼容反证完成度、最新策略的新隔离评测仍有缺口。无准确率阈值意味着不能追求或声称完美，但也不能把仅结构齐全称全部验收。后续应按上述实际缺口完成，避免继续堆无要求的新功能。原README/docs/images未纳入，未合并/部署。

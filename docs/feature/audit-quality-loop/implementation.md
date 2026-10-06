@@ -51,3 +51,5 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 F6补验：发现内嵌web/dist尚未同步最新来源分项/计划/停止原因消费者，重新npm run build产出当前index-Za6eQMvX.js（2.92s），源码与发布内嵌产物一致。补充SDK分组边界：2轮继续tool→server-owned failed/agent_step_budget，第三次仅synthesis，不增加primary轮数；模型伪造audit_groups/stop_reason被清除，实际组id/status仍由runtime生成且账本缺失仍覆盖不足。race专项2.614s通过。下一步冻结本次代码，做原v2六例回归（已用于分析，不再称隔离验收）、当前全量与交付矩阵。
 
 当前交付核对代码1601410：go test ./... exit0（platform51.699s，其余cached）；go test -race ./internal/platform exit0 220.263s；Python运维27项7.843s通过；go vet ./...与嵌入app go build exit0；npm完整内嵌build2.92s通过。临时PATH同版本已安装Apple Git，默认启动器延迟历史失败不抹除。原六例回归326332tokens、两个有条件风险正确定位但6/6未完整（404JSON syntax失败），详见当前报告和verification-matrix。此核对发现实际质量缺口，不以工程通过替代R3全验收，后续F6/隔离评测/覆盖记录仍需继续。
+
+远端CI补核：GitHub Actions run37418314830绑定1601410cbdf9d4c58ff16ce28ca4dc399025c0c0，gh run view实际返回completed/success。前两次源码push被新run取消，不能称失败或通过；本次终态覆盖当前源码/内嵌产物，后续0c2d1e3仅文档。
