@@ -2,7 +2,7 @@
 
 ## 当前基础：814c60a（策略仍v44），命题复核尚待接入
 
-新增共享原40次/60秒复核pool及server-owned调查命题复核契约；模型写入注入清除、严格JSON和fresh固定来源校验已实现。独立检视发现compare_files误算BASE路径的CVR-001，已修复并以真实本地Git反例验证；最终全量Go platform110.823s、定向race2.700s、vet/diffcheck通过。独立契约切片re-review APPROVE/CVR-001 resolved，不批准整分支；报告见implementation.md。源码CI37441430651仍待终态。
+新增共享原40次/60秒复核pool及server-owned调查命题复核契约；模型写入注入清除、严格JSON和fresh固定来源校验已实现。独立检视发现compare_files误算BASE路径的CVR-001，已修复并以真实本地Git反例验证；最终全量Go platform110.823s、定向race2.700s、vet/diffcheck通过。独立契约切片re-review APPROVE/CVR-001 resolved，不批准整分支；报告见implementation.md。源码CI37441430651已核对终态success（Go/race、运维工具、依赖检查、前端与嵌入构建均通过）。
 
 当前supplement仍只执行原finding复核，没有调查命题复核请求。runner、UI/配置/SARIF和原模型真实质量验证继续待做；不能把数据契约测试当语义判断改善，AER-001保持open。已推送codex/audit-quality-loop，未自动合并/部署。
 
