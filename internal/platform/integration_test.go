@@ -93,6 +93,9 @@ func TestEinoUsesToolsAndValidatesEvidence(t *testing.T) {
 		assertRequiredToolCapabilities(t, req.Tools, "read_file", "search_code", "get_diff", "record_hypothesis", "update_investigation", "submit_finding", "resolve_recording_errors")
 		w.Header().Set("Content-Type", "application/json")
 		n := calls.Add(1)
+		if n == 3 && (len(req.Messages) == 0 || !strings.Contains(fmt.Sprint(req.Messages[0].Content), primaryRecordingFinalizationRequest)) {
+			t.Error("extra call is not the bounded recording final")
+		}
 		if n == 1 {
 			fmt.Fprint(w, `{"id":"t1","object":"chat.completion","choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"call1","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.go\",\"start\":1,\"end\":3}"}}]}}]}`)
 			return
@@ -120,7 +123,7 @@ func TestEinoUsesToolsAndValidatesEvidence(t *testing.T) {
 	if len(trace) < 1 || len(result.Findings) != 1 {
 		t.Fatalf("Eino path incomplete: %+v %+v", result, trace)
 	}
-	if calls.Load() != 2 {
+	if calls.Load() != 3 { // Source, early final, and one bounded recording final.
 		t.Fatal("unexpected model loop")
 	}
 }

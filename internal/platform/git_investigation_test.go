@@ -304,7 +304,7 @@ func TestStandaloneGitUsesEinoWithoutPlatformAPI(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	if call != 7 {
+	if call != 8 { // Six tools, early final, and one recording final.
 		t.Fatalf("expected full investigation, got %d calls", call)
 	}
 	for _, tr := range run.Trace {

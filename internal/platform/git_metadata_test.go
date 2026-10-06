@@ -324,7 +324,7 @@ func TestMetadataOnlyAuditUsesEinoAndRunnerPersistsCanonicalEvidence(t *testing.
 		n := calls.Add(1)
 		message := map[string]any{"role": "assistant"}
 		finish := "stop"
-		if n%2 == 1 {
+		if n%3 == 1 { // Each audit reads metadata, returns a draft, then a recording final.
 			finish = "tool_calls"
 			message["tool_calls"] = []any{map[string]any{"id": "metadata", "type": "function", "function": map[string]string{"name": "get_change_metadata", "arguments": `{"path":"task.any"}`}}}
 		} else {
@@ -355,7 +355,7 @@ func TestMetadataOnlyAuditUsesEinoAndRunnerPersistsCanonicalEvidence(t *testing.
 	}
 	waitStatus(t, store, id, "incomplete")
 	run, err := store.Run(ctx, id)
-	if err != nil || len(run.Result.Findings) != 1 || run.Result.Findings[0].Line != 0 || run.Result.Findings[0].Metadata.Head.Mode != "100755" || len(run.Result.MetadataChanges) != 1 || calls.Load() != 4 {
+	if err != nil || len(run.Result.Findings) != 1 || run.Result.Findings[0].Line != 0 || run.Result.Findings[0].Metadata.Head.Mode != "100755" || len(run.Result.MetadataChanges) != 1 || calls.Load() != 6 {
 		t.Fatal(run, err, calls.Load())
 	}
 }

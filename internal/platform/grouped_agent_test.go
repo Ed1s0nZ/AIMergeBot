@@ -26,7 +26,14 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 					t.Error(err)
 				}
 				n := calls.Add(1)
-				if n == 3 {
+				laterGroupCall := int32(4) // First group includes its bounded recording final.
+				if mode == "budget" {
+					laterGroupCall = 3 // Exhausted tools suppress the recording pass.
+				}
+				if mode == "failure" && n == 3 && (len(request.Messages) == 0 || !strings.Contains(request.Messages[0].Content, primaryRecordingFinalizationRequest)) {
+					t.Error("first group recording final lost its own instruction")
+				}
+				if n == laterGroupCall {
 					if len(request.Messages) < 2 || !strings.Contains(request.Messages[1].Content, "Current audit group") || !strings.Contains(request.Messages[1].Content, "do not resubmit") || !strings.Contains(request.Messages[1].Content, `"id":"group-2"`) || !strings.Contains(request.Messages[1].Content, "Prior group navigation") || !strings.Contains(request.Messages[1].Content, "unsafe sink") || !strings.Contains(request.Messages[1].Content, "source_locators") || !strings.Contains(request.Messages[1].Content, "group-1-observation-2") {
 						t.Error("later group lost source handoff")
 					}
