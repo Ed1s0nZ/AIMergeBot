@@ -73,3 +73,9 @@ Workflow Gate：Confirmed R3 AC003/006/011/012、真实805原始冲突及design�
 ### v44 空/未知ID反馈（P10/F3）
 
 Workflow Gate：Confirmed R3 AC003/006/011/012、v43真实空ID及F2设计齐备，允许局部恢复，不改权限/UI契约。Maintainability Gate：agent_investigation约200行连接1处、types只字段schema描述、新helper单职责；低风险narrow_fix，无广泛重构。分支codex/audit-quality-loop；design80c1f0d先推送，本计划先提交推送。新增未知IDerror helper仅投影当前ledger键，有限排序/JSON编码/80bytes/UTF8/NUL/30条/8000bytes上限fallback，保留全部旧验证和拒绝。字段说明同record返回ID；测试空/未知/多记录不推断、异常datafallback/注入仅tool、source不能提升、wrongID不写ledger、复制ID后仍需计划来源门禁，SDK未知ID→复制明确ID→合法更新→显式resolver保持history。race/full/vet，冻结源码独立新上下文（pr-review恢复契约要求），不盲重跑模型。AER-001极性仍open，无合并部署。
+
+### v45 复核预算基础切片（P10/F3）
+
+完整目标与新契约见claim-verification-design.md（7bf1616）；本切片只是其必要基础，命题复核/UI/实际质量未实现，不代表目标完成。Workflow Gate：Confirmed R3/F2设计/现有verification实现及实际极性缺口齐备；允许实现共享预算基础，无新权限/产品决定。Maintainability Gate：verification_agent195行包含模型初始化/调度/结果校验，私有helper抽取预算降低耦合；medium风险，zero_behavior_refactor，旧wrapper保留模型初始化后才创建pool的顺序，nil pool兼容，无跨UI变更。策略v44保持，未来feature接入后才v45。
+
+抽取verification_budget.go的phase ctx/cancel、60秒与deadline−10秒、40工具余量、单项min10及consume；现有verifyFindings薄wrapper调用withBudget(nil)，原模型选择、callback、source资格、单项15秒/graph8、排序/缺口/persistence保持。新pool可复用但本切片尚无第二consumer，不能声称已实现共享命题复核。测试余量/耗尽/overcount/取消/短deadline，以及同一pool跨两次finding调用不可额外消费；旧finding/context/checkpoint/model usage/停止/race/full/vet。独立预算边界fresh-context review按pr-review公共信任预算改动要求；源码freeze，未运行样本/真实API，不用实现foundation代替原AC。单helper可回退，后续继续完成契约/parser/runner/UI/SARIF/实际评测。先计划提交推送再代码。
