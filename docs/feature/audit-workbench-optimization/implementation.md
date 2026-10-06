@@ -285,7 +285,7 @@ F5/F6：冻结83671eaecbdcdd1a8b71b8c77f68850cb81cd0b9。最终生产源码full 
 
 模型update_investigation schema新增必填claim_assessment有限枚举，隐藏顶层legacy status并保留plan.status。独立DTO适配明确支持/反驳/证据不足到原状态；旧JSON status/direct update继续经过原ledger校验，矛盾新旧输入/未知枚举拒绝。真实提交DTO进入trace，标准状态写ledger；提交及规范化/保留数据预算均检查。来源资格、计划、纠正同陈述和所有审计预算未改。新增schema/兼容/冲突/无源码/字节预算测试；实际SDK HTTP捕获schema及新assessment解析为rejected。定向测试1.157秒、race含原纠正/动作/计划回归3.329秒通过；全量/vet进行中。真实模型语义效果未验证，AER-001保持open。
 
-F5 v42：冻结b19ff4677f475d15bd5ab7d04e0da7c27bdd5807；全量Go exit0 platform137.600s、其他包通过，vet/diffcheck exit0。真实802一次原deepseek-chat/15steps80tools240回归，75067tokens、6轮、16.605秒、完整usage、无API余额错误；实际new assessment和兼容status一致支持守卫改善命题，调用关系及上游未知保留。结构化BASE/HEAD引用仍缺，两条最终说明保证incomplete；单例不推广质量/成本，无运行时执行。外部归档40文件SHA核验一致，详见regression-v42-assessment.md。独立fresh-context切片COMMENT/无blocking，自行定向0.788s通过；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v42-b19ff46/PR_REVIEW_REPORT.md，排除整分支批准。源码CI run37435634059最后核对in_progress；AER-001继续open。
+F5 v42：冻结b19ff4677f475d15bd5ab7d04e0da7c27bdd5807；全量Go exit0 platform137.600s、其他包通过，vet/diffcheck exit0。真实802一次原deepseek-chat/15steps80tools240回归，75067tokens、6轮、16.605秒、完整usage、无API余额错误；实际new assessment和兼容status一致支持守卫改善命题，调用关系及上游未知保留。结构化BASE/HEAD引用仍缺，两条最终说明保证incomplete；单例不推广质量/成本，无运行时执行。外部归档40文件SHA核验一致，详见regression-v42-assessment.md。独立fresh-context切片COMMENT/无blocking，自行定向0.788s通过；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v42-b19ff46/PR_REVIEW_REPORT.md，排除整分支批准。源码CI run37435634059终态success；AER-001继续open。
 
 ### v42 剩余质量检查（生产源码未改）
 

@@ -2,7 +2,7 @@
 
 ## 当前增量：b19ff46（策略 v42），整体仍未完成
 
-模型update_investigation改明确claim_assessment有限枚举，隐藏顶层旧status、保留plan.status，兼容旧JSON和直接Go调用。矛盾新旧值/未知枚举拒绝；原提交trace与规范化状态分别留存，来源/计划/PRContext及8000字节门禁不变。本地全量Go exit0 platform137.600s、定向1.157s、race3.329s、vet/diffcheck通过。独立fresh-context切片COMMENT、无blocking，自行定向0.788s通过，非整体批准；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v42-b19ff46/PR_REVIEW_REPORT.md。源码CI run37435634059最后核对in_progress。
+模型update_investigation改明确claim_assessment有限枚举，隐藏顶层旧status、保留plan.status，兼容旧JSON和直接Go调用。矛盾新旧值/未知枚举拒绝；原提交trace与规范化状态分别留存，来源/计划/PRContext及8000字节门禁不变。本地全量Go exit0 platform137.600s、定向1.157s、race3.329s、vet/diffcheck通过。独立fresh-context切片COMMENT、无blocking，自行定向0.788s通过，非整体批准；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v42-b19ff46/PR_REVIEW_REPORT.md。源码CI run37435634059终态success。
 
 原模型同预算802真实回归：75067tokens、6轮、0findings，守卫改善命题正确supported并记录调用关系与上游未知；仍缺结构化BASE/HEAD链接，最终两条对应缺口保留、状态incomplete。只有一个已知样本，不能推广准确率或费用改善。详见regression-v42-assessment.md；后续同生产源码另跑803/805：803记录跨项目关系与条件风险，805摘要正确但计划身份改写遭拒且拟提交极性仍错；详见regression-v42-quality.md。AER-001仍open。未合并、未部署。
 
