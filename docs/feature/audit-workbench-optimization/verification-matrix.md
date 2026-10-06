@@ -1,6 +1,12 @@
 # R3 交付核对矩阵
 
-## 当前增量：b19ff46（策略 v42），整体仍未完成
+## 当前增量：d8fff22（策略 v43），整体仍未完成
+
+计划身份冲突错误列出所有冲突任务的原id/kind/question；JSON≤8000字节且≤8条，异常历史数据退回固定错误。schema明确question不可改写。门禁、来源、正常预算、失败历史和显式resolver不变，不自动判断命题。full Go exit0 platform124.978s、相关race3.675s、vet/diffcheck通过。源码CI run37436813700最后核对in_progress；独立fresh-context切片COMMENT/无blocking，自行定向0.967s及19类旧新门禁接受/产物一致性overlay0.939s通过；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v43-d8fff22/PR_REVIEW_REPORT.md，非整分支批准。
+
+旧v42-805三次失败输入离线验证：新反馈准确指向p3/p5原身份，模拟只修身份后通过plan校验，错误的evidence_refutes_claim仍保留；原回执/ledger不修改，无新模型请求。离线0.845s，外部归档5文件SHA核验一致。非新模型效果或准确率证明，AER-001仍open，特别是兼容命题极性及BASE/HEAD结构化引用。未合并、未部署。
+
+## 历史增量：b19ff46（策略 v42），整体仍未完成
 
 模型update_investigation改明确claim_assessment有限枚举，隐藏顶层旧status、保留plan.status，兼容旧JSON和直接Go调用。矛盾新旧值/未知枚举拒绝；原提交trace与规范化状态分别留存，来源/计划/PRContext及8000字节门禁不变。本地全量Go exit0 platform137.600s、定向1.157s、race3.329s、vet/diffcheck通过。独立fresh-context切片COMMENT、无blocking，自行定向0.788s通过，非整体批准；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v42-b19ff46/PR_REVIEW_REPORT.md。源码CI run37435634059终态success。
 
