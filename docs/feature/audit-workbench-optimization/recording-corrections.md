@@ -6,7 +6,7 @@
 {"corrections":[{"failed_observation_id":"observation-4","corrected_observation_id":"observation-6"}]}
 ```
 
-每次1–8对；失败须仍pending，纠正须在之后、相同主快照和当前调查阶段、成功且无分页不足。调查ID相同且非空；候选的原local id、investigation_id、file、type相同且身份必需字段非空。BASE/HEAD锚点和来源编号允许修正。整批先验证再清除，不满足则任何旧pending都不清除。拒绝消息固定，不回显任意输入ID。
+每次1–8对；失败须仍pending，纠正须在之后、相同主快照和当前调查阶段、成功且无分页不足。调查ID相同且非空；候选的原local id、investigation_id、file、type相同且身份必需字段非空。原调查Claim及候选Title/Description/Trigger必须字节相同，防止把失败陈述换成另一结论。BASE/HEAD锚点、证据和来源编号允许修正；改写陈述时旧失败仍未解决。整批先验证再清除，不满足则任何旧pending都不清除。拒绝消息固定，不回显任意输入ID。
 
 这只声明记录操作已纠正，不证明其命题/漏洞语义正确。原始失败和纠正事件都保存在trace与检查点。源码失败、未读分页、缺少计划、仍在调查的hypothesis和风险链缺项继续保留；另一候选成功不消除未提交候选。无local id的失败无法可靠归属，继续未解决。重复已清除引用会被拒绝，不伪造重复成功。
 

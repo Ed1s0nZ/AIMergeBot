@@ -92,13 +92,13 @@ func sameRecordingArtifact(failed, corrected ToolTrace) bool {
 		if json.Unmarshal([]byte(failed.Arguments), &a) != nil || json.Unmarshal([]byte(corrected.Arguments), &b) != nil {
 			return false
 		}
-		return a.ID != "" && a.ID == b.ID
+		return a.ID != "" && a.ID == b.ID && a.Claim == b.Claim
 	}
 	var a, b Finding
 	if json.Unmarshal([]byte(failed.Arguments), &a) != nil || json.Unmarshal([]byte(corrected.Arguments), &b) != nil {
 		return false
 	}
-	return a.ID != "" && a.ID == b.ID && a.InvestigationID != "" && a.InvestigationID == b.InvestigationID && a.File == b.File && a.Type == b.Type
+	return a.ID != "" && a.ID == b.ID && a.InvestigationID != "" && a.InvestigationID == b.InvestigationID && a.File == b.File && a.Type == b.Type && a.Title == b.Title && a.Description == b.Description && a.Trigger == b.Trigger
 }
 
-const recordingCorrectionGuidance = " If a recording or submit attempt fails and a later successful call corrects that same local artifact with different arguments, use resolve_recording_errors with the exact failed/corrected observation IDs to retire only that pending recording error. Keep the same local hypothesis/candidate id, and for findings the same investigation_id/file/type. This does not erase trace history, certify the claim or resolve missing source, pagination, plan or relationships. Do not link unrelated artifacts or hide actual unknowns."
+const recordingCorrectionGuidance = " If a recording or submit attempt fails and a later successful call corrects that same local artifact with different arguments, use resolve_recording_errors with the exact failed/corrected observation IDs to retire only that pending recording error. Keep the same local hypothesis/candidate id, and for findings the same investigation_id/file/type. Preserve the exact original claim, or finding title/description/trigger: changing the recorded statement is not a structural correction and cannot retire the earlier failure. This does not erase trace history, certify the claim or resolve missing source, pagination, plan or relationships. Do not link unrelated artifacts or hide actual unknowns."

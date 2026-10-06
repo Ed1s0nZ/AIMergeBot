@@ -59,7 +59,7 @@ func TestRecordingCorrectionRetainsHistoryAndActualGaps(t *testing.T) {
 	}
 }
 func TestRecordingCorrectionRejectsForeignAndIncompleteReferencesAtomically(t *testing.T) {
-	for _, mode := range []string{"unknown", "reversed", "other_id", "stale", "other_stage", "source", "partial", "duplicate", "atomic"} {
+	for _, mode := range []string{"unknown", "reversed", "other_id", "other_claim", "stale", "other_stage", "source", "partial", "duplicate", "atomic"} {
 		t.Run(mode, func(t *testing.T) {
 			tools, bad, good := recordingCorrectionFixture(t)
 			pairs := []recordingCorrection{{bad.ObservationID, good.ObservationID}}
@@ -70,6 +70,8 @@ func TestRecordingCorrectionRejectsForeignAndIncompleteReferencesAtomically(t *t
 				pairs[0] = recordingCorrection{good.ObservationID, bad.ObservationID}
 			case "other_id":
 				tools.trace[1].Arguments = `{"id":"other","claim":"unrelated"}`
+			case "other_claim":
+				tools.trace[1].Arguments = `{"id":"inv","claim":"different resolved claim"}`
 			case "stale":
 				var out toolOutput
 				json.Unmarshal([]byte(tools.trace[1].Output), &out)
@@ -117,7 +119,7 @@ func TestRecordingCorrectionFindingRequiresSameDeclaredArtifact(t *testing.T) {
 	if !sameRecordingArtifact(first, corrected) {
 		t.Fatal("anchor correction rejected")
 	}
-	for _, field := range []string{"id", "investigation", "file", "type"} {
+	for _, field := range []string{"id", "investigation", "file", "type", "title", "description", "trigger"} {
 		c := b
 		switch field {
 		case "id":
@@ -128,6 +130,12 @@ func TestRecordingCorrectionFindingRequiresSameDeclaredArtifact(t *testing.T) {
 			c.File = "different"
 		case "type":
 			c.Type = "different"
+		case "title":
+			c.Title = "different"
+		case "description":
+			c.Description = "different"
+		case "trigger":
+			c.Trigger = "different"
 		}
 		raw, _ := json.Marshal(c)
 		corrected.Arguments = string(raw)

@@ -216,3 +216,5 @@ Maintainability Gate Report：详情页590行只组合共享ResourceRefreshFailu
 纠正事件及输入/输出保留于独立tooltrace/checkpoint。该工具非source/evidence_eligible=false，独立复核与压缩只读工具列表排除它。保留原预算，每次调用计费/计步正常；策略v37，旧报告不改写。不会自动滤掉所有历史process错误。
 
 全量检验发现时序图另有独立黑名单，新增工具会被漏过滤；v37统一独立复核/时序图只读筛选为源码工具+有限导航工具白名单，未知新工具默认不提供。只读工具语义不等于source证据资格；risk/list工具仍非证据。
+
+独立复查确认local ID不足以阻止改写命题后解除旧pending。收紧原陈述身份：调查Claim字节相同，候选Title/Description/Trigger字节相同，才可作结构纠正；源ID、锚点及其证据可修正。需要改写陈述者不能用此工具解除旧工作。比较仅保持陈述身份，不证明语义或来源真实；不引入额外模型或预算。
