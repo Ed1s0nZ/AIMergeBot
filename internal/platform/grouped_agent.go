@@ -12,6 +12,7 @@ import (
 )
 
 type AuditGroupProgress struct {
+	StopReason     string   `json:"stop_reason,omitempty"`
 	PriorityWeight int      `json:"priority_weight,omitempty"`
 	ID             string   `json:"id"`
 	Files          []string `json:"files"`
@@ -144,6 +145,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 				repositoryFailure = err
 			}
 			result.AuditGroups[i].Status = "failed"
+			result.AuditGroups[i].StopReason = auditStopReason(err)
 			result.CoverageNotes = append(result.CoverageNotes, "Audit group failed: "+g.ID)
 		} else {
 			result.AuditGroups[i].Status = "completed"

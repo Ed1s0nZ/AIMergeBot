@@ -64,6 +64,9 @@ func TestGroupedAgentRetainsCompletedFindingOnLaterFailureOrBudget(t *testing.T)
 			if mode == "budget" {
 				want = "unprocessed"
 			}
+			if mode == "failure" && result.AuditGroups[1].StopReason != "agent_failure" {
+				t.Fatal("server cause missing", result.AuditGroups)
+			}
 			if result.AuditGroups[1].Status != want {
 				t.Fatal("incomplete group falsely completed", result.AuditGroups)
 			}

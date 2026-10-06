@@ -95,7 +95,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	if err != nil {
 		return AuditResult{}, nil, err
 	}
-	agent, err := react.NewAgent(ctx, &react.AgentConfig{ToolCallingModel: budgetModel(model), ToolsConfig: compose.ToolsNodeConfig{Tools: registered}, MessageRewriter: compression.rewrite, MaxStep: agentGraphSteps(cfg.MaxSteps)})
+	agent, err := react.NewAgent(ctx, &react.AgentConfig{ToolCallingModel: budgetModel(model), ToolsConfig: compose.ToolsNodeConfig{Tools: registered}, MessageRewriter: primaryRoundRewriter(cfg.MaxSteps, prompt, compression.rewrite), MaxStep: agentGraphSteps(cfg.MaxSteps)})
 	if err != nil {
 		return AuditResult{}, nil, err
 	}
@@ -124,6 +124,9 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		if repositoryUnavailable {
 			err = fmt.Errorf("%w: further primary model requests stopped", ErrRepositoryUnavailable)
 			note = "Fixed repository execution unavailable; further model requests stopped and validated submissions retained"
+		}
+		if errors.Is(err, compose.ErrExceedMaxSteps) {
+			note = "Primary decision budget exhausted; validated submissions retained and investigation incomplete"
 		}
 		if errors.Is(err, ErrContextCompression) {
 			note = "Context compression unavailable; accepted findings retained"

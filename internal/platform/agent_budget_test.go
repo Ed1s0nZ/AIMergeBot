@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwego/eino/compose"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -30,12 +31,15 @@ func TestEinoConfiguredModelRoundsAreBounded(t *testing.T) {
 			}))
 			defer server.Close()
 			a := &EinoAuditor{Repository: fixtureRepo{files: map[string]string{"file.any": "safe()"}}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "synthetic", MaxSteps: 4}}
-			_, _, err := a.Audit(context.Background(), Snapshot{BaseSHA: "base", HeadSHA: "head"}, DiffScope{})
+			result, _, err := a.Audit(context.Background(), Snapshot{BaseSHA: "base", HeadSHA: "head"}, DiffScope{})
 			if calls.Load() != 4 {
 				t.Fatal("configured rounds not respected", calls.Load())
 			}
 			if finishLast && err != nil {
 				t.Fatal(err)
+			}
+			if !finishLast && (len(result.CoverageNotes) == 0 || !strings.Contains(strings.Join(result.CoverageNotes, " "), "Primary decision budget exhausted")) {
+				t.Fatal("missing explicit budget coverage", result)
 			}
 			if !finishLast && !errors.Is(err, compose.ErrExceedMaxSteps) {
 				t.Fatal("unbounded graph or wrong exhaustion", err)

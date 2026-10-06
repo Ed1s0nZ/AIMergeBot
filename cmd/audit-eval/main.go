@@ -248,6 +248,9 @@ func run() error {
 			record.ErrorClass, record.HTTPStatus = classifyError(auditErr)
 			record.UsageComplete = false
 		}
+		if record.ErrorClass == "" {
+			record.ErrorClass = groupedFailureClass(result.AuditGroups)
+		}
 		if err = save(receiptPath, record); err != nil {
 			return err
 		}

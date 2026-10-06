@@ -35,3 +35,9 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 还必须在合法Git/默认编译环境恢复后运行默认Go全量、相关race并提交推送；当前不能把纯Go专项当完整验收。Git仍直接exit69，未代用户同意/绕过Xcode许可。真实历史失败归档与evaluation-v31-real-history.md也尚待提交，已有0b7a4ad之前功能已推送。
 
 环境恢复后的复验：系统git --version已exit0、默认CGO专项1.741s与相关race5.123s通过。首次默认PATH全量exit1：root CLI两个30s fixture Git调查超时（root106.757s）；platform345.685s、evaluation245.873s通过。独立git --version启动测量837/9361/2063ms；xcrun --find git25ms，返回的同版本Apple Git-155执行--version12ms。许可现已通过，不绕过许可、不提高生产预算。临时PATH选择已安装同版本Git的CLI对照保持30s配置，root专项23.233s通过；原失败完整保留，不以对照替代原环境事实。完整同版本Git对照 go test ./... exit0（root13.028s、evaluation14.189s、platform197.356s），未增大测试/生产audit超时或工具预算。默认启动器仍有已记录延迟/超时限制，不将对照称作默认PATH全量通过。git diff --check通过。第五切片准备提交推送，真实历史回归使用新目录且原失败保留。
+
+第六切片实现：primary_round_budget.go在compression之后复制system消息，添加本地当前决策/上限提醒，最后三轮提示收尾、最后一轮要求严格JSON；原始消息/工具源不修改，提醒不累积。保留原graph上限。agent_stop_reason.go按errors.Is映射有限原因；grouped服务端写stop_reason，最终模型JSON仍不能控制AuditGroups；评测从failed组保留原因，不靠模型字符串判断。policy v33避免新请求复用旧策略结果。
+
+专项：最后2/4/8轮真实SDK HTTP请求含当前提醒并能返回报告；原4轮边界忽略提醒仍只请求4次且typed耗尽/明确coverage；分组失败保留原因，旧policy隔离测试通过。两包专项4.935s/3.322s；纯helper race2.010s/2.718s。fake provider仅证明机制，不证明真实完成率。UI原因展示、真实模型回归以及完整R3/F6验收仍待完成。
+
+第六切片全量验证：临时PATH选择已安装同版本合法Apple Git，go test ./... exit0：CLI12.050s/evalcmd1.561s/evaluation17.509s/platform138.681s；不是默认PATH启动延迟测试。SDK决策边界/分组保留race4.420s；go vet两包exit0，git diff --check通过。仅服务端与评测实现，无前端变更，未据此宣称真实模型准确率或完成率提升。
