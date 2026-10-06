@@ -25,3 +25,9 @@
 依据真实恢复回归704/705：四项计划checked但仅record_hypothesis，状态仍investigating；源码reader与update门禁未失败。Confirmed R3 AC003/006/011，已有设计和调用契约允许此局部反馈迭代。Workflow Gate：允许，缺少状态反馈而非新产品决策；不涉及UI/API持久化迁移。Maintainability Gate：导航96行、职责单一；agent_investigation仅局部工具说明，保持现有校验，不广泛重构。
 
 新增server-owned导航unresolved_ledger_count（纯计数、不插入模型claim/id），明确record永远创建investigating、必须显式update；supported/rejected相对实际假设而非是否报漏洞，兼容性结论不能靠标记rejected伪造反证。必要上下文未知保持investigating；四项checked不能自动收尾，不自动制造关系。工具说明同样明确创建状态；策略v36，历史不重写，预算不变。测试覆盖状态混合、隐私投影与实际SDK工具请求中的反馈；真实同集后续仅称回归。
+
+### 复核引用失败安全分类（P10 / F3）
+
+真实v36 701只有invalid_observation摘要，原始模型引用未存储，具体失效ID不可重构；不得猜测历史原因。Confirmed R3 AC006/011/012允许局部诊断改进。Workflow Gate允许：已有固定来源/隐私契约，无新增产品权限、UI或存储迁移；Maintainability Gate低风险：来源验证和复核agent局部返回类型替换，新独立helper单职责，不广泛重构。
+
+保持原验证Error字符串及全部接受/拒绝条件，增加私有typed失败原因，运行记录code细分为未知引用、非复核阶段、非源工具、读取失败、输出损坏、快照不符、空源码；只输出有限枚举，不记录原引用ID/模型理由/源码/底层错误。复核仍unavailable，不自动删除坏引用、不重试、不增预算。测试覆盖各类别与实际SDK错误回执路径，历史不重写。无提示语义改变，策略v36保持。
