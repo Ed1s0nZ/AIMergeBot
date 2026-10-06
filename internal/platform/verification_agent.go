@@ -142,6 +142,10 @@ func (e *EinoAuditor) verifyFindingsWithBudget(ctx context.Context, result *Audi
 		} else {
 			input, parseErr := parseVerification(message.Content)
 			if parseErr != nil {
+				code := verificationParseFailureCode(parseErr)
+				parent.mu.Lock()
+				parent.trace = append(parent.trace, ToolTrace{Name: "model_response", Stage: "verification", Error: code, Output: responseDiagnostic(message.Content, responseError(code))})
+				parent.mu.Unlock()
 				f.Verification = unavailableVerification(parent.snap, "独立复核未返回有效结构。", "unavailable")
 			} else {
 				verified, validationErr := validateVerification(input, parent.snap, *f, trace)

@@ -103,7 +103,12 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 			}))
 			defer server.Close()
 			var checkpoints []AuditResult
-			auditor := &EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "verification-fixture", MaxSteps: 8, VerifyFindings: mode != "disabled", Progress: func(result AuditResult, _ []ToolTrace) error { checkpoints = append(checkpoints, result); return nil }}}
+			var checkpointTrace []ToolTrace
+			auditor := &EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "verification-fixture", MaxSteps: 8, VerifyFindings: mode != "disabled", Progress: func(result AuditResult, trace []ToolTrace) error {
+				checkpoints = append(checkpoints, result)
+				checkpointTrace = append([]ToolTrace{}, trace...)
+				return nil
+			}}}
 			if mode == "supported" || mode == "http_failure" || mode == "shared_budget" {
 				auditor.Config.VerificationModel = "separate-verification-fixture"
 			}
@@ -157,6 +162,28 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 			if want == "supported" || want == "rejected" {
 				if len(verification.ObservationIDs) != 1 || !strings.HasPrefix(verification.ObservationIDs[0], "verify-") {
 					t.Fatal("fresh observation namespace", verification)
+				}
+			}
+			if mode == "invalid" {
+				found := false
+				for _, item := range trace {
+					if item.Stage == "verification" && item.Name == "model_response" && item.Error == "json_syntax" {
+						found = true
+						var shape map[string]any
+						if json.Unmarshal([]byte(item.Output), &shape) != nil || shape["code"] != "json_syntax" || shape["bytes"] != float64(7) || shape["valid_json"] != false {
+							t.Fatal("missing bounded parse diagnostic", item.Output)
+						}
+					}
+				}
+				if !found {
+					t.Fatal("SDK parse failure cause not recorded")
+				}
+				persisted := false
+				for _, item := range checkpointTrace {
+					persisted = persisted || (item.Stage == "verification" && item.Name == "model_response" && item.Error == "json_syntax")
+				}
+				if !persisted {
+					t.Fatal("parse diagnostic missing from final checkpoint")
 				}
 			}
 			if mode == "forged" {

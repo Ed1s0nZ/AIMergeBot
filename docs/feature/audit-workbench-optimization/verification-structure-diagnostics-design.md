@@ -17,3 +17,7 @@ verification_agent.go185行、finding_verification.go151行、verification_aspec
 ## 验收及验证
 
 畸形/私密JSON和非法结构：保留拒绝、分类准确、无正文/私密字段/ID泄漏；合法响应不受影响。实际SDK负例证明诊断进入trace且原finding、unavailable、coverage及checkpoint保持。Go相关race/full/vet/diffcheck；源码精确CI及独立检视后再决定是否值得原模型复测。真实语义质量仍由实际证据验证，不以分类测试代替。无main合并/部署。
+
+## F4/F5 实现及当前验证
+
+有限分类helper及parse失败trace已实现，既有parser/check规则和公共结构保持。实际SDK invalid模式断言json_syntax元信息进入返回trace及最终checkpoint；正常结果/原finding/unavailable/coverage继续原断言。新parser负例覆盖全部新增服务器分类和私密正文/字段/ID不回显。首轮截断JSON测试失败（实际为io.ErrUnexpectedEOF），现明确归入json_syntax，不修改parser。修正后目标Go1.018s、相关race5.527s、最终SDK/checkpoint race4.649s通过；vet/diffcheck通过。首次full/race在修正前启动，race失败已保留，full仍待终态及最终源码重跑；不能当当前全量通过。精确CI、独立review和真实模型诊断效果待验证，无整体完成声明。
