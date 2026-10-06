@@ -58,7 +58,7 @@ func mergeAuditGroup(base AuditResult, group AuditResult, id string) AuditResult
 	return base
 }
 
-func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan AuditPlan) (AuditResult, []ToolTrace, error) {
+func (e *EinoAuditor) auditGroups(ctx context.Context, snap Snapshot, plan AuditPlan) (AuditResult, []ToolTrace, error) {
 	ctx = withModelBudget(ctx, e.Config.MaxTokens)
 	result := AuditResult{Findings: []Finding{}, CoverageNotes: append([]string{}, plan.Notes...), ExcludedFiles: append([]string{}, plan.Excluded...), Summary: "Grouped static audit"}
 	for _, g := range plan.Groups {

@@ -74,6 +74,24 @@ func TestDifferentVerifierPricesNeverUsePrimaryPrice(t *testing.T) {
 	}
 }
 
+func TestInvestigationReviewAndCompressionUseVerificationPrices(t *testing.T) {
+	for _, stage := range []string{claimVerificationStage, claimVerificationStage + "_compression"} {
+		trace := []ToolTrace{{Name: "model", Stage: stage, UsageReported: true, PromptTokens: 1000000, CompletionTokens: 1000000}}
+		prices := ModelBudgetSettings{Currency: "USD", InputPricePerMillion: 2, OutputPricePerMillion: 8}
+		unknown := SummarizeModelUsage(trace, prices, true, true)
+		if unknown.EstimatedCost != nil || unknown.EstimateUnavailableReason != "verification_price_missing" {
+			t.Fatal(stage, unknown)
+		}
+		prices.VerificationPricingConfigured = true
+		prices.VerificationInputPricePerMillion = 1
+		prices.VerificationOutputPricePerMillion = 3
+		known := SummarizeModelUsage(trace, prices, true, true)
+		if known.EstimatedCost == nil || *known.EstimatedCost != 4 {
+			t.Fatal(stage, known)
+		}
+	}
+}
+
 func TestModelUsageMalformedTotalAndOverflow(t *testing.T) {
 	prices := ModelBudgetSettings{Currency: "USD", InputPricePerMillion: 1, OutputPricePerMillion: 1}
 	invalid := SummarizeModelUsage([]ToolTrace{{Name: "model", UsageReported: true, PromptTokens: 1, CompletionTokens: 1, TotalTokens: -1}}, prices, true)

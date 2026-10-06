@@ -130,8 +130,18 @@ func BuildSARIF(run Run, reviews []Review) sarifObject {
 		"tool":               sarifObject{"driver": sarifObject{"name": "AIMergeBot", "version": run.PolicyVersion, "rules": rules}},
 		"originalUriBaseIds": bases, "results": results,
 		"invocations": []sarifObject{{"executionSuccessful": run.Status == "succeeded" && run.Error == "", "toolExecutionNotifications": notifications}},
-		"properties":  sarifObject{"runId": run.ID, "status": run.Status, "error": run.Error, "baseSHA": run.BaseSHA, "headSHA": run.HeadSHA, "policyVersion": run.PolicyVersion, "coverageNotes": run.Result.CoverageNotes, "summary": run.Result.Summary, "runtimeReproduced": false},
+		"properties":  sarifObject{"runId": run.ID, "status": run.Status, "error": run.Error, "baseSHA": run.BaseSHA, "headSHA": run.HeadSHA, "policyVersion": run.PolicyVersion, "coverageNotes": run.Result.CoverageNotes, "summary": run.Result.Summary, "runtimeReproduced": false, "investigationClaimReviews": sarifClaimReviews(run.Result.Investigations)},
 	}}}
+}
+
+func sarifClaimReviews(items []Investigation) []sarifObject {
+	rows := []sarifObject{}
+	for _, item := range items {
+		if item.ClaimVerification != nil {
+			rows = append(rows, sarifObject{"investigationId": item.ID, "verification": cloneClaimVerification(item.ClaimVerification)})
+		}
+	}
+	return rows
 }
 
 func snapshotURI(repository int, sha string) string {

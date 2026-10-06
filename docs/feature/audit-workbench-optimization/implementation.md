@@ -336,3 +336,18 @@ CVR-001修复：get_diff和compare_files分开处理，compare BASE真实old_pat
 
 
 契约修复F5/F6：冻结814c60a572d6e5d1976a44f67522678ebd219902，最终full Go exit0（root13.830s、audit-eval缓存、evaluation17.110s、platform110.823s）；相关race2.700s、vet/diffcheck通过，无后续生产修改。独立fresh-context re-review在原3f493d3→814c60a完整契约切片APPROVE，CVR-001 resolved、无新blocking，自行定向2.921s及外部反例0.781s通过。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v45-contract-814c60a/PR_REVIEW_REPORT.md supersedes旧e52525d scoped REQUEST_CHANGES；历史报告未改，整分支/runner/UI/SARIF/AER不在此批准范围。源码已推送，CI37441430651已核对终态success；e52525d CI37440918505 success不是当前修复验收。未新增真实模型调用，AER-001 open。
+
+
+### v45 命题复核执行接入（P10 / F4–F5）
+
+依据已确认R3及claim-verification-design.md第3切片实施，上一轮progress为共享预算/契约/CVR-001关闭及full/CI。Workflow Gate沿用已固定的F2/F3契约：允许后端接入，无新需求或账号；无自动合并部署。Maintainability Gate：agent.go336行、grouped_agent.go214行，仅改薄入口/委派；新claim runner143行、context辅助155行、completion36行，职责分别为独立请求编排、fresh来源/导航回调和共同完成边界。风险medium（模型/持久化/预算连接），不广泛重构；沿用先前纯helper和pool抽取基础。接受范围为adapter委派和受控第3切片，前端独立第4切片仍待实施。
+
+实际supplement新共享pool：原finding顺序优先，resolved调查稳定ID顺序共用剩余40次/60秒工具/时间，不再给调查分配另一pool。每项10工具/15秒/8graph步，父deadline最后10秒与全审计token预算不变；pool统一defer释放。调查fresh对话只给actual Claim、固定snapshot与有界source locators，不给首审状态/理由/证据正文/观察ID；导航缺失/截断显式omitted，实际fresh源码才能进入verdict。摘要与原调查字段不翻转，分歧/未知/失败加覆盖说明。Claim+artifact使用长度分帧后全SHA256观察prefix，保留组间身份和异常历史字符串边界，不直接拼模型ID。
+
+VerifyFindings键保持兼容，独立模型沿用原API/凭据，实际model与usage/callback记录；investigation_verification及其compression使用复核价目，缺不同模型价格不套主模型单价。fresh执行器不可用传入parent停止后续HTTP，checkpoint冲突同样请求前停止；反序列化/坏来源只记固定诊断，不记录被拒绝ID/供应商正文。
+
+公共Audit/AuditGroups薄完成边界在跳过supplement或中断时给已resolved且未复核调查明确unavailable（关闭配置为disabled）；PrimaryOnly分组片段不提前最终化，留给全局一次复核。只追加状态与说明，不自动读取/重试或补计划来源。SARIF properties保存服务器复核记录，现有coverage通知与失败执行状态保持，不制造codeFlows/runtime复现。策略v45，历史JSON/原首审状态兼容，无DB迁移。
+
+SDK/race覆盖真实本地HTTP：首审rejected+fresh true为disagreed、false一致、unknown、错误ID拒绝、备用模型、关闭0请求、共享tail由finding耗尽后claim0新请求、持久化冲突0HTTP、fresh执行器失败后0后续HTTP。实际worker无finding+分歧持久化为incomplete，主调查仍supported；主阶段HTTP400中断后已resolved调查明确unavailable且没有虚构verdict，SARIF保持false执行成功。定向相关race6.594s、导航追加后6.505s、finding广泛回归7.881s、命名边界后8.270s、完成边界后8.954s、最终中断worker覆盖8.222s通过；vet/diffcheck通过。首full120.305s通过，但它编译于命名边界/公共完成边界修正之前，不作为最终源码full证明。最终full及独立检视待执行。
+
+当前前端文案/类型/阶段标签及实际360px界面验证尚待第4切片；真实原模型质量/成本回归尚未进行。SDK测试是流程证据，不是判断准确率证明；AER-001 open。源码与文档推送仅codex/audit-quality-loop，ASM005禁止自动合并/部署。

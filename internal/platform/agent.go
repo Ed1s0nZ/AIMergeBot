@@ -45,7 +45,7 @@ type EinoAuditor struct {
 	Config         AgentConfig
 }
 
-func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope) (AuditResult, []ToolTrace, error) {
+func (e *EinoAuditor) audit(ctx context.Context, snap Snapshot, scope DiffScope) (AuditResult, []ToolTrace, error) {
 	cfg := e.Config
 	ctx = withModelBudget(ctx, cfg.MaxTokens)
 	ctx, stopPrimary := context.WithCancel(ctx)
@@ -195,10 +195,14 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 func (e *EinoAuditor) supplement(ctx context.Context, snap Snapshot, result *AuditResult, tools *auditTools, registered []tool.BaseTool, model em.ToolCallingChatModel, progressError string) {
 	cfg := e.Config
 	if cfg.VerifyFindings {
-		e.verifyFindings(ctx, result, tools, model)
+		e.verifyAuditJudgments(ctx, result, tools, model)
 	} else {
 		for i := range result.Findings {
 			result.Findings[i].Verification = unavailableVerification(snap, "系统设置已关闭独立复核。", "disabled")
+		}
+		for _, i := range resolvedInvestigationOrder(result.Investigations) {
+			item := &result.Investigations[i]
+			item.ClaimVerification = unavailableClaimVerification(snap, *item, "", "disabled", "系统设置已关闭独立复核。")
 		}
 	}
 	tools.sequenceCheckpoint(*result)
