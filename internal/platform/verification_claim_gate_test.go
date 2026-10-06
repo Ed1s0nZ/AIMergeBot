@@ -13,7 +13,7 @@ func TestVerificationWholeClaimCoverage(t *testing.T) {
 	raw, _ := json.Marshal(toolOutput{BaseSHA: "base", HeadSHA: "head", Text: "1: debit(amount)"})
 	trace := []ToolTrace{{Stage: "verification", Name: "read_file", ObservationID: "fresh", Arguments: `{"path":"entry.any"}`, Output: string(raw)}}
 	for _, coverage := range []string{"full", "partial", "unknown", ""} {
-		input := verificationInput{Status: "supported", ClaimCoverage: coverage, Reason: strings.Repeat("界", 1000), Limitations: []string{"No evidence of goods delivery"}, ObservationIDs: []string{"fresh"}}
+		input := verificationInput{Checks: supportedChecks("fresh"), Status: "supported", ClaimCoverage: coverage, Reason: strings.Repeat("界", 1000), Limitations: []string{"No evidence of goods delivery"}, ObservationIDs: []string{"fresh"}}
 		v, err := validateVerification(input, snap, f, trace)
 		if err != nil {
 			t.Fatal(err)

@@ -9,22 +9,24 @@ import (
 )
 
 type FindingVerification struct {
-	Model          string   `json:"model,omitempty"`
-	Status         string   `json:"status"`
-	ClaimCoverage  string   `json:"claim_coverage,omitempty"`
-	Reason         string   `json:"reason"`
-	Limitations    []string `json:"limitations"`
-	ObservationIDs []string `json:"observation_ids"`
-	BaseSHA        string   `json:"base_sha"`
-	HeadSHA        string   `json:"head_sha"`
+	Checks         []VerificationCheck `json:"checks,omitempty"`
+	Model          string              `json:"model,omitempty"`
+	Status         string              `json:"status"`
+	ClaimCoverage  string              `json:"claim_coverage,omitempty"`
+	Reason         string              `json:"reason"`
+	Limitations    []string            `json:"limitations"`
+	ObservationIDs []string            `json:"observation_ids"`
+	BaseSHA        string              `json:"base_sha"`
+	HeadSHA        string              `json:"head_sha"`
 }
 
 type verificationInput struct {
-	Status         string   `json:"status"`
-	ClaimCoverage  string   `json:"claim_coverage,omitempty"`
-	Reason         string   `json:"reason"`
-	Limitations    []string `json:"limitations"`
-	ObservationIDs []string `json:"observation_ids"`
+	Checks         []VerificationCheck `json:"checks,omitempty"`
+	Status         string              `json:"status"`
+	ClaimCoverage  string              `json:"claim_coverage,omitempty"`
+	Reason         string              `json:"reason"`
+	Limitations    []string            `json:"limitations"`
+	ObservationIDs []string            `json:"observation_ids"`
 }
 
 func parseVerification(raw string) (verificationInput, error) {
@@ -55,12 +57,18 @@ func parseVerification(raw string) (verificationInput, error) {
 			return input, fmt.Errorf("invalid verification limitation")
 		}
 	}
+	if err := validateVerificationChecks(input); err != nil {
+		return input, err
+	}
 	return input, nil
 }
 
 // A verdict is accepted only against observations from this fresh verifier
 // context. This checks provenance and anchor text, not runtime exploitability.
 func validateVerification(input verificationInput, snap Snapshot, f Finding, trace []ToolTrace) (*FindingVerification, error) {
+	if err := validateVerificationChecks(input); err != nil {
+		return nil, err
+	}
 	seen := map[string]bool{}
 	anchor := false
 	inspected := map[int]bool{}
@@ -109,8 +117,9 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 	if input.Status == "supported" && !anchor {
 		return nil, fmt.Errorf("support verdict lacks freshly read primary anchor")
 	}
-	verified := &FindingVerification{Status: input.Status, ClaimCoverage: input.ClaimCoverage, Reason: input.Reason, Limitations: append([]string{}, input.Limitations...), ObservationIDs: append([]string{}, input.ObservationIDs...), BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
+	verified := &FindingVerification{Checks: cloneVerificationChecks(input.Checks), Status: input.Status, ClaimCoverage: input.ClaimCoverage, Reason: input.Reason, Limitations: append([]string{}, input.Limitations...), ObservationIDs: append([]string{}, input.ObservationIDs...), BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
 	gateContextVerification(verified, snap, inspected)
 	gateClaimCoverage(verified)
+	gateVerificationChecks(verified)
 	return verified, nil
 }

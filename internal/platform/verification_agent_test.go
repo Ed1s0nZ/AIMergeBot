@@ -11,7 +11,7 @@ import (
 )
 
 func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
-	for _, mode := range []string{"supported", "partial", "missing_coverage", "rejected", "inconclusive", "forged", "invalid", "http_failure", "disabled", "clean", "shared_budget"} {
+	for _, mode := range []string{"supported", "partial", "missing_coverage", "missing_checks", "rejected", "inconclusive", "forged", "invalid", "http_failure", "disabled", "clean", "shared_budget"} {
 		t.Run(mode, func(t *testing.T) {
 			repo, snap, f, _ := sequenceFixture()
 			var verifyCalls atomic.Int32
@@ -88,7 +88,12 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 									coverage = ""
 								}
 							}
-							raw, _ := json.Marshal(verificationInput{ClaimCoverage: coverage, Status: verdict, Reason: "Synthetic fresh review, not exploit reproduction", Limitations: []string{"Synthetic model response"}, ObservationIDs: ids})
+							checks := supportedChecks(ids[0])
+							if mode == "missing_checks" {
+								verdict = "supported"
+								checks = nil
+							}
+							raw, _ := json.Marshal(verificationInput{Checks: checks, ClaimCoverage: coverage, Status: verdict, Reason: "Synthetic fresh review, not exploit reproduction", Limitations: []string{"Synthetic model response"}, ObservationIDs: ids})
 							message["content"] = string(raw)
 						}
 					}
@@ -124,7 +129,7 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 				t.Fatal("missing verification")
 			}
 			want := mode
-			if mode == "partial" || mode == "missing_coverage" {
+			if mode == "partial" || mode == "missing_coverage" || mode == "missing_checks" {
 				want = "inconclusive"
 			}
 			if mode == "forged" || mode == "invalid" || mode == "http_failure" || mode == "shared_budget" {

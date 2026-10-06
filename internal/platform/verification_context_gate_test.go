@@ -12,7 +12,7 @@ func TestVerificationContextCoverageMustBeFreshAndCited(t *testing.T) {
 	f := Finding{Side: "head", File: "entry.any", Line: 1, Evidence: "sink(input)"}
 	raw, _ := json.Marshal(toolOutput{BaseSHA: "base", HeadSHA: "head", Text: "1: sink(input)"})
 	primary := ToolTrace{Stage: "verification", Name: "read_file", ObservationID: "v1", Arguments: `{"path":"entry.any"}`, Output: string(raw)}
-	input := verificationInput{ClaimCoverage: "full", Status: "supported", Reason: strings.Repeat("界", 1000), Limitations: []string{"Original limitation"}, ObservationIDs: []string{"v1"}}
+	input := verificationInput{Checks: supportedChecks("v1"), ClaimCoverage: "full", Status: "supported", Reason: strings.Repeat("界", 1000), Limitations: []string{"Original limitation"}, ObservationIDs: []string{"v1"}}
 	ctxRaw, _ := json.Marshal(toolOutput{RepositoryID: 2, BaseSHA: "ctx", HeadSHA: "ctx", Text: "1: guard"})
 	related := ToolTrace{Stage: "verification", Name: "read_repository_file", ObservationID: "v2", Output: string(ctxRaw)}
 	v, err := validateVerification(input, snap, f, []ToolTrace{primary, related})

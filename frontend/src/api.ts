@@ -100,6 +100,7 @@ export type SequenceDiagram = {
   mermaid?: string;
 };
 export type FindingVerification = {
+  checks?: { kind: "input_control" | "pr_causality" | "guards" | "outcome"; status: "supported" | "rejected" | "inconclusive"; reason: string; observation_ids: string[] }[];
   claim_coverage?: "full" | "partial" | "unknown";
   model?: string;
   status: string;
