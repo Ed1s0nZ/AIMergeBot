@@ -43,3 +43,7 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 第六切片全量验证：临时PATH选择已安装同版本合法Apple Git，go test ./... exit0：CLI12.050s/evalcmd1.561s/evaluation17.509s/platform138.681s；不是默认PATH启动延迟测试。SDK决策边界/分组保留race4.420s；go vet两包exit0，git diff --check通过。仅服务端与评测实现，无前端变更，未据此宣称真实模型准确率或完成率提升。
 
 第六切片UI：分组optional stop_reason绑定服务端字段，failed组展开显示有限中文原因；历史缺失与未知值明确区分，未完成组不称风险已排除。实际组件控制fixture在360x800无横向溢出（scrollWidth360），Enter展开预算原因，并核查历史/未知显示；截图/Users/worker/.codex/evaluation-artifacts/aimangebot/stop-v33-ui-20261006/stop-proof.png。fixture、服务器、tab和viewport已清理。TS通过；首次Vite命令误在root执行报缺少index.html，修正frontend cwd后Vite951ms通过，临时输出在仓库外。真实v33回归失败详见独立报告，未宣称质量改善。
+
+第七切片：stop_reason承接wrapped AuditResponseError有限code，字段未知、语法/类型、尾随数据、缺字段、数量/大小上限可区分；构造未知code统一invalid_structure，不泄漏任意文本；字符串相同不视为typed原因。UI翻译相同服务端有限码。真实SDK分组模拟unknown_field：仍failed/coverage不为空，synthesis不能洗成完成，具体原因保留。专项platform7.275s/eval6.610s；race含SDK分组platform7.421s/eval5.181s；TS和Vite10.03s通过，git diff --check通过。未改schema/自动修复/增加模型请求或预算，未重跑真实样本求通过，历史v33原receipt保持agent_failure。
+
+取证现状核查：已有side/path固定快照缓存16MB；agent_repeat_guard已有三次成功相同参数读取上限，重复搜索cursor分开。因此不能把新优化说成首次提供缓存/重复停止；重叠但不同参数范围读取及缺失依赖搜索仍是剩余效率问题，应据当前实现设计通用导航，不直接拒绝所有重读（独立复核仍需要新来源）。

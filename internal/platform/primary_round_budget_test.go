@@ -38,3 +38,15 @@ func TestAuditStopReasonUsesTypedCause(t *testing.T) {
 		t.Fatal("incorrect cause")
 	}
 }
+
+func TestResponseStopReasonBoundedAndTyped(t *testing.T) {
+	if auditStopReason(fmt.Errorf("wrapped: %w", responseError("unknown_field"))) != "model_response_unknown_field" {
+		t.Fatal("wrapped parse cause lost")
+	}
+	if auditStopReason(errors.New("invalid audit response: unknown_field")) != "agent_failure" {
+		t.Fatal("untyped string accepted")
+	}
+	if auditStopReason(responseError("sensitive arbitrary provider content")) != "model_response_invalid_structure" {
+		t.Fatal("unbounded code exposed")
+	}
+}

@@ -27,6 +27,15 @@ func auditStopReason(err error) string {
 	case errors.Is(err, context.Canceled):
 		return "canceled"
 	default:
+		var response *AuditResponseError
+		if errors.As(err, &response) {
+			switch response.Code {
+			case "unknown_field", "json_syntax", "json_type", "json_decode", "trailing_data", "required_fields", "finding_limit", "output_budget":
+				return "model_response_" + response.Code
+			default:
+				return "model_response_invalid_structure"
+			}
+		}
 		return "agent_failure"
 	}
 }
