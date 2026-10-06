@@ -82,7 +82,8 @@ func claimPrimaryCoverage(tr ToolTrace, out toolOutput, scope DiffScope) (base, 
 			}
 		}
 		_, old := scope.Removed[path]
-		return old
+		_, added := scope.Added[path]
+		return old || added
 	}
 	switch tr.Name {
 	case "read_file":
@@ -99,12 +100,30 @@ func claimPrimaryCoverage(tr ToolTrace, out toolOutput, scope DiffScope) (base, 
 				base, head, changed = base || f.Base && c, head || !f.Base && c, changed || c
 			}
 		}
-	case "get_diff", "compare_files":
+	case "get_diff":
 		var a struct {
 			Path string `json:"path"`
 		}
 		if json.Unmarshal([]byte(tr.Arguments), &a) == nil && included(a.Path) {
 			return true, true, true
+		}
+	case "compare_files":
+		var a gitArgs
+		if json.Unmarshal([]byte(tr.Arguments), &a) == nil && included(a.Path) {
+			old := a.OldPath
+			if old == "" {
+				old = a.Path // Mirrors the actual Git source producer.
+			}
+			expectedOld := a.Path
+			if m, ok := scope.Metadata[a.Path]; ok && m.valid() && m.NewPath == a.Path {
+				if m.Base == nil {
+					return false, false, false
+				}
+				expectedOld = m.OldPath
+			}
+			if old == expectedOld {
+				return true, true, true
+			}
 		}
 	case "get_change_metadata":
 		var a metadataArgs

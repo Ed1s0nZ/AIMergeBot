@@ -16,6 +16,7 @@ func TestClaimVerificationStrictParserAndPolarity(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, raw := range []string{
+		strings.Replace(good, `"verdict":"true"`, `"verdict":"false","verdict":"true"`, 1),
 		good + `{}`, strings.Replace(good, `"true"`, `true`, 1),
 		strings.Replace(good, `"true"`, `"supported"`, 1),
 		strings.Replace(good, `"limitations":[]`, `"limitations":null`, 1),

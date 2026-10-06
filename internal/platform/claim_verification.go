@@ -34,8 +34,39 @@ func parseClaimVerification(raw string) (claimVerificationInput, error) {
 		return input, fmt.Errorf("claim verification response exceeds budget")
 	}
 	d := json.NewDecoder(strings.NewReader(raw))
-	d.DisallowUnknownFields()
-	if err := d.Decode(&input); err != nil {
+	start, err := d.Token()
+	if err != nil || start != json.Delim('{') {
+		return input, fmt.Errorf("claim verification must be a JSON object")
+	}
+	seenFields := map[string]bool{}
+	for d.More() {
+		token, err := d.Token()
+		if err != nil {
+			return input, err
+		}
+		key, ok := token.(string)
+		if !ok || seenFields[key] {
+			return input, fmt.Errorf("duplicate or invalid claim verification field")
+		}
+		seenFields[key] = true
+		var target any
+		switch key {
+		case "verdict":
+			target = &input.Verdict
+		case "reason":
+			target = &input.Reason
+		case "limitations":
+			target = &input.Limitations
+		case "observation_ids":
+			target = &input.ObservationIDs
+		default:
+			return input, fmt.Errorf("unknown claim verification field")
+		}
+		if err := d.Decode(target); err != nil {
+			return input, err
+		}
+	}
+	if _, err := d.Token(); err != nil {
 		return input, err
 	}
 	var extra any

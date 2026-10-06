@@ -328,3 +328,8 @@ F5/F6 v44：冻结217db2101696eb57293d7ecd98092bf9cebe1df9，修正SDK断言后r
 新增fresh来源校验独立stage、当前prefix/唯一registry、输出ID一致、eligible、成功、非partial、固定主/context SHA和非空源码；完整主PR双侧 included changed-path读取（或精确canonical metadata-only）及必要固定context才允许接受确定判断。缺来源将模型提案降为unknown/inconclusive并保留有界解释，不翻转原Claim/status。源资格不能证明语义真值，元数据不证明执行路径。
 
 原supplement尚无新调查复核请求，策略仍v44，前端与SARIF契约后续切片接入；当前新增可选字段通常省略。实际API/质量验证尚未执行，AER-001 open。
+
+
+契约初版e52525d full Go通过（root11.105s、audit-eval1.460s、evaluation29.721s、platform132.783s），定向race2.795s、vet/diffcheck通过。但独立fresh-context REQUEST_CHANGES发现CVR-001 S2：compare_files只检查HEAD path，忽略实际BASE old_path，错误授予双侧覆盖；旧报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v45-contract-e52525d/PR_REVIEW_REPORT.md 必须保留，绿色测试不覆盖此反例。
+
+CVR-001修复：get_diff和compare_files分开处理，compare BASE真实old_path必须匹配同路径或固定有效metadata的OldPath→NewPath关系；真实新增条目无BASE不能用compare替代。新增普通同路径/无关旧路径/规范rename/省略旧路径负例及真实本地Git工具反例，未执行审计源码。补充grouped Added/Removed anchors来源覆盖（group scope没有Included）；复合命题仍由模型检查，不把读取数量当语义证明。parser进一步拒绝重复顶层JSON字段，避免冲突verdict取最后值。修正相关race2.700s、vet/diffcheck通过；后续full与独立re-review尚未完成，不继承旧head报告/CI。runner/UI/SARIF仍待接入，策略保持v44。

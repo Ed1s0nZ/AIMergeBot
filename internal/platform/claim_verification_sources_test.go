@@ -132,3 +132,55 @@ func TestClaimVerificationMissingSideOrContextRemainsUnknown(t *testing.T) {
 		t.Fatal(v, err)
 	}
 }
+
+func TestClaimVerificationCompareUsesActualCanonicalBasePath(t *testing.T) {
+	for _, tc := range []struct {
+		old            string
+		rename, accept bool
+	}{
+		{"", false, true}, {"entry.any", false, true}, {"unrelated.any", false, false},
+		{"old.any", true, true}, {"unrelated.any", true, false}, {"", true, false},
+	} {
+		fresh, item, input := claimSourceFixture()
+		fresh.trace = fresh.trace[:1]
+		fresh.trace[0].Name = "compare_files"
+		args, _ := json.Marshal(gitArgs{Path: "entry.any", OldPath: tc.old})
+		fresh.trace[0].Arguments = string(args)
+		input.ObservationIDs = input.ObservationIDs[:1]
+		if tc.rename {
+			fresh.scope.Metadata = map[string]GitChangeMetadata{"entry.any": {Kind: "rename", OldPath: "old.any", NewPath: "entry.any", Base: &GitEntry{Mode: "100644", Type: "blob", ObjectID: strings.Repeat("a", 40)}, Head: &GitEntry{Mode: "100644", Type: "blob", ObjectID: strings.Repeat("b", 40)}}}
+		}
+		v, err := validateClaimVerification(input, item, fresh)
+		if err != nil || (v.Status == "disagreed") != tc.accept {
+			t.Fatal(tc, v, err)
+		}
+	}
+	// Exercise the real fixed Git producer; both blobs exist but are unrelated.
+	repo, snap := localGitFixture(t)
+	fresh := &auditTools{repo: repo, snap: snap, stage: claimVerificationStage, observationPrefix: "claim-git-observation", scope: DiffScope{Included: []string{"file-000.unknown", "guard.any"}}}
+	for _, tc := range []struct {
+		path, old string
+		accept    bool
+	}{
+		{"file-000.unknown", "guard.any", false}, {"guard.any", "", true},
+	} {
+		out, err := fresh.compare(context.Background(), gitArgs{Path: tc.path, OldPath: tc.old})
+		if err != nil || out.Error != "" || !out.EvidenceEligible {
+			t.Fatal("controlled compare did not produce actual source", out, err)
+		}
+		input := claimVerificationInput{Verdict: "true", Reason: "bounded fixture", Limitations: []string{}, ObservationIDs: []string{out.ObservationID}}
+		v, err := validateClaimVerification(input, Investigation{Claim: "same claim", Status: "rejected"}, fresh)
+		if err != nil || (v.Status == "disagreed") != tc.accept {
+			t.Fatal(tc, v, err)
+		}
+	}
+}
+
+func TestClaimVerificationGroupedAnchorsSupplySides(t *testing.T) {
+	fresh, item, input := claimSourceFixture()
+	fresh.scope = DiffScope{Added: map[string]map[int]bool{"entry.any": {1: true}}}
+	v, err := validateClaimVerification(input, item, fresh)
+	if err != nil || v.Status != "disagreed" {
+		t.Fatal(v, err)
+	}
+}
