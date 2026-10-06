@@ -263,9 +263,7 @@ func TestStandaloneGitUsesEinoWithoutPlatformAPI(t *testing.T) {
 		if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 			t.Error(e)
 		}
-		if len(req.Tools) != 15 {
-			t.Error("missing tools")
-		}
+		assertRequiredToolCapabilities(t, req.Tools, "read_file", "list_directory", "search_code", "get_diff", "record_hypothesis", "update_investigation", "submit_finding", "resolve_recording_errors")
 		w.Header().Set("Content-Type", "application/json")
 		call++
 		names := []string{"list_directory", "search_code", "get_diff", "record_hypothesis", "update_investigation", "submit_finding"}

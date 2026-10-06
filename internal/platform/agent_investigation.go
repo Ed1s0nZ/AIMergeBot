@@ -171,6 +171,9 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids for supported; rejected REQUIRES counterevidence AND counter_observation_ids. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Omitted plan and pr_context retain saved records; retained source IDs must still belong to this update. Entire serialized update including retained records max8000 UTF-8 bytes; keep a few core facts, not full repeated source blocks. Does not prove exploitability.", t.update)); e != nil {
 		return nil, e
 	}
+	if e := add(utils.InferTool("resolve_recording_errors", "Explicitly retire 1–8 pending recording errors after later successful correction of the same local artifact; use exact failed_observation_id/corrected_observation_id pairs. No source failures, pagination, or unrelated candidates; trace is retained and this is not evidence.", t.resolveRecordingErrors)); e != nil {
+		return nil, e
+	}
 	if e := add(utils.InferTool("submit_finding", "Validate proposed finding against changed base/head lines or verified Git metadata and exact snapshot evidence; matching evidence does not establish runtime verification.", t.submit)); e != nil {
 		return nil, e
 	}

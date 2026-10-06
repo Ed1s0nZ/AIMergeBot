@@ -101,11 +101,9 @@ func TestEinoConditionalSequenceGenerationPreservesFindings(t *testing.T) {
 				var content string
 				if diagram {
 					graphCalls.Add(1)
-					if len(req.Tools) != 12 {
-						t.Error("diagram phase must use read-only tools")
-					}
+					assertRequiredToolCapabilities(t, req.Tools, "read_file", "get_diff")
 					for _, v := range req.Tools {
-						if v.Function.Name == "submit_finding" || v.Function.Name == "record_hypothesis" || v.Function.Name == "update_investigation" {
+						if v.Function.Name == "submit_finding" || v.Function.Name == "record_hypothesis" || v.Function.Name == "update_investigation" || v.Function.Name == "resolve_recording_errors" {
 							t.Error("process write tool exposed to diagram phase")
 						}
 					}

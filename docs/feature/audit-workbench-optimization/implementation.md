@@ -224,3 +224,11 @@ v36真实回归已完成，结果见 regression-v36.md。704/705调查显式收�
 v36历史invalid_observation的具体引用无法重构，未猜测也未回写。新增私有typed来源错误，保留原Error文本及验证接受/拒绝条件；后续model_response Error/安全shape code可细分 invalid_observation_unknown/wrong_stage/non_source/read_failed/malformed_output/snapshot_mismatch/empty_source。只输出枚举，不输出引用ID、原因正文、源码或底层错误。未知typed分类回落invalid_observation。未自动删除坏引用、重试或增加预算；复核仍unavailable，未修改提示及策略版本。
 
 测试：来源分类/原验证条件/解析/上下文回归exit0（3.319s）；实际SDK伪造旧ID产生unknown安全分类，且候选/覆盖缺口保留；SDK/来源校验/取消race exit0（2.522s）。go vet与diff --check通过。隐私测试验证错误文本、未知分类和形状输出不含私有ID、模型正文或读取错误。初次定向选择未覆盖IndependentEino测试，随后显式race覆盖，未把无匹配用例当SDK证明。此仅改善诊断，不声称语义正确性或准确率改善。
+
+## v37 显式记录纠正与只读边界
+
+新增resolve_recording_errors，明确关联仍pending的失败与之后同local产物的成功回执，1–8对原子验证。同主快照/阶段、编号一致、身份相同且纠正成功才退役指定旧pending；失败trace和纠正事件保留，不能解除源码失败、分页、计划/关系或另一候选。无local id失败不能安全自动归属；详见recording-corrections.md。纠正工具自身拒绝只留trace，不制造递归pending，原工作缺口仍在。策略v37，原模型/预算不变。
+
+独立复核和时序图共用source工具+有限navigation白名单；未知新工具默认排除，纠正工具非source证据。首次全量失败定位出旧15/12数量断言和时序图独立黑名单，已改成必需能力/禁止能力断言并统一白名单，不把失败隐瞒为首次通过。
+
+验证：纠正/主调查/复核/导航定向exit0（16.322s）；SDK/纠正/复核/执行器停止race exit0（7.012s）；旧失败修复后的SDK/StandaloneGit/sequence/纠正race exit0（13.751s）；真实ValidatedFinding纠正与未知新工具拒绝race exit0（2.516s）。全量go test ./... -count=1 exit0：root11.161s、audit-eval1.271s、evaluation19.081s、platform97.477s。全量启动后仅追加产物保留的test文件，生产不再变动，额外定向race覆盖该新增测试。go vet与diff --check通过。包含批次原子性/跨产物/未知/逆序/跨快照/跨阶段/源码/partial/重复拒绝；history不改写、候选保留、计划/PR缺项仍可见。未改变UI，无需重复无变化界面验证。真实v37效果尚未评测，不据本地通过宣称完整质量改善。

@@ -176,10 +176,14 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	if complete, tracked := t.paginationComplete(name, key, args, out, err != nil); tracked {
 		trace.Partial = !complete
 	}
-	if trace.Partial || trace.Error != "" {
-		t.pending[key] = trace
-	} else {
-		delete(t.pending, key)
+	// A rejected correction does not introduce new investigation work: the
+	// original pending failure remains. Keep its attempt in trace only.
+	if name != "resolve_recording_errors" {
+		if trace.Partial || trace.Error != "" {
+			t.pending[key] = trace
+		} else {
+			delete(t.pending, key)
+		}
 	}
 	t.trace = append(t.trace, trace)
 	t.mu.Unlock()

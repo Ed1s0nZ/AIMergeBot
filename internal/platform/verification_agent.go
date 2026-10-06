@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudwego/eino/callbacks"
 	em "github.com/cloudwego/eino/components/model"
-	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
 	ea "github.com/cloudwego/eino/flow/agent"
 	"github.com/cloudwego/eino/flow/agent/react"
@@ -19,16 +18,6 @@ const verificationPrompt = `Independently review exactly one proposed security f
 
 func unavailableVerification(snap Snapshot, reason, status string) *FindingVerification {
 	return &FindingVerification{Status: status, Reason: reason, Limitations: []string{"静态复核，不代表运行复现或漏洞可利用性已验证。"}, ObservationIDs: []string{}, BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
-}
-func readOnlyTools(ctx context.Context, registered []tool.BaseTool) []tool.BaseTool {
-	reads := []tool.BaseTool{}
-	for _, v := range registered {
-		info, err := v.Info(ctx)
-		if err == nil && info.Name != "record_hypothesis" && info.Name != "update_investigation" && info.Name != "submit_finding" {
-			reads = append(reads, v)
-		}
-	}
-	return reads
 }
 func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, parent *auditTools, model em.ToolCallingChatModel) {
 	modelName := e.Config.Model

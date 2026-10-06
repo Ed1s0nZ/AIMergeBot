@@ -36,13 +36,7 @@ func (e *EinoAuditor) generateSequences(ctx context.Context, result *AuditResult
 	}
 	phase, cancel := context.WithTimeout(ctx, budget)
 	defer cancel()
-	reads := []tool.BaseTool{}
-	for _, v := range registered {
-		info, err := v.Info(ctx)
-		if err == nil && info.Name != "record_hypothesis" && info.Name != "update_investigation" && info.Name != "submit_finding" {
-			reads = append(reads, v)
-		}
-	}
+	reads := readOnlyTools(ctx, registered)
 	infos, err := compressionToolInfos(phase, reads)
 	if err != nil {
 		for i := range result.Findings {

@@ -214,3 +214,5 @@ Maintainability Gate Report：详情页590行只组合共享ResourceRefreshFailu
 新增非源码工具resolve_recording_errors，输入1–8对 failed_observation_id/corrected_observation_id。错误必须仍在当前pending，属于record_hypothesis/update_investigation/submit_finding；纠正必须为之后成功的同类产物记录、同主快照，trace和output编号一致。调查用非空相同local ID；提交用非空相同local candidate ID、同investigation_id、文件和风险type，避免另一产物成功隐式消除未提交候选。IDs必须来自实际trace，不使用模型描述证明恢复。所有对先验证，失败不清除任何pending；成功只清除指定旧错误，不改trace/ledger/finding/source，不解除其他错误或分页/计划/链路缺口。无ID失败无法自动归属，继续未解决。声明产物纠正是导航事实，不是命题语义证明。
 
 纠正事件及输入/输出保留于独立tooltrace/checkpoint。该工具非source/evidence_eligible=false，独立复核与压缩只读工具列表排除它。保留原预算，每次调用计费/计步正常；策略v37，旧报告不改写。不会自动滤掉所有历史process错误。
+
+全量检验发现时序图另有独立黑名单，新增工具会被漏过滤；v37统一独立复核/时序图只读筛选为源码工具+有限导航工具白名单，未知新工具默认不提供。只读工具语义不等于source证据资格；risk/list工具仍非证据。
