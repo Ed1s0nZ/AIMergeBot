@@ -38,4 +38,4 @@
 
 ### v38 合格纠正导航（P10 / F3）
 
-提取recordingCorrectionKeyLocked，复用单对校验于resolver及新recording_correction_navigation.go纯投影；primaryRecordingProgress新增eligible_recording_corrections（最多4），提示显式处理，保持pending由resolver唯一删除。规范编号采用observation-正整数；只限制系统导航候选，不改工具输入契约。新增导航边界/隐私/幂等状态测试及实际SDK请求断言；运行原resolver回归、导航、SDK、只读/压缩及race/vet，随后全量Go检查。更新recording-corrections、implementation、CHANGELOG。单切片可回退导航而保留v37 resolver，无DB迁移。先提交推送此设计计划，再改代码；完成后按pr-review技能进行独立新上下文检视。不自动合并或部署。
+提取recordingCorrectionKeyLocked，复用单对校验于resolver及新recording_correction_navigation.go纯投影；primaryRecordingProgress新增eligible_recording_corrections（最多4），提示显式处理，保持pending由resolver唯一删除。规范编号采用observation-正整数或group-正整数-observation-正整数；只限制系统导航候选，不改工具输入契约。新增导航边界/隐私/幂等状态测试及实际SDK请求断言；运行原resolver回归、导航、SDK、只读/压缩及race/vet，随后全量Go检查。更新recording-corrections、implementation、CHANGELOG。单切片可回退导航而保留v37 resolver，无DB迁移。先提交推送此设计计划，再改代码；完成后按pr-review技能进行独立新上下文检视。不自动合并或部署。

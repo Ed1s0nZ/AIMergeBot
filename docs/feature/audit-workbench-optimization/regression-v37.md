@@ -24,3 +24,9 @@
 只读比较801 trace中的记录参数：失败observation-10与成功observation-11的id/claim精确相同；失败observation-15与成功observation-17的id/investigation_id/file/type/title/description/trigger精确相同，二者具备同陈述纠正的必要匹配条件。observation-13与成功observation-17的description不同，因此不能用当前工具解除该旧项。此处只核对记录身份与先后顺序，没有重放工具、修改回执或声称全部服务端条件已运行验证。
 
 这将下一步缩小到合格记录纠正的可发现性：即使模型解除前两项，observation-13及其他实际证据/方法缺口仍不能自动消失；仍不能承诺801会成为completed。802漏读未修改关联文件与805命题极性错误是独立质量问题。充值恢复已验证，无须因这三个问题再次确认余额或盲目追加同语料评测。
+
+### v38 重建校验纠正前述必要条件解释
+
+将原801记录回执按现有queryKey完整参数规则重建pending，再调用当前共享校验：实际仅observation-10→observation-16合格；observation-15与17参数全部相同，成功17已经按原invoke规则清除15。此前补查所说15→17有同陈述必要匹配条件，不代表它仍pending或需resolver；不能将两对参数身份匹配解释为两项未解决工作。observation-13的description不同，仍pending。导航正常仅列10→16；显式解除它后13继续保留。
+
+本地临时Go检验第一次预期两对失败（1.187s），随后打印校验说明not pending的再检查失败（0.920s）；核对全部参数无差异并修正期望后exit0（0.783s）。这是只读旧回执及重建内存状态的机制检查，不是真实v38模型执行，也不改原回执/报告状态。临时源码移出仓库至 /Users/worker/.codex/evaluation-artifacts/aimangebot/v38-local-receipt-check-20261006。

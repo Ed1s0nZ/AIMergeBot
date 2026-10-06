@@ -234,3 +234,9 @@ v36历史invalid_observation的具体引用无法重构，未猜测也未回写�
 验证：纠正/主调查/复核/导航定向exit0（16.322s）；SDK/纠正/复核/执行器停止race exit0（7.012s）；旧失败修复后的SDK/StandaloneGit/sequence/纠正race exit0（13.751s）；真实ValidatedFinding纠正与未知新工具拒绝race exit0（2.516s）。全量go test ./... -count=1 exit0：root11.161s、audit-eval1.271s、evaluation19.081s、platform97.477s。全量启动后仅追加产物保留的test文件，生产不再变动，额外定向race覆盖该新增测试。go vet与diff --check通过。包含批次原子性/跨产物/未知/逆序/跨快照/跨阶段/源码/partial/重复拒绝；history不改写、候选保留、计划/PR缺项仍可见。未改变UI，无需重复无变化界面验证。真实v37效果尚未评测，不据本地通过宣称完整质量改善。
 
 v37独立复查固定256b6f9、base4946659，COMMENT，原子性/固定trace/源码不能退役/白名单/历史保留定向通过1.206s；没有访问凭据或模型API。复查指出同local ID不能证明同陈述：后续加上调查Claim与候选Title/Description/Trigger精确比较，防止另一陈述清除旧pending，源ID/锚点仍可纠正。变更后相关SDK/独立复核/时序图/原子纠正race通过3.717s、vet/diffcheck通过。一次编辑脚本语法失败未写入文件，其后重新应用并验证；此前4.399s为原匹配规则测试，不作为新增校验的证据。该比较仍不证明真实语义，不将ID或字节相同当作源事实。真实回归尚未启动；原256b6f9预备冻结不会发请求，新冻结使用修订代码。
+
+## v38 合格纠正导航实现与验证
+
+设计计划23a7886已推送；单对校验提取为持锁recordingCorrectionKeyLocked，resolver原条件及批次原子性不变，有限导航同样复用。最多4对规范主/分组编号，稳定选择后续最近合格成功记录；不修改pending，不把源/Claim/错误写入系统。实际SDK请求第4轮出现2→3，第5轮resolver完成后字段移除，历史与真正计划/未解决状态仍在。
+
+首次定向测试失败5.343s：测试将提示中固定unknowns单词误当任意unknown源泄露；另一个夹具update缺少合法status。改为检测实际引用字符串并补investigating，随后recording/navigation/SDK/readOnly定向race exit0 4.608s。没有放宽生产门禁适配测试。真实旧801回执重建仅一个合格pair，另一同参submit已自然清除；详见regression-v37.md。临时检查文件不入仓库，无新真实模型请求，预算不变，策略v38。全量go test ./... -count=1 exit0：root9.641s、audit-eval1.404s、evaluation16.200s、platform111.645s，web无测试；go vet ./...、git diff --check exit0。首次定向失败和本地回执检查失败均保留。最终review/CI另观察，不由本地绿灯外推真实模型质量。

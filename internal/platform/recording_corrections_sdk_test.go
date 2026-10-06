@@ -13,8 +13,33 @@ import (
 func TestRecordingCorrectionSDKRetiresOnlyCorrectedWork(t *testing.T) {
 	repo, snap, _, _ := sequenceFixture()
 	var calls atomic.Int32
+	var advertised atomic.Bool
+	var removed atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := calls.Add(1)
+		var request struct {
+			Messages []struct {
+				Role    string `json:"role"`
+				Content string `json:"content"`
+			} `json:"messages"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+		}
+		for _, msg := range request.Messages {
+			if msg.Role != "system" {
+				continue
+			}
+			if n == 4 {
+				advertised.Store(strings.Contains(msg.Content, `"eligible_recording_corrections":[{"failed_observation_id":"observation-2","corrected_observation_id":"observation-3"}]`))
+			}
+			if n == 5 {
+				removed.Store(!strings.Contains(msg.Content, `"eligible_recording_corrections"`))
+			}
+			if strings.Contains(msg.Content, "conditional candidate") || strings.Contains(msg.Content, `"unknown"`) {
+				t.Error("untrusted recording data in system message")
+			}
+		}
 		message := map[string]any{"role": "assistant"}
 		finish := "tool_calls"
 		name := ""
@@ -48,6 +73,9 @@ func TestRecordingCorrectionSDKRetiresOnlyCorrectedWork(t *testing.T) {
 	result, trace, err := a.Audit(context.Background(), snap, DiffScope{})
 	if err != nil || calls.Load() != 5 {
 		t.Fatal("SDK flow failed", calls.Load(), err)
+	}
+	if !advertised.Load() || !removed.Load() {
+		t.Fatal("SDK request did not refresh eligible correction navigation", advertised.Load(), removed.Load())
 	}
 	corrected := false
 	retained := false

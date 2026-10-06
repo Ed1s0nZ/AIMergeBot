@@ -30,31 +30,9 @@ func (t *auditTools) resolveRecordingErrors(ctx context.Context, args recordingC
 				return toolOutput{}, fmt.Errorf("invalid or duplicate recording correction reference")
 			}
 			seen[pair.FailedObservationID] = true
-			failed, fi := t.recordingTrace(pair.FailedObservationID)
-			corrected, ci := t.recordingTrace(pair.CorrectedObservationID)
-			if fi < 0 || ci <= fi || failed.Error == "" || failed.Partial || corrected.Error != "" || corrected.Partial || !sameRecordingArtifact(failed, corrected) {
-				return toolOutput{}, fmt.Errorf("correction requires a later successful recording of the same local artifact")
-			}
-			for _, tr := range []ToolTrace{failed, corrected} {
-				var out toolOutput
-				if json.Unmarshal([]byte(tr.Output), &out) != nil || out.ObservationID != tr.ObservationID || out.RepositoryID != 0 || out.BaseSHA != t.snap.BaseSHA || out.HeadSHA != t.snap.HeadSHA || out.EvidenceEligible || tr.Stage != t.stage {
-					return toolOutput{}, fmt.Errorf("correction references must belong to this audit recording context")
-				}
-			}
-			var out toolOutput
-			_ = json.Unmarshal([]byte(corrected.Output), &out)
-			if out.Error != "" || out.Text == "" {
-				return toolOutput{}, fmt.Errorf("correction has no accepted artifact")
-			}
-			key := ""
-			for k, pending := range t.pending {
-				if pending.ObservationID == failed.ObservationID {
-					key = k
-					break
-				}
-			}
-			if key == "" {
-				return toolOutput{}, fmt.Errorf("recording failure is not pending")
+			key, err := t.recordingCorrectionKeyLocked(pair)
+			if err != nil {
+				return toolOutput{}, err
 			}
 			keys = append(keys, key)
 		}
@@ -64,6 +42,38 @@ func (t *auditTools) resolveRecordingErrors(ctx context.Context, args recordingC
 		raw, _ := json.Marshal(args)
 		return toolOutput{Text: string(raw)}, nil
 	})
+}
+
+// Caller must hold t.mu. Navigation and mutation use the same eligibility
+// boundary; projection alone never removes pending work.
+func (t *auditTools) recordingCorrectionKeyLocked(pair recordingCorrection) (string, error) {
+	failed, fi := t.recordingTrace(pair.FailedObservationID)
+	corrected, ci := t.recordingTrace(pair.CorrectedObservationID)
+	if fi < 0 || ci <= fi || failed.Error == "" || failed.Partial || corrected.Error != "" || corrected.Partial || !sameRecordingArtifact(failed, corrected) {
+		return "", fmt.Errorf("correction requires a later successful recording of the same local artifact")
+	}
+	for _, tr := range []ToolTrace{failed, corrected} {
+		var out toolOutput
+		if json.Unmarshal([]byte(tr.Output), &out) != nil || out.ObservationID != tr.ObservationID || out.RepositoryID != 0 || out.BaseSHA != t.snap.BaseSHA || out.HeadSHA != t.snap.HeadSHA || out.EvidenceEligible || tr.Stage != t.stage {
+			return "", fmt.Errorf("correction references must belong to this audit recording context")
+		}
+	}
+	var out toolOutput
+	_ = json.Unmarshal([]byte(corrected.Output), &out)
+	if out.Error != "" || out.Text == "" {
+		return "", fmt.Errorf("correction has no accepted artifact")
+	}
+	key := ""
+	for k, pending := range t.pending {
+		if pending.ObservationID == failed.ObservationID {
+			key = k
+			break
+		}
+	}
+	if key == "" {
+		return "", fmt.Errorf("recording failure is not pending")
+	}
+	return key, nil
 }
 func (t *auditTools) recordingTrace(id string) (ToolTrace, int) {
 	for i, tr := range t.trace {

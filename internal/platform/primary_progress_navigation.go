@@ -3,12 +3,13 @@ package platform
 import "encoding/json"
 
 type primaryRecordingProgress struct {
-	UninspectedContextIDs []int    `json:"uninspected_context_ids,omitempty"`
-	LedgerCount           int      `json:"ledger_count"`
-	UnresolvedLedgerCount int      `json:"unresolved_ledger_count"`
-	RecordingGaps         []string `json:"recording_gaps,omitempty"`
-	BaseSourceIDs         []string `json:"recent_primary_base_source_ids,omitempty"`
-	HeadSourceIDs         []string `json:"recent_primary_head_source_ids,omitempty"`
+	EligibleRecordingCorrections []recordingCorrection `json:"eligible_recording_corrections,omitempty"`
+	UninspectedContextIDs        []int                 `json:"uninspected_context_ids,omitempty"`
+	LedgerCount                  int                   `json:"ledger_count"`
+	UnresolvedLedgerCount        int                   `json:"unresolved_ledger_count"`
+	RecordingGaps                []string              `json:"recording_gaps,omitempty"`
+	BaseSourceIDs                []string              `json:"recent_primary_base_source_ids,omitempty"`
+	HeadSourceIDs                []string              `json:"recent_primary_head_source_ids,omitempty"`
 }
 
 // This projects runtime metadata only. Model claims, reasons, paths and source
@@ -16,7 +17,7 @@ type primaryRecordingProgress struct {
 func (t *auditTools) primaryProgressNavigation() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	state := primaryRecordingProgress{LedgerCount: len(t.ledger)}
+	state := primaryRecordingProgress{LedgerCount: len(t.ledger), EligibleRecordingCorrections: t.eligibleRecordingCorrectionsLocked()}
 	inspected := map[int]bool{}
 	seenIDs := map[string]bool{}
 	for i := len(t.trace) - 1; i >= 0; i-- {
@@ -68,7 +69,7 @@ func (t *auditTools) primaryProgressNavigation() string {
 		}
 	}
 	raw, _ := json.Marshal(state)
-	return "\nServer-owned recording progress (navigation only, not source evidence): " + string(raw) + ". Uninspected configured context is not unavailable: use repository-scoped tools to check relevant contracts before judging compatibility. If ledger_count is zero, record a source-linked changed-behavior inspection with a plan, which may conclude rejected/no-risk; do not invent a finding. Recent source IDs are candidates for deliberate linkage, not proof of relevance or connection. Preserve actual unknowns. record_hypothesis always creates investigating status, even when its input plan is already checked. Before final JSON, explicitly update each inspected hypothesis using its saved id and successful source IDs: supported means the recorded claim is supported, rejected means counterevidence refutes that claim; neither status alone warrants a finding. A supported compatibility/no-risk claim needs no finding. Keep investigating when necessary evidence is missing; checked tasks alone never resolve a hypothesis. Do not change a claim or hide unknown relations merely to clear unresolved_ledger_count."
+	return "\nServer-owned recording progress (navigation only, not source evidence): " + string(raw) + ". Uninspected configured context is not unavailable: use repository-scoped tools to check relevant contracts before judging compatibility. If ledger_count is zero, record a source-linked changed-behavior inspection with a plan, which may conclude rejected/no-risk; do not invent a finding. Recent source IDs are candidates for deliberate linkage, not proof of relevance or connection. Preserve actual unknowns. eligible_recording_corrections lists at most four validated same-statement recording pairs; explicitly pass relevant pairs to resolve_recording_errors before final JSON. Listing a pair has not retired its pending failure or certified its claim. Do not change statements to obtain a pair; absent pairs do not mean all failures are solved. record_hypothesis always creates investigating status, even when its input plan is already checked. Before final JSON, explicitly update each inspected hypothesis using its saved id and successful source IDs: supported means the recorded claim is supported, rejected means counterevidence refutes that claim; neither status alone warrants a finding. A supported compatibility/no-risk claim needs no finding. Keep investigating when necessary evidence is missing; checked tasks alone never resolve a hypothesis. Do not change a claim or hide unknown relations merely to clear unresolved_ledger_count."
 }
 func primarySourceSides(tr ToolTrace) (bool, bool) {
 	switch tr.Name {
