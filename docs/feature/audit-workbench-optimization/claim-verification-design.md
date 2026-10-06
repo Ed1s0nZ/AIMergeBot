@@ -6,7 +6,7 @@
 
 ## 当前实现状态
 
-共享预算基础3f493d3及server-owned/parser/来源契约814c60a已实现并通过全量Go、定向race和独立切片检视。调查复核runner、共享pool和SARIF已接入并通过本地SDK/worker定向测试；986b336最终源码全量Go通过（platform194.834s，其他包通过），CI37444342848通过；独立执行检视REQUEST_CHANGES，EXR-001取消冻结检查点缺review。修复采用公共Audit/AuditGroups检查点投影，不改Store取消SQL：resolved nil review在每次checkpoint副本中明确unavailable/disabled，group在命名空间合并后投影，真实ledger和最终结果不受临时状态污染。实际SDK worker取消、分组SDK取消、Store恢复/SARIF及原失败/完成回归通过；修复full/独立re-review、UI/配置文案及真实模型效果仍待完成。执行源码策略已升级v45，不能称整体验收完成。CVR-001比较BASE路径缺口已在814c60a修复，初版e52525d检视否决保留为历史。
+共享预算基础3f493d3及server-owned/parser/来源契约814c60a已实现并通过全量Go、定向race和独立切片检视。调查复核runner、共享pool和SARIF已接入并通过本地SDK/worker定向测试；986b336最终源码全量Go通过（platform194.834s，其他包通过），CI37444342848通过；独立执行检视REQUEST_CHANGES，EXR-001取消冻结检查点缺review。修复采用公共Audit/AuditGroups检查点投影，不改Store取消SQL：resolved nil review在每次checkpoint副本中明确unavailable/disabled，group在命名空间合并后投影，真实ledger和最终结果不受临时状态污染。实际SDK worker取消、分组SDK取消、Store恢复/SARIF及原失败/完成回归通过；修复full platform134.292s/CI37445789011通过，独立scoped APPROVE、EXR-001 resolved；UI/配置消费已接入并经实际360px/键盘/fresh source受控验证（claim-verification-ui-qa.md）。UI当前冻结检视/CI及真实模型效果仍待完成。执行源码策略已升级v45，不能称整体验收完成。CVR-001比较BASE路径缺口已在814c60a修复，初版e52525d检视否决保留为历史。
 
 ## 依据与边界
 

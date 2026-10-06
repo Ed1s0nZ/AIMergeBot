@@ -99,3 +99,9 @@ Workflow Gate：P10/F3，Confirmed R3 AC006/010/012、命题复核设计和986b3
 Maintainability Gate：audit_claim_completion约36行、public入口薄wrapper；medium（检查点/分组/取消边界），narrow_fix，无广泛重构。新增纯检查点投影与progress decorator，public Audit/AuditGroups复制auditor配置后接入，覆盖primary及group/supplemental所有原progress路径。投影只复制investigations和coverage切片后给resolved且nil review添加unavailable或disabled；原ledger、未完成调查、合法已完成review、原Claim/status/evidence不变。不得把placeholder写回实际主审账本或遗留到成功final结果；无需在每种取消SQL中重写结果，也不回填历史。
 
 测试实际Store checkpoint→Cancel→late checkpoint ErrConflict，确认取消结果带显式未完成review且SARIF存在该项/执行非成功；恢复也保留；disabled无unknown verdict、in-progress不伪装review、原切片不变、合法review不覆盖、group已命名ID保留。公共SDK/worker及group/recovery/cancel定向race、full/vet/diffcheck；冻结修复SHA后EXR-001独立re-review。随后继续原已计划UI/真实原模型回归，AER-001保持open。分支codex/audit-quality-loop，无自动合并部署。
+
+UI验证诱发修复：360px实际RunDetail已显示五态和命题极性；Return source按钮能打开正确固定关联源码，route保持#/runs/45、scrollWidth=360，但焦点停留原复核按钮，Tab无法顺着目标证据继续。AC007键盘source导航需要目标focus，因此ObservationLinks复用FindingWorkbench的原生focus模式：开details/滚动后focus其summary（preventScroll），不改变路由、原记录或权限；无广泛UI重构。下次实际Return+Tab复证后记录。
+
+### v45 原模型已知兼容负例回归准备
+
+P9/F5；Confirmed R3 AC002/003/005/006/011及原805错误极性/空ID回执具备，允许验证已经实现的v44恢复/v45复核，不更改真值或执行预算。后端dfc6340 full/CI/scoped APPROVE已完成；当前UI冻结提交后在该精确HEAD用原config、原deepseek-chat/temperature0.1/15steps80tools240s，原corpus SHA2561851b934d057b5a5696ac9a26c461ab38087a5db04f86d90b7742ffac2e46b4b，805只运行一次。外部新唯一目录记录CLI revision/策略、固定BASE/HEAD及授权下游、原始checkpoint/trace/失败/未完成/usage/token成本和manifest，不展示credentials、不执行样本/PoC。不把known regression当blind准确率、不追求全部completed、不提高预算或盲重跑。观察实际初审命题是否resolved、极性、fresh独立复核/共享预算及来源关系；若仍不满足据具体证据继续原范围，不关闭AER-001。

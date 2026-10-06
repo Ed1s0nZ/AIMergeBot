@@ -1,4 +1,5 @@
 import { AuditGroupProgress } from "./audit-group-progress";
+import { ClaimVerificationPanel } from "./claim-verification";
 import { InvestigationPlan } from "./investigation-plan";
 import { ResourceRefreshFailure } from "./resource-feedback";
 import { FindingWorkbench } from "./finding-workbench";
@@ -492,9 +493,9 @@ export function RunDetail({ id }: { id: number }) {
                 <span className="muted">
                   {(
                     {
-                      investigating: "待确认",
-                      supported: "有证据支持",
-                      rejected: "已排除",
+                      investigating: "初审尚未收尾",
+                      supported: "初审认为命题成立",
+                      rejected: "初审认为命题不成立",
                     } as Record<string, string>
                   )[item.status] || item.status}
                 </span>
@@ -507,6 +508,7 @@ export function RunDetail({ id }: { id: number }) {
               <p>反证：{item.counterevidence?.join("；") || "尚未记录"}</p>
               <ObservationLinks ids={item.counter_observation_ids} />
               <p>待查：{item.next_steps?.join("；") || "无"}</p>
+              <ClaimVerificationPanel verification={item.claim_verification} investigationStatus={item.status} runStatus={r.status} />
             </details>
           ))}
         </section>
@@ -521,10 +523,12 @@ export function RunDetail({ id }: { id: number }) {
             >
               <summary>
                 {t.name}
-                {t.stage === "compression" || t.stage === "verification_compression" || t.stage === "diagram_compression" || t.stage === "synthesis_compression"
-                  ? ` · ${t.stage === "verification_compression" ? "复核上下文压缩" : t.stage === "diagram_compression" ? "时序图上下文压缩" : t.stage === "synthesis_compression" ? "跨组汇总上下文压缩" : "上下文压缩"}`
+                {t.stage === "compression" || t.stage === "verification_compression" || t.stage === "investigation_verification_compression" || t.stage === "diagram_compression" || t.stage === "synthesis_compression"
+                  ? ` · ${t.stage === "investigation_verification_compression" ? "命题复核上下文压缩" : t.stage === "verification_compression" ? "复核上下文压缩" : t.stage === "diagram_compression" ? "时序图上下文压缩" : t.stage === "synthesis_compression" ? "跨组汇总上下文压缩" : "上下文压缩"}`
                   : t.stage === "diagram"
                   ? " · 时序图生成"
+                  : t.stage === "investigation_verification"
+                    ? " · 独立命题复核"
                   : t.stage === "verification"
                     ? " · 独立复核"
                     : t.stage === "synthesis"
@@ -537,7 +541,7 @@ export function RunDetail({ id }: { id: number }) {
               <pre>{t.arguments}</pre>
               {t.output && (
                 <>
-                  <p className="muted">
+                  <p className="muted observation-id">
                     返回证据 · {t.observation_id}
                     {t.partial ? " · 有后续分页" : ""}
                   </p>

@@ -1,6 +1,10 @@
 # R3 交付核对矩阵
 
-## 当前基础：814c60a（策略仍v44），命题复核尚待接入
+## 当前实现：v45 命题复核执行与检查点已验证，UI消费待冻结检视
+
+986b336接入实际调查复核SDK、finding优先同40次/60秒pool、fresh来源/独立模型/usage/SARIF；其full194.834s/CI37444342848通过但独立REQUEST_CHANGES发现EXR-001取消冻结检查点漏review。dfc6340以每次checkpoint副本投影修复，原ledger与成功final不污染、group在ID合并后处理；实际Store/worker/group SDK取消、恢复与fence回归通过。最终full134.292s/CI37445789011success、独立scoped APPROVE/EXR-001 resolved；不批准全分支。UI五态/初审命题文案/长ID/键盘focus与配置消费已实现，实际360px/fresh source及running/cancelled/failed历史空态验证见claim-verification-ui-qa.md；该UI的独立检视/CI仍待完成。原模型真实效果与R3完整证据仍未证明，AER-001 open，无合并部署。
+
+## 历史基础：814c60a（策略v44），仅契约
 
 新增共享原40次/60秒复核pool及server-owned调查命题复核契约；模型写入注入清除、严格JSON和fresh固定来源校验已实现。独立检视发现compare_files误算BASE路径的CVR-001，已修复并以真实本地Git反例验证；最终全量Go platform110.823s、定向race2.700s、vet/diffcheck通过。独立契约切片re-review APPROVE/CVR-001 resolved，不批准整分支；报告见implementation.md。源码CI37441430651已核对终态success（Go/race、运维工具、依赖检查、前端与嵌入构建均通过）。
 

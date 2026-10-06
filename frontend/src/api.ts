@@ -110,6 +110,17 @@ export type FindingVerification = {
   base_sha: string;
   head_sha: string;
 };
+export type ClaimVerification = {
+  status: "consistent" | "disagreed" | "inconclusive" | "unavailable" | "disabled";
+  verdict?: "true" | "false" | "unknown";
+  assessed_claim: string;
+  model?: string;
+  reason: string;
+  limitations: string[];
+  observation_ids: string[];
+  base_sha: string;
+  head_sha: string;
+};
 export type PRInvestigationContext = {
   before_observation_ids?: string[];
   after_observation_ids?: string[];
@@ -194,6 +205,7 @@ export type Run = {
     coverage_notes: string[];
     excluded_files?: string[];
     investigations?: {
+      claim_verification?: ClaimVerification;
       plan?: InvestigationTask[];
       pr_context?: PRInvestigationContext;
       id: string;

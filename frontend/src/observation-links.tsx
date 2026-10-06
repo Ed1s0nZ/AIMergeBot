@@ -5,5 +5,7 @@ export function ObservationLinks({ ids }: { ids?: string[] }) {
     const target = document.getElementById(`trace-${id}`);
     if (target instanceof HTMLDetailsElement) target.open = true;
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const summary = target?.querySelector(":scope > summary");
+    if (summary instanceof HTMLElement) summary.focus({ preventScroll: true });
   }}>{id}</button>)}</span>;
 }

@@ -60,7 +60,8 @@ audit_quotas:
   daily_project: 200
   daily_user: 100
 
-# 在独立上下文中重新读取来源并检查反证；不执行仓库代码
+# 独立只读复核发现和已收尾调查命题，先发现后命题，共享40次工具/60秒预算
+# 判断分歧/未完成保留覆盖不足，不修改原结论，不执行仓库代码
 verify_findings: true
 
 # Shared across primary audit, groups, verification and diagrams.
