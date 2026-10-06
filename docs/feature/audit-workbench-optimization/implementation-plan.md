@@ -31,3 +31,7 @@
 真实v36 701只有invalid_observation摘要，原始模型引用未存储，具体失效ID不可重构；不得猜测历史原因。Confirmed R3 AC006/011/012允许局部诊断改进。Workflow Gate允许：已有固定来源/隐私契约，无新增产品权限、UI或存储迁移；Maintainability Gate低风险：来源验证和复核agent局部返回类型替换，新独立helper单职责，不广泛重构。
 
 保持原验证Error字符串及全部接受/拒绝条件，增加私有typed失败原因，运行记录code细分为未知引用、非复核阶段、非源工具、读取失败、输出损坏、快照不符、空源码；只输出有限枚举，不记录原引用ID/模型理由/源码/底层错误。复核仍unavailable，不自动删除坏引用、不重试、不增预算。测试覆盖各类别与实际SDK错误回执路径，历史不重写。无提示语义改变，策略v36保持。
+
+### v37 记录错误显式纠正（P10 / F3）
+
+输入Confirmed R3 AC006/011/012、首次801/804/805/806恢复缺口；已有design新增契约。Workflow Gate允许已有错误恢复的局部实现，不涉及UI/DB写权限；Maintainability Gate：新recording_corrections helper单职责，agent_investigation/verification仅注册/过滤局部连接，不广泛重构。新增helper、工具注册、只读过滤、策略；测试成功纠正、跨产物/源码/快照/逆序拒绝、批次原子性、历史保留/非证据、SDK及时刷新与预算/失败留存回归，race/vet；真实回归另冻结，旧首次样本不再称独立验收。源码失败/分页/语义极性不通过本工具自动解除，未验证事项仍保留。

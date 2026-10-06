@@ -208,3 +208,9 @@ Maintainability Gate Report：agent/grouped/synthesis约330/180/155行，新纯h
 Workflow Gate Report：P9/P10，AC007/012。useResource已在500等可恢复失败保留成功数据、401/403/404清空，详情页目前仅显示原错误，旧快照可能被当最新状态。上游行为/API/共享ErrorBox已具备，允许窄UI修复：已有数据且刷新失败显示旧快照说明和可重试按钮，重试期间disabled；动作错误单独显示，不隐藏读取错误；初次加载重试disabled防重入。权限失败继续清空旧数据，无新端点/权限。
 
 Maintainability Gate Report：详情页590行只组合共享ResourceRefreshFailure组件，原hook逻辑和写入动作不改，低风险narrow_fix。验收受控实际RunDetail加载/500失败旧数据/重试成功/403清空/无发现/队列/评论unknown、360px布局/键盘；类型/构建通过。受控fixture不是线上E2E，后台授权由现有路由回归覆盖。
+
+## v37 显式记录错误纠正
+
+新增非源码工具resolve_recording_errors，输入1–8对 failed_observation_id/corrected_observation_id。错误必须仍在当前pending，属于record_hypothesis/update_investigation/submit_finding；纠正必须为之后成功的同类产物记录、同主快照，trace和output编号一致。调查用非空相同local ID；提交用非空相同local candidate ID、同investigation_id、文件和风险type，避免另一产物成功隐式消除未提交候选。IDs必须来自实际trace，不使用模型描述证明恢复。所有对先验证，失败不清除任何pending；成功只清除指定旧错误，不改trace/ledger/finding/source，不解除其他错误或分页/计划/链路缺口。无ID失败无法自动归属，继续未解决。声明产物纠正是导航事实，不是命题语义证明。
+
+纠正事件及输入/输出保留于独立tooltrace/checkpoint。该工具非source/evidence_eligible=false，独立复核与压缩只读工具列表排除它。保留原预算，每次调用计费/计步正常；策略v37，旧报告不改写。不会自动滤掉所有历史process错误。
