@@ -264,3 +264,7 @@ v40真实802把“守卫加强，无安全回归”命题写成rejected，反证
 ### v43 计划身份冲突恢复反馈（P10/F2）
 
 v42真实805三次重复改写p3/p5 question，原门禁正确拒绝但错误未指出原任务身份。保持计划id/kind/question不可删除/重定义；在该错误中返回所有冲突任务的原id/kind/question JSON及固定操作说明，只允许更新status/reason/observation_ids。不返回模型私有推理、源码、保存判断或自动修复；错误是非证据tool响应，不能进入trusted system导航。最多8个冲突身份、JSON最多8000字节，旧数据异常降级固定通用错误。错误前其他来源/计划校验顺序保持，旧接受拒绝规则不变；合法后续更新仍需原门禁与显式resolver，错误history保留。schema中question描述强调复制原文，预算不增加。无需DB/UI/API迁移，策略v43。此反馈只解决结构性恢复，不解决805实际命题极性；质量完成继续open。
+
+### v44 未知调查ID恢复（P10/F2）
+
+v43真实805成功record inv-1，update空ID导致unknown hypothesis，随后模型停止并错误归因。保留未知ID拒绝，不自动选择、创建或按Claim匹配。仅在已有unknown hypothesis错误中添加当前audit ledger已知ID JSON（排序、≤30条、每ID非空≤80bytes有效UTF8无NUL、JSON≤8000bytes）；空/异常/超限数据退回固定错误。提示从成功record回执复制确切ID；原ID视为非可信tool数据而非源码/指令，不进入trusted progress。模型schema id增加“更新必须复制已有ID，不生成”的字段说明。无持久化/输出字段迁移、无新工具调用、不增预算，原验证顺序和接受/拒绝条件保持，策略v44。此反馈不解决实际Claim极性，AER-001仍open。

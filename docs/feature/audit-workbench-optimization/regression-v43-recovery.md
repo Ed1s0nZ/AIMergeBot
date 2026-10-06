@@ -8,4 +8,4 @@
 
 模型实际提交evidence_refutes_claim，Claim仍为初始payload变化/下游未知的复合陈述；已查下游支持兼容结论，并不否定payload变化事实。命题和所评估风险对象仍混淆，不宣称v43解决极性。未触发计划身份错误，故本例不能证明模型采用新错误恢复反馈；只是questions实际保持不改写的一个观察。
 
-无重试，完整失败history与覆盖说明保留。下一步局部恢复反馈应指出当前audit已知ID，只作非源导航、不自动从Claim匹配/改ID，不掩盖真实语义未知。AER-001继续open。源码CI run37436813700已核对终态success；不是质量结论。归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/regression-v43-recovery-20261006，40文件SHA核验一致。
+无重试，完整失败history与覆盖说明保留。下一步局部恢复反馈应指出当前audit已知ID，只作非源导航、不自动从Claim匹配/改ID，不掩盖真实语义未知。AER-001继续open。源码CI run37436813700已核对终态success；不是质量结论。归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/regression-v43-recovery-20261006，66文件SHA核验一致。
