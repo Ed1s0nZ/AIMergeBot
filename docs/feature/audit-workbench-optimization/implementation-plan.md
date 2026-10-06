@@ -65,3 +65,7 @@ Workflow Gate：Confirmed R3 AC003/006/011/012及真实802失败证据具备；�
 ### v42 剩余质量缺口取证（P9/F5准备）
 
 上一轮为progress：输入契约源码、真实802及独立检视改变权威状态。Workflow Gate：Confirmed R3 AC002/003/005/011、冻结源码b19ff4677f475d15bd5ab7d04e0da7c27bdd5807及旧v37 803/805缺口齐备；允许仅评测，不改生产契约/权限/UI。Maintainability Gate：无代码改动，现有CLI只读审计固定fixture；不新增prompt迭代。依原独立首次corpus，选803跨项目正例和805兼容负例各一次原deepseek-chat/15steps80tools240回归；冻结当前源码和原真值，分别检查双方源码、主PR锚点、source-linked关系、实际Claim极性及未知边；失败/incomplete/成本完整保留，不改真值/预算，不盲重跑、不执行样本。首次已知样本称回归，不能外推生产准确率；确认需求不要求所有样本completed。本轮结果将决定具体必要改进或更新AC覆盖，不以只检查工具存在关闭AER-001。先提交推送本计划，再执行。
+
+### v43 计划身份反馈（P10/F3）
+
+Workflow Gate：Confirmed R3 AC003/006/011/012、真实805原始冲突及design具备，允许局部错误恢复；无新权限/UI决定。Maintainability Gate：investigation_plan约140行，单计划校验职责，新增单职责错误helper；低风险narrow_fix，不需先广泛重构。分支codex/audit-quality-loop，设计22ce281已推送；本计划先提交推送再实现。保留旧校验顺序与拒绝规则，收集identity冲突，返回有界原tuple JSON，异常数据safe fallback；schema question复制说明。测试多冲突、遗漏、更改kind、非法/超限旧数据、注入字符串仅tool输出、门禁不松、ledger未变、合法恢复与显式resolver原历史，实际SDK错误及source flag/ID校验；race/full/vet、冻结SHA独立review（pr-review re-review-gates要求契约/恢复新上下文）。不重复803/805真实请求直到新源码与边界验证完成；真实极性仍open。不自动合并部署。
