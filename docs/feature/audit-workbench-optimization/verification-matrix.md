@@ -1,10 +1,16 @@
 # v46 当前增量
 
-## 当前增量：v49 工程通过，真实取证改善，复核结构失败仍待定位
+## 当前交付：v50 原R3逐项能力验收闭环
+
+冻结功能源码01446573f8964ab90be86774718dc7b01e43d4c2/policy50，fullGo125.438s、race/vet及精确CI37461595471全部success。独立诊断slice APPROVE；R3能力及工作台/API/可靠性分别COMMENT、原scope充分，AER-001 resolved。原模型803一次完成必要取证、双侧及跨项目静态关系，fresh finding supported/full、claim consistent/true；真实driver/runtime未知仍incomplete，无blind准确率或复现声明。805旧命题极性误判保留为非阻塞AER-003及显式分歧，未宣称修复或模型零错误。
+
+逐REQ/AC001–012与ASM001–005原文证据、实际源码/CI/UI/SARIF对应及剩余模型局限见completion-audit-v50.md、regression-v50-diagnostics.md。交付分支codex/audit-quality-loop；最终docs-only HEAD的外部核验见/Users/worker/.codex/evaluation-artifacts/aimangebot/release-finalization-v50/finalization.json。未自动合并main或部署，局部review不是整体merge approval。以下为保留的历史过程，不代表当前未完成状态。
+
+## 历史增量：v49 工程通过，真实取证改善，复核结构失败仍待定位
 
 33eb7ee/full186.615s/race62.495s/精确CI37459758978 success，独立schema/反馈切片APPROVE。原模型803实际保存双侧引用及两条跨项目来源关系，fresh claim完整取证并consistent/true；finding复核结构被拒且缺分类诊断，原失败历史保留，receipt incomplete。详见regression-v49-feedback.md；AER-001 open，未合并main/部署。
 
-## 当前增量：v48 独立来源要求工程通过，真实效果仍未验证
+## 历史增量：v48 独立来源要求工程通过，真实效果仍未验证
 
 2eb8daf把mandatory context ID清单与原fresh门禁共用，增加具体子断言条件提示，原预算/历史/公共shape不变。full172.055s、race12.568s、vet/diffcheck/精确CI37457629388 success，独立scoped APPROVE（484hash、目标Go48.723s）。真实803一次在primary关系目标字段为空的重复拒绝中耗尽15决策，独立阶段未执行；结果model_or_agent_failed，不能声称新提示真实有效。详见regression-v48-source.md。下一步关系字段错误反馈，AER-001 open；原失败保留，未合并main/部署。
 

@@ -21,3 +21,7 @@ verification_agent.go185行、finding_verification.go151行、verification_aspec
 ## F4/F5 实现及当前验证
 
 有限分类helper及parse失败trace已实现，既有parser/check规则和公共结构保持。实际SDK invalid模式断言json_syntax元信息进入返回trace及最终checkpoint；正常结果/原finding/unavailable/coverage继续原断言。新parser负例覆盖全部新增服务器分类和私密正文/字段/ID不回显。首轮截断JSON测试失败（实际为io.ErrUnexpectedEOF），现明确归入json_syntax，不修改parser。修正后目标Go1.018s、相关race5.527s、最终SDK/checkpoint race4.649s通过；vet/diffcheck通过。首次full/race在修正前启动，race失败已保留，full仍待终态及最终源码重跑；不能当当前全量通过。精确CI、独立review和真实模型诊断效果待验证，无整体完成声明。
+
+## F5/F6 最终证据
+
+功能源码0144657最终full Go125.438s/race5.527s及最终SDK4.649s/vet通过；CI37461595471精确head全部success。独立诊断切片APPROVE（491hash、172main/8delta分类、race4.048s/隐私2.420s）。原803一次回归19calls/40.361s/223396tokens，必要fresh finding/claim来源与静态判断有效，但没有结构错误，故真实诊断纠错收益与v49原具体原因仍未证明；不重跑追求该错误。真实未知保留incomplete。逐原R3能力/工作台审计完成见completion-audit-v50.md，805残余语义分歧保留，不自动merge/deploy。
