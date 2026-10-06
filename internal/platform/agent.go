@@ -118,6 +118,13 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	}
 	if err != nil {
 		note := "Primary model generation failed"
+		tools.mu.Lock()
+		repositoryUnavailable := tools.repositoryUnavailable
+		tools.mu.Unlock()
+		if repositoryUnavailable {
+			err = fmt.Errorf("%w: further primary model requests stopped", ErrRepositoryUnavailable)
+			note = "Fixed repository execution unavailable; further model requests stopped and validated submissions retained"
+		}
 		if errors.Is(err, ErrContextCompression) {
 			note = "Context compression unavailable; accepted findings retained"
 		}

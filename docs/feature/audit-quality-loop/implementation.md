@@ -27,3 +27,11 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 新专项2.259s、分组回归10.767s、race5.286s、TypeScript/Vite4.08s、全量Go exit0（platform118.079s、root13.784s、evaluation22.164s）；git diff --check通过。专项覆盖去掉保护/危险操作排序、未知语言、排除不绕过、输入顺序稳定、组上限未处理缺口、低预算/MaxInt/Duration溢出、历史权重。尚未用真实模型分组对照证明漏报或速度改善。
 
 实际受控AuditGroupProgress组件360x800无横向溢出，完成/未处理/历史缺优先级与可展开文件确认；截图 /Users/worker/.codex/evaluation-artifacts/aimangebot/priority-v31-ui-20261006/priority-proof.png，非生产E2E。临时文件/服务器/浏览器视口/标签清理。
+
+第五切片（未提交/未推送，待环境恢复）：原生Git执行器exit69或执行文件缺失返回typed ErrRepositoryUnavailable；普通exit128/路径不存在不归fatal。tools在互斥保护下记录fatal，model Start回调取消下一请求；primary错误返回明确停止原因和已有finding/ledger/trace。grouped随后组仍unprocessed，跳过综合/复核等补充模型并返回原fatal，保留已合并结果。policy v32，未部署。
+
+验证：默认go test在编译runtime/cgo阶段因Xcode许可未同意失败，未运行用例。CGO_ENABLED=0专项第一轮1.138s，增加真实SDK候选保留用例及优先级专项后1.214s通过；最终CGO_ENABLED=0仓库不可用/模型请求专项1.564s通过；CGO_ENABLED=0 go vet ./internal/platform通过。SDK实际HTTP计数验证：fatal源错误仅1次HTTP，普通源错误>=2次可继续；分组fatal跳过其他组/补充模型。另两个SDK用例先读取静态fixture并通过正常submit_finding接受candidate，再读fatal源，实际3次HTTP后停止，candidate及精确源不丢失。分类测试执行自有exit码fixture，未执行任何被审仓库代码。这是控制流/记录正确性证据，不是模型准确率证明。
+
+还必须在合法Git/默认编译环境恢复后运行默认Go全量、相关race并提交推送；当前不能把纯Go专项当完整验收。Git仍直接exit69，未代用户同意/绕过Xcode许可。真实历史失败归档与evaluation-v31-real-history.md也尚待提交，已有0b7a4ad之前功能已推送。
+
+环境恢复后的复验：系统git --version已exit0、默认CGO专项1.741s与相关race5.123s通过。首次默认PATH全量exit1：root CLI两个30s fixture Git调查超时（root106.757s）；platform345.685s、evaluation245.873s通过。独立git --version启动测量837/9361/2063ms；xcrun --find git25ms，返回的同版本Apple Git-155执行--version12ms。许可现已通过，不绕过许可、不提高生产预算。临时PATH选择已安装同版本Git的CLI对照保持30s配置，root专项23.233s通过；原失败完整保留，不以对照替代原环境事实。完整同版本Git对照 go test ./... exit0（root13.028s、evaluation14.189s、platform197.356s），未增大测试/生产audit超时或工具预算。默认启动器仍有已记录延迟/超时限制，不将对照称作默认PATH全量通过。git diff --check通过。第五切片准备提交推送，真实历史回归使用新目录且原失败保留。

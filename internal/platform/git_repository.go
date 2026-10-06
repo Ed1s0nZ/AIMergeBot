@@ -63,6 +63,9 @@ func gitCommand(ctx context.Context, dir string, extraEnv []string, args ...stri
 		if exit, ok := err.(*exec.ExitError); ok && exit.ExitCode() == 1 && len(args) > 0 && args[0] == "grep" {
 			return out.String(), nil
 		}
+		if unavailableGitExecution(err) {
+			return "", fmt.Errorf("%w: Git %s failed (output omitted to protect credentials): %w", ErrRepositoryUnavailable, args[0], err)
+		}
 		return "", fmt.Errorf("Git %s failed (output omitted to protect credentials): %w", args[0], err)
 	}
 	return out.String(), nil

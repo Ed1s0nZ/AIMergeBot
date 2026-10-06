@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -46,30 +47,31 @@ type toolOutput struct {
 }
 
 type auditTools struct {
-	successfulReads    map[string]int
-	contextSources     map[int]ContextSource
-	contextReaders     map[int]*auditTools
-	rawOnly            bool
-	stage              string
-	observationPrefix  string
-	pages              map[string]*paginationCoverage
-	progress           func(AuditResult, []ToolTrace) error
-	progressMu         sync.Mutex
-	supplementalResult *AuditResult
-	checkpointStopped  bool
-	progressError      string
-	repo               Repository
-	snap               Snapshot
-	mu                 sync.Mutex
-	cache              map[string]string
-	trace              []ToolTrace
-	calls              int
-	cacheBytes         int
-	maxCalls           int
-	scope              DiffScope
-	findings           map[string]Finding
-	ledger             map[string]Investigation
-	pending            map[string]ToolTrace
+	successfulReads       map[string]int
+	contextSources        map[int]ContextSource
+	contextReaders        map[int]*auditTools
+	rawOnly               bool
+	stage                 string
+	observationPrefix     string
+	pages                 map[string]*paginationCoverage
+	progress              func(AuditResult, []ToolTrace) error
+	progressMu            sync.Mutex
+	supplementalResult    *AuditResult
+	checkpointStopped     bool
+	progressError         string
+	repositoryUnavailable bool
+	repo                  Repository
+	snap                  Snapshot
+	mu                    sync.Mutex
+	cache                 map[string]string
+	trace                 []ToolTrace
+	calls                 int
+	cacheBytes            int
+	maxCalls              int
+	scope                 DiffScope
+	findings              map[string]Finding
+	ledger                map[string]Investigation
+	pending               map[string]ToolTrace
 }
 
 func (t *auditTools) read(ctx context.Context, p string, base bool) (string, error) {
@@ -148,6 +150,9 @@ func (t *auditTools) invoke(name string, args any, fn func() (toolOutput, error)
 	}
 	out.EvidenceEligible = err == nil && isSourceTool(name) && strings.TrimSpace(out.Text) != ""
 	t.mu.Lock()
+	if errors.Is(err, ErrRepositoryUnavailable) {
+		t.repositoryUnavailable = true
+	}
 	if err != nil {
 		for i := len(t.trace) - 1; i >= 0 && len(out.EligibleObservationIDs) < 20; i-- {
 			prior := t.trace[i]

@@ -135,7 +135,7 @@ func modelStartCallback(tools *auditTools, stage, model string) func(context.Con
 		tools.mu.Unlock()
 		tools.checkpoint()
 		tools.mu.Lock()
-		failed := tools.progressError != "" || tools.checkpointStopped
+		failed := tools.progressError != "" || tools.checkpointStopped || tools.repositoryUnavailable
 		tools.mu.Unlock()
 		if failed {
 			stopped, cancel := context.WithCancel(ctx)

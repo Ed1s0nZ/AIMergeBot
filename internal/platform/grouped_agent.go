@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -88,8 +89,9 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	}
 	defer cancel()
 	summaries := []string{}
+	var repositoryFailure error
 	for i, g := range plan.Groups {
-		if primaryCtx.Err() != nil || remaining <= 0 {
+		if repositoryFailure != nil || primaryCtx.Err() != nil || remaining <= 0 {
 			result.CoverageNotes = append(result.CoverageNotes, "Unprocessed audit group: "+g.ID)
 			continue
 		}
@@ -138,6 +140,9 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		result = mergeAuditGroup(result, part, g.ID)
 		trace = append(trace, current...)
 		if err != nil {
+			if errors.Is(err, ErrRepositoryUnavailable) {
+				repositoryFailure = err
+			}
 			result.AuditGroups[i].Status = "failed"
 			result.CoverageNotes = append(result.CoverageNotes, "Audit group failed: "+g.ID)
 		} else {
@@ -151,6 +156,9 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		}
 	}
 	result.Summary = "Grouped static audit\n" + strings.Join(summaries, "\n")
+	if repositoryFailure != nil {
+		result.Summary = "Grouped audit stopped because fixed repository execution is unavailable; prior results retained\n" + strings.Join(summaries, "\n")
+	}
 	// Supplemental stages use the full planned anchor scope and preserved fresh
 	// provenance, once for all accepted findings under the original task deadline.
 	scope := DiffScope{Added: map[string]map[int]bool{}, Removed: map[string]map[int]bool{}, Metadata: map[string]GitChangeMetadata{}}
@@ -159,7 +167,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	}
 	tools := &auditTools{contextSources: e.ContextSources, repo: e.Repository, snap: snap, scope: scope, cache: map[string]string{}, trace: trace, progress: e.Config.Progress, maxCalls: e.Config.MaxToolCalls}
 	tools.sequenceCheckpoint(result)
-	if ctx.Err() == nil {
+	if ctx.Err() == nil && repositoryFailure == nil {
 		cfg := e.Config
 		tokens := 4096
 		model, err := eo.NewChatModel(ctx, &eo.ChatModelConfig{APIKey: cfg.APIKey, BaseURL: cfg.BaseURL, Model: cfg.Model, Temperature: &cfg.Temperature, MaxTokens: &tokens, HTTPClient: upstreamHTTPClient("model"), ResponseFormat: &eo.ChatCompletionResponseFormat{Type: eo.ChatCompletionResponseFormatTypeJSONObject}})
@@ -178,5 +186,5 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	}
 	result.CoverageNotes = uniqueCoverageNotes(result.CoverageNotes)
 	tools.sequenceCheckpoint(result)
-	return result, tools.trace, nil
+	return result, tools.trace, repositoryFailure
 }
