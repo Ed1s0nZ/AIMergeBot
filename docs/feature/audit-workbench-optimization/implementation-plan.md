@@ -105,3 +105,7 @@ UI验证诱发修复：360px实际RunDetail已显示五态和命题极性；Retu
 ### v45 原模型已知兼容负例回归准备
 
 P9/F5；Confirmed R3 AC002/003/005/006/011及原805错误极性/空ID回执具备，允许验证已经实现的v44恢复/v45复核，不更改真值或执行预算。后端dfc6340 full/CI/scoped APPROVE已完成；当前UI冻结提交后在该精确HEAD用原config、原deepseek-chat/temperature0.1/15steps80tools240s，原corpus SHA2561851b934d057b5a5696ac9a26c461ab38087a5db04f86d90b7742ffac2e46b4b，805只运行一次。外部新唯一目录记录CLI revision/策略、固定BASE/HEAD及授权下游、原始checkpoint/trace/失败/未完成/usage/token成本和manifest，不展示credentials、不执行样本/PoC。不把known regression当blind准确率、不追求全部completed、不提高预算或盲重跑。观察实际初审命题是否resolved、极性、fresh独立复核/共享预算及来源关系；若仍不满足据具体证据继续原范围，不关闭AER-001。
+
+### v45 成对真实复核覆盖准备（执行前）
+
+805一次真实回归在53331c8完成，fresh独立true确实识别primary rejected的实际命题错误，但只有兼容负例，不能外推guard负例或有条件漏洞finding优先共享预算。P9/F5，Confirmed R3 AC001/002/004/005/006/011及原802/803独立首次corpus/已有回归具备；允许按原deepseek-chat/temperature0.1/15steps80tools240s各跑一次known regression（802保护恢复负例、803 TS→PHP有条件风险正例）。不新增样本训练/改真值/提高预算，不盲重跑，不要求两项completed。分别检查主PR双侧、授权固定下游/关联、命题极性、finding锚点、fresh复核/预算优先、真实未知/失败、阶段完整usage。新唯一外部目录冻结文档CLI head及与53331c8/dfc6340源码关系并保护archive，之后逐项R3审计。AER-001保持open，无自动合并部署。
