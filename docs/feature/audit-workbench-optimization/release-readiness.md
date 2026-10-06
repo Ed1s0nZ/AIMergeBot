@@ -1,12 +1,14 @@
 # R3 分支交付
 
-更新：接口已恢复，原六例v35回归完成，393448 tokens、六例均incomplete；HTTP402已不再阻塞。质量缺口仍未解决，详见 regression-v35-restored.md，旧402记录为历史失败。
+## 当前状态（源码 da039f3 / v38）
 
-## 当前状态（生产591fe99 / v36）
+当前为部分分支交付，整体目标未通过完成审计。最新源码da039f374bc26a3c6db6307ab0d2f13b4af80fae已推送codex/audit-quality-loop，CI run37427483339终态success（https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37427483339）；本地全量Go exit0（platform111.645s）、定向race4.608s、vet通过。已恢复原接口，v37真实回归479052tokens、六例incomplete、无HTTP402；旧402失败保留为历史。最新v38未调用真实模型，不宣称导航改善实际完成率或费用。
 
-当前为部分交付，优化目标仍未通过逐项完成审计。最新生产代码591fe996415120aa2b9b8501cdea0d7c9acf5b14 CI全部成功（https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37423152398），后续提交为评测文档；context执行器停止修复及SDK/race验证通过。接口已恢复：v35恢复回归393448tokens，v36回归459281tokens，均六例incomplete。v36部分负例补账本/显式收尾，但Claim与rejected极性不一致；独立复核引用失败、关系缺项与过强部署断言仍是质量限制。详见regression-v35-restored.md、regression-v36.md与verification-matrix.md。HTTP402旧运行是保留的历史失败，不是当前阻塞。
+v38最多提示4对仍pending且符合原校验的记录回执；显式resolver保留原子性、历史及真实源/计划/关系缺口。旧801回执重建仅10→16实际合格；15→17完全同参，原机制已清除15，13陈述不同继续保留。补查纠正参数匹配与待办状态的混淆，不重写原模型结果。
 
-当前PR描述补充：四方面来源检查、调查计划、记录导航与未收尾计数增强可追踪性；固定来源、证据资格、步骤和工具预算保持原约束；不可用执行器后停止后续模型请求并保留候选，分组停止原因由服务器生成。记录结构合法不保证语义正确，真实回归仍有上列限制；未创建PR、未合并或部署。
+独立v38切片COMMENT，无确认阻塞finding；工作台AC007–010/012与复核迁移有当前源码/定向/官方schema/构建一致性及受控浏览器证据。新RunDetail计划/分项复核面板已实际验证360px、Return/Tab来源导航、历史空态和route保留，临时环境清理。整体审计证据复查仍INCOMPLETE：AC002/003/005的来源遗漏、跨项目关系及部分命题极性不足；AC011建立与隔离记录已证明，不新增所有例completed或数字准确率门槛。详见completion-audit-v38.md。
+
+本轮PR描述补充：新增分项验证/调查计划、有界风险预算、服务器停止原因、非源码状态导航、显式同陈述纠正；保留语言无关、授权固定源、主PR因果锚点、原模型与预算。记录结构合法不保证语义正确；提供可复核证据与真实限制，未创建PR、未合并或部署。当前剩余工作以原R3验收为准，不将机制通过替代审计质量。
 
 ## 历史 v28 交付记录
 
@@ -20,7 +22,7 @@ v28首次冻结隔离v2覆盖Rust/PHP/C#/Java及Python/Ruby下游；2个正确�
 
 人工复核请求必须传expected_revision；旧调用者需同步升级。SQLite迁移保留历史记录，历史claim_coverage缺失不改写。详情版本为无源码状态投影，SARIF为固定静态记录，没有伪造运行codeFlows。详见migration-notes.md。
 
-## 最终审查
+## 历史 v28 最终审查
 
 平台/前端/评测生产改动已风险导向核对；发现AWO-REV-001导航hash冲突并在41b13b4修复，浏览器验证route不变、目标聚焦、Tab到草稿。最终不可变head的正式报告保存在工作区外evaluation-artifacts目录，避免提交报告导致其审查SHA失效。决策为COMMENT，不授权合并：CI未观察、生产数据/部署/真实多人使用未验证，模型质量限制明确保留。
 

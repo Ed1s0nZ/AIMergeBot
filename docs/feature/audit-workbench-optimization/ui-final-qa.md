@@ -15,3 +15,9 @@
 AWO-REV-001：原发现导航 href=#目标 与 main.tsx hashchange 路由冲突，可能丢失详情页。改为原生 button 的 scrollIntoView + focus，保留 route hash。实际 IAB 受控组件（真实 FindingWorkbench，#/runs/7）Return 激活后 hash 不变、hashchange=0、activeElement=_r_0_-finding-qa-1、scrollY=284.5；随后 Tab 到复核草稿，原值保留。截图 /tmp/aimangebot-navigation-proof.png。不是生产 API E2E。首次从仓库根启动 npm 因 package.json 不存在退出254，转 frontend 后启动成功；fixture CSS 拼写修正后验证，临时文件已清理。
 
 最终 TypeScript/Vite build exit0，871ms；产物 index-qbvfyjN1.js/index-CQVLkub2.css。导航修复无模型或平台代码变化，未重复隔离评测。
+
+## v38 当前RunDetail新面板补验
+
+源码da039f3保持不变，真实RunDetail及当前CSS，以只读mock HTTP返回fixture，不包含真实漏洞/凭证。IAB实际360×800：四项静态复核（2supported/2inconclusive）及partial提示、历史缺checks提示；Return展开调查计划checked/pending/unavailable与旧无plan提示。Return计划observation-1与分项verify-fixture-observation-1分别打开实际trace详情/source；Tab继续到下一来源控件，hash仍#/runs/38，scrollWidth360。当前agent_step_budget显示决策轮数预算耗尽，初始fixture拼错枚举显示未知停止类型；修正的是fixture，无产品变更，未知处理保留截图。
+
+归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/current-detail-v38-ui-20261006：五份fixture/截图SHA256和manifest；写操作显式禁止，不验证数据库保存或线上E2E。首次npm在根目录exit254，改frontend后Vite162ms ready；临时server73752终止exit130、tab14关闭、viewport reset、两fixture文件删除，git status空。独立工作台review核对五hash/当前source/完整截图，接受补证关闭AC007最小缺口；未冒充reviewer自己执行浏览器。
