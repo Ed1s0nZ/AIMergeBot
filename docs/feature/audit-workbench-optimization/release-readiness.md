@@ -1,5 +1,7 @@
 # R3 分支交付
 
+更新：接口已恢复，原六例v35回归完成，393448 tokens、六例均incomplete；HTTP402已不再阻塞。质量缺口仍未解决，详见 regression-v35-restored.md，旧402记录为历史失败。
+
 ## 当前状态（594e44c / v35）
 
 当前为部分交付，整体验收未完成；以下旧 v28 叙述保留为历史。新增来源检查/调查计划、记录导航、分组预算、服务器停止原因及执行器停止机制已推送 codex/audit-quality-loop；最后 context 分类丢失修复的本地 SDK 与 race 通过；生产代码594e44c CI已全部成功（https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37421390134），后续ee98d75仅文档。8e6bf31 CI 已成功。真实 v35 六例回归因HTTP402全部失败，不能报告零误报或总体质量提升。详细证据及范围见 overall-review-v35.md、acceptance-v34-results.md 和 verification-matrix.md。

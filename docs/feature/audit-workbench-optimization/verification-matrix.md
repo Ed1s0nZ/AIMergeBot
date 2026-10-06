@@ -1,5 +1,7 @@
 # R3 交付核对矩阵
 
+更新：接口已恢复，原六例v35回归完成，393448 tokens、六例均incomplete；HTTP402已不再阻塞。质量缺口仍未解决，详见 regression-v35-restored.md，旧402记录为历史失败。
+
 ## 当前核对：594e44c（策略 v35）
 
 下文 v28 表格是历史验收，不代表最新质量结果。当前生产代码已增加四方面来源检查、调查计划、PRContext保留、分组预算优先级、执行器不可用停止、有界结束提示、服务器停止原因与逐轮记录导航。对应源码/SDK/race验证见 implementation.md 与 overall-review-v35.md。
