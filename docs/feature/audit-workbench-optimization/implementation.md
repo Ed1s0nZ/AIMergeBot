@@ -216,3 +216,5 @@ v28 隔离验收v2首次运行已归档284文件、逐项SHA256复读验证，�
 恢复回归704/705的四项计划已checked，但模型仅record_hypothesis，记录仍investigating；不是update验证失败。逐轮导航新增unresolved_ledger_count，只含服务器计算的计数，不包含模型id/claim。工具说明明确创建总是investigating，需显式update；状态相对于实际claim，支持兼容结论不等于需提交漏洞。未知关系和未检查任务保持原门禁，不自动收尾、不改预算、历史不重写。
 
 定向回归 Test(ProgressNavigation|PrimaryProgress|InvestigationPlan|Recording|RepositoryUnavailable|ContextRepositoryUnavailable) exit0（27.685s）；SDK收尾状态投影与隐私投影race exit0（9.247s）；go vet ./internal/platform与diff --check通过。SDK验证创建后unresolved=1、显式update后=0；这些是导航/契约证据，尚未证明真实质量改善。下一轮固定v36代码复跑同样语料，仍为回归。
+
+v36真实回归已完成，结果见 regression-v36.md。704/705调查显式收尾、702补账本，但全部incomplete，独立复核与风险链缺口仍保留；未声称总体质量提升。
