@@ -17,3 +17,5 @@
 第五切片文件：repository_availability.go及测试；git_repository最小错误分类；agent_tools记录标记/model_usage请求门禁/agent错误归因/grouped停止后续付费阶段。优先SDK真实HTTP计数测试，普通read错误仍可修复。环境许可未恢复，F2/F3与后续F4提交暂待，不自动同意许可。
 
 第六切片文件：primary_round_budget.go/测试、agent最小重写包装、分组stop_reason/合并来源保护、audit-eval失败分类、UI类型与已有分组状态显示原因。验证原2/4/8轮最后一次请求可报告、不增加配置轮数、提醒不累计或污染原消息、原源码/工具消息不变、未完成不伪装通过、分组budget类型由真实SDK错误产生、模型伪造组原因被清除、receipt分类。Go相关/race/全量及前端构建/受控实际UI，保留现有真实失败而不为单例调高预算。
+
+第六切片UI接线：沿用服务端optional stop_reason字段；failed组展开显示原因，未知/历史缺失分别提示，不显示模型自行宣称的原因，不将失败算完成。既有details键盘交互与移动端布局沿用。契约/设计已具备；P6→P9增量验证，实际组件控制fixture及TS/Vite检查。

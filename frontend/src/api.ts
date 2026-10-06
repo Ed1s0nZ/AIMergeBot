@@ -183,6 +183,7 @@ export type Run = {
   result: {
     audit_groups?: {
       priority_weight?: number;
+      stop_reason?: string;
       id: string;
       files: string[];
       status: "running" | "completed" | "failed" | "unprocessed";

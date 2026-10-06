@@ -41,3 +41,5 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 专项：最后2/4/8轮真实SDK HTTP请求含当前提醒并能返回报告；原4轮边界忽略提醒仍只请求4次且typed耗尽/明确coverage；分组失败保留原因，旧policy隔离测试通过。两包专项4.935s/3.322s；纯helper race2.010s/2.718s。fake provider仅证明机制，不证明真实完成率。UI原因展示、真实模型回归以及完整R3/F6验收仍待完成。
 
 第六切片全量验证：临时PATH选择已安装同版本合法Apple Git，go test ./... exit0：CLI12.050s/evalcmd1.561s/evaluation17.509s/platform138.681s；不是默认PATH启动延迟测试。SDK决策边界/分组保留race4.420s；go vet两包exit0，git diff --check通过。仅服务端与评测实现，无前端变更，未据此宣称真实模型准确率或完成率提升。
+
+第六切片UI：分组optional stop_reason绑定服务端字段，failed组展开显示有限中文原因；历史缺失与未知值明确区分，未完成组不称风险已排除。实际组件控制fixture在360x800无横向溢出（scrollWidth360），Enter展开预算原因，并核查历史/未知显示；截图/Users/worker/.codex/evaluation-artifacts/aimangebot/stop-v33-ui-20261006/stop-proof.png。fixture、服务器、tab和viewport已清理。TS通过；首次Vite命令误在root执行报缺少index.html，修正frontend cwd后Vite951ms通过，临时输出在仓库外。真实v33回归失败详见独立报告，未宣称质量改善。
