@@ -82,3 +82,20 @@ Workflow Gate：Confirmed R3 AC003/006/011/012、v43真实空ID及F2设计齐备
 
 
 v45当前切片状态：共享预算基础3f493d3、server-owned/parser/provenance及CVR-001修复814c60a已完成切片验证。下一步执行器接入：resolved调查稳定顺序、finding优先同pool、fresh prompt不给首审判断/理由、实际模型与压缩usage正确归入复核价目、取消/检查点/故障停止、未完成coverage、worker/SARIF持久化；随后UI和当前源码真实模型回归。不得以契约切片批准代替整体完成或自动合并。
+
+
+### v45 工作台消费接入 Gate（执行前）
+
+Workflow Gate：P10/F3；Confirmed R3 AC006/007/010/012及claim-verification-design.md已有五类复核状态/历史空态/360px/键盘/source导航契约。Go optional ClaimVerification已固定，当前执行源码986b336；允许第4切片，无新产品选择，保持已有coverage组件风格。待验证的是实际界面与真实原模型效果，不是API字段设计。
+
+Maintainability Gate：run-detail现有页面约600行，API类型单一契约模块；只增加独立ClaimVerificationPanel委派及初审命题文案，不把逻辑堆进页面。risk medium（frontend/typed契约/状态/长ID导航），无需广泛重构，允许adapter消费；ObservationLinks复用只调整长ID换行。新组件接收server-owned optional review与调查/任务状态；旧报告缺失显示历史/未执行，进行中/取消/分歧/未知/关闭分开。
+
+改动文件：frontend/src/claim-verification.tsx、api.ts、run-detail.tsx、settings.tsx、model-usage.tsx、observation-links.css；config.example.yaml及README更新共享范围说明。必要检查：tsc/build/embedded build、360px及键盘按钮直达fresh源码实际浏览器检查；现有类型/构建无额外测试框架。构建产物按仓库既有策略提交，不触碰原工作区用户README修改。分支codex/audit-quality-loop，前端源码与证据独立冻结检视，不继承后端986b336报告为整体批准。
+
+### v45 EXR-001 取消检查点闭环（执行前 Gate）
+
+Workflow Gate：P10/F3，Confirmed R3 AC006/010/012、命题复核设计和986b336独立检视EXR-001已具备。全量Go在986b336通过（platform194.834s），但真实Store取消fence反例证明完成wrapper太晚；允许局部修复，不改取消权限、租约、旧报告或真值。
+
+Maintainability Gate：audit_claim_completion约36行、public入口薄wrapper；medium（检查点/分组/取消边界），narrow_fix，无广泛重构。新增纯检查点投影与progress decorator，public Audit/AuditGroups复制auditor配置后接入，覆盖primary及group/supplemental所有原progress路径。投影只复制investigations和coverage切片后给resolved且nil review添加unavailable或disabled；原ledger、未完成调查、合法已完成review、原Claim/status/evidence不变。不得把placeholder写回实际主审账本或遗留到成功final结果；无需在每种取消SQL中重写结果，也不回填历史。
+
+测试实际Store checkpoint→Cancel→late checkpoint ErrConflict，确认取消结果带显式未完成review且SARIF存在该项/执行非成功；恢复也保留；disabled无unknown verdict、in-progress不伪装review、原切片不变、合法review不覆盖、group已命名ID保留。公共SDK/worker及group/recovery/cancel定向race、full/vet/diffcheck；冻结修复SHA后EXR-001独立re-review。随后继续原已计划UI/真实原模型回归，AER-001保持open。分支codex/audit-quality-loop，无自动合并部署。
