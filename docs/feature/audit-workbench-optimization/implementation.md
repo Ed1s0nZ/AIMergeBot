@@ -210,3 +210,9 @@ CLI新增显式-grouped默认false，模式记录metadata，checkResumeMetadata�
 v28 隔离验收v2首次运行已归档284文件、逐项SHA256复读验证，详见 evaluation-acceptance-v28-v2.md。两个正确条件风险、四个零告警，其中405下游未读不能认证兼容；6/6 incomplete、296749 tokens，不隐藏原始失败与过强网络断言。v2未用于模型调参。
 
 最终审查发现 AWO-REV-001：发现快速导航更新hash会触发应用路由。改为原生button页内滚动/聚焦，实际Return/Tab验证route保持、草稿保留，类型/构建通过，详见ui-final-qa.md。
+
+## v36 明确调查状态收尾
+
+恢复回归704/705的四项计划已checked，但模型仅record_hypothesis，记录仍investigating；不是update验证失败。逐轮导航新增unresolved_ledger_count，只含服务器计算的计数，不包含模型id/claim。工具说明明确创建总是investigating，需显式update；状态相对于实际claim，支持兼容结论不等于需提交漏洞。未知关系和未检查任务保持原门禁，不自动收尾、不改预算、历史不重写。
+
+定向回归 Test(ProgressNavigation|PrimaryProgress|InvestigationPlan|Recording|RepositoryUnavailable|ContextRepositoryUnavailable) exit0（27.685s）；SDK收尾状态投影与隐私投影race exit0（9.247s）；go vet ./internal/platform与diff --check通过。SDK验证创建后unresolved=1、显式update后=0；这些是导航/契约证据，尚未证明真实质量改善。下一轮固定v36代码复跑同样语料，仍为回归。

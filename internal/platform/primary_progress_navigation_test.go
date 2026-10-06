@@ -79,3 +79,25 @@ func TestPrimarySourceSidesRejectMixedBatch(t *testing.T) {
 		t.Fatal("base-only batch unrecognized")
 	}
 }
+
+func TestProgressNavigationCountsUnresolvedWithoutModelClaims(t *testing.T) {
+	tools := &auditTools{ledger: map[string]Investigation{
+		"private1": {ID: "private1", Claim: "private claim", Status: "investigating"},
+		"private2": {Status: "supported"},
+		"private3": {Status: "rejected"},
+		"private4": {Status: ""},
+	}}
+	nav := tools.primaryProgressNavigation()
+	if !strings.Contains(nav, `"unresolved_ledger_count":2`) || !strings.Contains(nav, `"ledger_count":4`) || strings.Contains(nav, "private") {
+		t.Fatal("unresolved state not projected safely", nav)
+	}
+	tools.ledger["private1"] = Investigation{Status: "rejected"}
+	tools.ledger["private4"] = Investigation{Status: "supported"}
+	nav = tools.primaryProgressNavigation()
+	if !strings.Contains(nav, `"unresolved_ledger_count":0`) {
+		t.Fatal("resolved state stale", nav)
+	}
+	if !strings.Contains(nav, "record_hypothesis always creates investigating") || !strings.Contains(nav, "supported compatibility/no-risk claim needs no finding") {
+		t.Fatal("status guidance missing")
+	}
+}

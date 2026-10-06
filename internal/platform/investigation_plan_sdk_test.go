@@ -31,6 +31,12 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 			if planned && n == 3 && !strings.Contains(req.Messages[0].Content, `"ledger_count":1`) {
 				t.Error("SDK progress did not refresh after recording")
 			}
+			if planned && n == 3 && (!strings.Contains(req.Messages[0].Content, `"unresolved_ledger_count":1`) || !strings.Contains(req.Messages[0].Content, "record_hypothesis always creates investigating")) {
+				t.Error("SDK omitted unresolved hypothesis closure guidance")
+			}
+			if planned && n == 4 && !strings.Contains(req.Messages[0].Content, `"unresolved_ledger_count":0`) {
+				t.Error("SDK unresolved count did not refresh after explicit resolution")
+			}
 			message := map[string]any{"role": "assistant"}
 			finish := "stop"
 			toolCall := func(name string, args any) {
