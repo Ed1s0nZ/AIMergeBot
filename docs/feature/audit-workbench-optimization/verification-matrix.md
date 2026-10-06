@@ -1,6 +1,11 @@
 # v46 当前增量
 
-## 当前增量：v47 原预算收尾已验证，整体仍incomplete
+## 当前增量：v48 独立来源要求工程通过，真实效果仍未验证
+
+2eb8daf把mandatory context ID清单与原fresh门禁共用，增加具体子断言条件提示，原预算/历史/公共shape不变。full172.055s、race12.568s、vet/diffcheck/精确CI37457629388 success，独立scoped APPROVE（484hash、目标Go48.723s）。真实803一次在primary关系目标字段为空的重复拒绝中耗尽15决策，独立阶段未执行；结果model_or_agent_failed，不能声称新提示真实有效。详见regression-v48-source.md。下一步关系字段错误反馈，AER-001 open；原失败保留，未合并main/部署。
+
+
+## 前一增量：v47 原预算收尾已验证，整体仍incomplete
 
 297e610主审共享原决策硬上限，并对合法提前final最多请求一次补录；候选、压缩、token/取消门禁保持。full205.620s、受影响race39.055s、vet/diffcheck、精确CI37455551443 success；独立scoped APPROVE/PFR-001 resolved（full96.142s、race23.639s、481文件一致）。真实原模型802/803各一次已保存实际BASE/HEAD引用及cited调用/部署关系；803初审全读三份PHP上下文，不再把可用部署映射说成缺失。fresh claim漏相关仓库被正确保留unknown；具体SQL载荷条件/full coverage仍需改善。详见regression-v47-finalization.md；AER-001 open，未合并main/部署，不承诺总体准确率。
 
