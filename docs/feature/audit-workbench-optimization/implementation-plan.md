@@ -61,3 +61,7 @@ Workflow Gate：Confirmed R3、v40原始回执与具体producer/consumer遗漏�
 ### v42 命题评估适配（P10/F3）
 
 Workflow Gate：Confirmed R3 AC003/006/011/012及真实802失败证据具备；已有设计契约，允许，无新权限/产品决定。Maintainability Gate：agent_investigation约200行，导航单职责；低风险adapter_extraction，独立输入helper，原校验复用，无广泛重构。生命周期分支codex/audit-quality-loop；设计6e2d357先推送，本计划提交推送后实现。新增DTO/枚举映射和schema modifier；ledgerChange薄委托保存真实提交trace并限制新旧输入字节，原update保持。模型schema仅隐藏根status、保留plan.status；有限导航说明改新assessment，策略v42。测试枚举、矛盾、兼容、预算、真实源码资格、实际SDK schema与回执；race/full/vet；冻结SHA独立新上下文review，再原provider/预算802回归。失败与未完成保留，不把已知回归称盲测，不自动合并部署。回退适配注册及导航即可，历史结构保持。
+
+### v42 剩余质量缺口取证（P9/F5准备）
+
+上一轮为progress：输入契约源码、真实802及独立检视改变权威状态。Workflow Gate：Confirmed R3 AC002/003/005/011、冻结源码b19ff4677f475d15bd5ab7d04e0da7c27bdd5807及旧v37 803/805缺口齐备；允许仅评测，不改生产契约/权限/UI。Maintainability Gate：无代码改动，现有CLI只读审计固定fixture；不新增prompt迭代。依原独立首次corpus，选803跨项目正例和805兼容负例各一次原deepseek-chat/15steps80tools240回归；冻结当前源码和原真值，分别检查双方源码、主PR锚点、source-linked关系、实际Claim极性及未知边；失败/incomplete/成本完整保留，不改真值/预算，不盲重跑、不执行样本。首次已知样本称回归，不能外推生产准确率；确认需求不要求所有样本completed。本轮结果将决定具体必要改进或更新AC覆盖，不以只检查工具存在关闭AER-001。先提交推送本计划，再执行。
