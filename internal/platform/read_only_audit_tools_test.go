@@ -27,7 +27,7 @@ func TestSupplementalToolsExcludeUnknownMutationByDefault(t *testing.T) {
 		}
 		names[info.Name] = true
 	}
-	for _, name := range []string{"future_record_mutation", "record_hypothesis", "update_investigation", "submit_finding", "resolve_recording_errors"} {
+	for _, name := range []string{"future_record_mutation", "record_hypothesis", "update_investigation", "record_pr_context", "submit_finding", "resolve_recording_errors"} {
 		if names[name] {
 			t.Fatal("supplemental mutation exposed", name)
 		}

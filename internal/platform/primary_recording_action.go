@@ -54,13 +54,13 @@ func recordingActionGuidance(action string) string {
 	case "inspect_plan":
 		return "Inspect the source needed by pending/unavailable plan tasks, then update_investigation with the actual factual reasons and linked source IDs. Keep necessary missing evidence unresolved; a checked task records inspection, not exploitability."
 	case "link_pr_context":
-		return "Use update_investigation to record concise pr_context: change_summary, before, after, source-linked entry_points and guards. Link actual BASE/HEAD and caller/contract observations; preserve unresolved_edges. Never convert filename enumeration into source facts."
+		return "Use record_pr_context with the exact saved id and claim to save a complete concise pr_context: change_summary, before, after, source-linked entry_points and guards. Link actual BASE/HEAD and caller/contract observations; preserve unresolved_edges. Never convert filename enumeration into source facts."
 	case "link_pr_sides":
-		return "Read the missing primary BASE/HEAD behavior and set pr_context.before_observation_ids/after_observation_ids, also linked in the investigation's top-level source IDs. Preserve existing plan and context; missing snapshots remain limitations."
+		return "Reuse existing successful primary BASE/HEAD reads where applicable; read only missing behavior. Use record_pr_context with exact saved id/claim and a complete context, setting before_observation_ids/after_observation_ids and explicit new top-level source IDs. Preserve existing plan and context; missing snapshots remain limitations."
 	case "inspect_context":
 		return "Investigate relevant administrator-authorized fixed context contracts using scoped tools. An uninspected repository is not unavailable. Record which connection evidence exists and which necessary relation remains unknown; do not equate matching names with a contract."
 	case "record_relationships":
-		return "Use update_investigation to record pr_context.relationships only for connections supported by inspected caller/transform/contract source observations. Cite both endpoints and connection evidence where needed. If the connection is unknown, preserve unresolved_edges and coverage limitations; do not invent an edge to clear this reminder."
+		return "Use record_pr_context with exact saved id/claim and a complete context including relationships: from, to, relation, certainty (cited or inferred), observation_ids. Reuse actual inspected caller/transform/contract observations; cite both endpoints and connection evidence where needed. Preserve existing before_observation_ids/after_observation_ids and explicitly add new top-level IDs. If the connection is unknown, preserve unresolved_edges and coverage limitations; do not invent an edge to clear this reminder."
 	case "resolve_hypotheses":
 		return "Explicitly update each inspected hypothesis using claim_assessment: evidence_supports_claim if evidence supports that actual claim; evidence_refutes_claim only if counterevidence refutes it; insufficient_evidence for necessary missing evidence. A compatibility or guard-improvement claim may be supported without a finding."
 	case "resolve_recording_errors":

@@ -87,6 +87,8 @@ func recordingFamily(name string) string {
 	switch name {
 	case "record_hypothesis", "update_investigation":
 		return "investigation"
+	case "record_pr_context":
+		return "pr_context"
 	case "submit_finding":
 		return "finding"
 	}
@@ -97,7 +99,7 @@ func sameRecordingArtifact(failed, corrected ToolTrace) bool {
 	if family == "" || family != recordingFamily(corrected.Name) {
 		return false
 	}
-	if family == "investigation" {
+	if family == "investigation" || family == "pr_context" {
 		var a, b Investigation
 		if json.Unmarshal([]byte(failed.Arguments), &a) != nil || json.Unmarshal([]byte(corrected.Arguments), &b) != nil {
 			return false
