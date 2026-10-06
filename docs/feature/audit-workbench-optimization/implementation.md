@@ -218,3 +218,9 @@ v28 隔离验收v2首次运行已归档284文件、逐项SHA256复读验证，�
 定向回归 Test(ProgressNavigation|PrimaryProgress|InvestigationPlan|Recording|RepositoryUnavailable|ContextRepositoryUnavailable) exit0（27.685s）；SDK收尾状态投影与隐私投影race exit0（9.247s）；go vet ./internal/platform与diff --check通过。SDK验证创建后unresolved=1、显式update后=0；这些是导航/契约证据，尚未证明真实质量改善。下一轮固定v36代码复跑同样语料，仍为回归。
 
 v36真实回归已完成，结果见 regression-v36.md。704/705调查显式收尾、702补账本，但全部incomplete，独立复核与风险链缺口仍保留；未声称总体质量提升。
+
+## 独立复核引用安全诊断
+
+v36历史invalid_observation的具体引用无法重构，未猜测也未回写。新增私有typed来源错误，保留原Error文本及验证接受/拒绝条件；后续model_response Error/安全shape code可细分 invalid_observation_unknown/wrong_stage/non_source/read_failed/malformed_output/snapshot_mismatch/empty_source。只输出枚举，不输出引用ID、原因正文、源码或底层错误。未知typed分类回落invalid_observation。未自动删除坏引用、重试或增加预算；复核仍unavailable，未修改提示及策略版本。
+
+测试：来源分类/原验证条件/解析/上下文回归exit0（3.319s）；实际SDK伪造旧ID产生unknown安全分类，且候选/覆盖缺口保留；SDK/来源校验/取消race exit0（2.522s）。go vet与diff --check通过。隐私测试验证错误文本、未知分类和形状输出不含私有ID、模型正文或读取错误。初次定向选择未覆盖IndependentEino测试，随后显式race覆盖，未把无匹配用例当SDK证明。此仅改善诊断，不声称语义正确性或准确率改善。

@@ -159,6 +159,20 @@ func TestIndependentEinoVerificationKeepsPrimaryFindings(t *testing.T) {
 					t.Fatal("fresh observation namespace", verification)
 				}
 			}
+			if mode == "forged" {
+				found := false
+				for _, item := range trace {
+					if item.Stage == "verification" && item.Name == "model_response" && item.Error == "invalid_observation_unknown" {
+						found = true
+						if strings.Contains(item.Output, "observation-1") {
+							t.Fatal("rejected ID leaked into diagnostic")
+						}
+					}
+				}
+				if !found {
+					t.Fatal("SDK provenance failure cause not recorded")
+				}
+			}
 			for _, tr := range trace {
 				if tr.Name == "read_file" && tr.Stage != "verification" {
 					t.Fatal("fresh source stage missing")

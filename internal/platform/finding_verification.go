@@ -78,12 +78,38 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 		}
 		seen[id] = true
 		found := false
+		failure := "unknown"
 		for _, tr := range trace {
-			if tr.Stage != "verification" || tr.ObservationID != id || tr.Error != "" || !isSourceTool(tr.Name) {
+			if tr.ObservationID != id {
+				continue
+			}
+			if tr.Stage != "verification" {
+				failure = "wrong_stage"
+				continue
+			}
+			if tr.Error != "" {
+				failure = "read_failed"
+				continue
+			}
+			if !isSourceTool(tr.Name) {
+				failure = "non_source"
 				continue
 			}
 			var output toolOutput
-			if json.Unmarshal([]byte(tr.Output), &output) != nil || !observationAtSnapshot(output, snap) || output.Error != "" || strings.TrimSpace(output.Text) == "" {
+			if json.Unmarshal([]byte(tr.Output), &output) != nil {
+				failure = "malformed_output"
+				continue
+			}
+			if !observationAtSnapshot(output, snap) {
+				failure = "snapshot_mismatch"
+				continue
+			}
+			if output.Error != "" {
+				failure = "read_failed"
+				continue
+			}
+			if strings.TrimSpace(output.Text) == "" {
+				failure = "empty_source"
 				continue
 			}
 			found = true
@@ -108,7 +134,7 @@ func validateVerification(input verificationInput, snap Snapshot, f Finding, tra
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("verifier observation is not a fresh successful pinned source")
+			return nil, &verifierObservationError{cause: failure}
 		}
 	}
 	if input.Status != "inconclusive" && len(input.ObservationIDs) == 0 {

@@ -170,7 +170,7 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 					code := "invalid_source"
 					switch validationErr.Error() {
 					case "verifier observation is not a fresh successful pinned source":
-						code = "invalid_observation"
+						code = verificationObservationFailureCode(validationErr)
 					case "duplicate verifier observation":
 						code = "duplicate_observation"
 					case "verifier verdict requires fresh evidence":
