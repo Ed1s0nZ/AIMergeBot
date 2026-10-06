@@ -268,3 +268,7 @@ v42真实805三次重复改写p3/p5 question，原门禁正确拒绝但错误未
 ### v44 未知调查ID恢复（P10/F2）
 
 v43真实805成功record inv-1，update空ID导致unknown hypothesis，随后模型停止并错误归因。保留未知ID拒绝，不自动选择、创建或按Claim匹配。仅在已有unknown hypothesis错误中添加当前audit ledger已知ID JSON（排序、≤30条、每ID非空≤80bytes有效UTF8无NUL、JSON≤8000bytes）；空/异常/超限数据退回固定错误。提示从成功record回执复制确切ID；原ID视为非可信tool数据而非源码/指令，不进入trusted progress。模型schema id增加“更新必须复制已有ID，不生成”的字段说明。无持久化/输出字段迁移、无新工具调用、不增预算，原验证顺序和接受/拒绝条件保持，策略v44。此反馈不解决实际Claim极性，AER-001仍open。
+
+### v45 调查命题独立复核设计
+
+详见claim-verification-design.md；这是尚未实现的完整契约：fresh readonly命题真值核对、server-owned一致/分歧、原首审不变、共享原40工具/60秒及全token预算、持久化/UI/SARIF传播与实际质量验证。先零行为抽取pool，再实现，不用继续堆错误提示替代语义核查。Confirmed R3范围允许，无新增权限或预算。
