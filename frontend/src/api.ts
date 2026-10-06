@@ -182,6 +182,7 @@ export type Run = {
   created_at: string;
   result: {
     audit_groups?: {
+      priority_weight?: number;
       id: string;
       files: string[];
       status: "running" | "completed" | "failed" | "unprocessed";

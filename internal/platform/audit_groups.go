@@ -16,9 +16,10 @@ const (
 
 // AuditGroup is a planning boundary, not a semantic dependency assertion.
 type AuditGroup struct {
-	ID    string    `json:"id"`
-	Files []string  `json:"files"`
-	Scope DiffScope `json:"-"`
+	PriorityWeight int       `json:"priority_weight"`
+	ID             string    `json:"id"`
+	Files          []string  `json:"files"`
+	Scope          DiffScope `json:"-"`
 }
 type AuditPlan struct {
 	Groups       []AuditGroup `json:"groups"`
@@ -38,8 +39,17 @@ func changePath(c Change) string {
 // explicit coverage gap; limits never certify the omitted files as reviewed.
 func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 	ordered := append([]Change(nil), changes...)
+	priorities := map[string]int{}
+	for _, c := range ordered {
+		if weight := changePriority(c); weight > priorities[changePath(c)] {
+			priorities[changePath(c)] = weight
+		}
+	}
 	sort.SliceStable(ordered, func(i, j int) bool {
 		a, b := changePath(ordered[i]), changePath(ordered[j])
+		if priorities[a] != priorities[b] {
+			return priorities[a] > priorities[b]
+		}
 		if path.Dir(a) != path.Dir(b) {
 			return path.Dir(a) < path.Dir(b)
 		}
@@ -49,16 +59,18 @@ func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 	selected := []Change{}
 	files := []string{}
 	groupBytes, totalBytes := 0, 0
+	groupWeight := 1
 	flush := func() {
 		if len(selected) == 0 {
 			return
 		}
 		scope := BuildDiff(selected, nil, auditGroupBytes)
 		scope.Notes = nil // Input gaps are collected once in plan.Notes.
-		plan.Groups = append(plan.Groups, AuditGroup{ID: fmt.Sprintf("group-%d", len(plan.Groups)+1), Files: append([]string{}, files...), Scope: scope})
+		plan.Groups = append(plan.Groups, AuditGroup{PriorityWeight: groupWeight, ID: fmt.Sprintf("group-%d", len(plan.Groups)+1), Files: append([]string{}, files...), Scope: scope})
 		selected = nil
 		files = nil
 		groupBytes = 0
+		groupWeight = 1
 	}
 	for _, c := range ordered {
 		single := BuildDiff([]Change{c}, excluded, auditGroupBytes)
@@ -102,6 +114,9 @@ func PlanAuditGroups(changes []Change, excluded []string) AuditPlan {
 				continue
 			}
 			selected = append(selected, unit)
+			if priorities[changePath(c)] > groupWeight {
+				groupWeight = priorities[changePath(c)]
+			}
 			if len(files) == 0 || files[len(files)-1] != changePath(c) {
 				files = append(files, changePath(c))
 			}

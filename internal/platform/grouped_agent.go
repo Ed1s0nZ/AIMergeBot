@@ -11,9 +11,10 @@ import (
 )
 
 type AuditGroupProgress struct {
-	ID     string   `json:"id"`
-	Files  []string `json:"files"`
-	Status string   `json:"status"`
+	PriorityWeight int      `json:"priority_weight,omitempty"`
+	ID             string   `json:"id"`
+	Files          []string `json:"files"`
+	Status         string   `json:"status"`
 }
 
 // mergeAuditGroup operates on a deep copy: checkpoints cannot mutate a live
@@ -58,7 +59,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 	ctx = withModelBudget(ctx, e.Config.MaxTokens)
 	result := AuditResult{Findings: []Finding{}, CoverageNotes: append([]string{}, plan.Notes...), ExcludedFiles: append([]string{}, plan.Excluded...), Summary: "Grouped static audit"}
 	for _, g := range plan.Groups {
-		result.AuditGroups = append(result.AuditGroups, AuditGroupProgress{ID: g.ID, Files: g.Files, Status: "unprocessed"})
+		result.AuditGroups = append(result.AuditGroups, AuditGroupProgress{PriorityWeight: groupPriority(g), ID: g.ID, Files: g.Files, Status: "unprocessed"})
 	}
 	trace := []ToolTrace{}
 	manifestPaths := []string{}
@@ -107,7 +108,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 				result.CoverageNotes = append(result.CoverageNotes, limitation)
 			}
 		}
-		child.Config.MaxToolCalls = remaining / (len(plan.Groups) - i)
+		child.Config.MaxToolCalls = priorityCallBudget(remaining, plan.Groups[i:])
 		if child.Config.MaxToolCalls < 1 {
 			child.Config.MaxToolCalls = 1
 		}
@@ -123,7 +124,7 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		groupCtx := primaryCtx
 		groupCancel := func() {}
 		if deadline, ok := primaryCtx.Deadline(); ok {
-			groupCtx, groupCancel = context.WithTimeout(primaryCtx, time.Until(deadline)/time.Duration(len(plan.Groups)-i))
+			groupCtx, groupCancel = context.WithTimeout(primaryCtx, priorityTimeBudget(time.Until(deadline), plan.Groups[i:]))
 		}
 		part, current, err := child.Audit(groupCtx, snap, g.Scope)
 		groupCancel()
