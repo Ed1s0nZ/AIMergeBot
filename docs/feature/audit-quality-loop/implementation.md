@@ -17,3 +17,7 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 首次全量测试失败：旧零账本 SDK/worker/CLI fixture 仍期望 succeeded，新增计划缺口使其 incomplete；调整这些 fixture 的精确状态和 notes 数量，没有放宽门禁。补充真实 Eino SDK 工具序列测试：零账本不能认证完成、四任务关联实际成功工具源后可排除调查并无计划缺口。专项通过1.100s，race通过1.947s；最终 go test ./... exit0（root3.754s、platform43.627s，其他包缓存），TypeScript/Vite build通过1.12s，git diff --check通过。
 
 本切片尚未做实际浏览器展示验收、真实模型使用调查计划回归与新真实PR评测；这些仍待完成。计划完成只表示记录/来源完整，不证明模型语义判断正确，不能把新增门禁当作准确率提升。
+
+第三切片：更新省略PRContext保留既有记录，在保留后重新执行source ownership、snapshot side与总预算校验；getter深拷贝PRContext。新增真实Git源测试覆盖保留、返回别名隔离、去掉关联源被拒绝、继承后8000byte超限、显式空对象拒绝。专项4.326s、race4.512s通过；全量 go test ./... exit0（platform132.239s，其他包缓存）。耗时比上一轮增加，同期存在其他Go测试进程，未归因或宣称性能改善。git diff --check通过。
+
+第二切片UI和真实模型验证见evaluation-v30-case203.md；真实模型仍有结构化PR链缺口和方法说明混入coverage的问题。没有将单例改进当准确率证明。

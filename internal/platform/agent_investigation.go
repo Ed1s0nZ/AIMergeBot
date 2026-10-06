@@ -16,6 +16,7 @@ func (t *auditTools) investigations() []Investigation {
 	out := []Investigation{}
 	for _, v := range t.ledger {
 		v.Plan = cloneInvestigationPlan(v.Plan)
+		v.PRContext = clonePRContext(v.PRContext)
 		out = append(out, v)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
@@ -41,6 +42,10 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 		}
 		t.mu.Lock()
 		defer t.mu.Unlock()
+		// Omission on update retains the recorded context, but never its source validation.
+		if name == "update_investigation" && a.PRContext == nil {
+			a.PRContext = clonePRContext(t.ledger[a.ID].PRContext)
+		}
 		if err := t.validateObservationIDs(a.ObservationIDs); err != nil {
 			return toolOutput{}, err
 		}
@@ -163,7 +168,7 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("record_hypothesis", "Record concise factual claim, evidence, counterevidence, observation_ids, counter_observation_ids and next_steps; not private reasoning. Returns generated id. Entire serialized investigation max8000 UTF-8 bytes: keep only concise core facts, use observation IDs instead of repeating source text.", t.record)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids for supported; rejected REQUIRES counterevidence AND counter_observation_ids. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Entire serialized update max8000 UTF-8 bytes; keep a few core facts, not full repeated source blocks. Does not prove exploitability.", t.update)); e != nil {
+	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids for supported; rejected REQUIRES counterevidence AND counter_observation_ids. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Omitted plan and pr_context retain saved records; retained source IDs must still belong to this update. Entire serialized update including retained records max8000 UTF-8 bytes; keep a few core facts, not full repeated source blocks. Does not prove exploitability.", t.update)); e != nil {
 		return nil, e
 	}
 	if e := add(utils.InferTool("submit_finding", "Validate proposed finding against changed base/head lines or verified Git metadata and exact snapshot evidence; matching evidence does not establish runtime verification.", t.submit)); e != nil {
