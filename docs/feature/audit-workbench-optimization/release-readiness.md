@@ -1,6 +1,10 @@
 # R3 分支交付
 
-## 当前实现：v45 命题复核、检查点和UI消费已完成切片验证
+## 当前增量：v46 PR上下文原子补录已验证，整体仍incomplete
+
+c5aa4d7提供typed record_pr_context，仅明确更换PRContext/合并显式来源，不改原命题判断、计划、反证及历史；full156.137s、race60.011s+9.047s、vet/diffcheck、精确CI37450141111success，独立新契约delta scoped APPROVE（476文件一致），不批准整分支。真实原模型802/803各一次：803确实采用并保存关系，但双方引用仍漏、可用deployment映射漏读且主审提前终止；详见regression-v46-context.md。AER-001 open，下一步原预算内收尾控制，未合并main/部署。
+
+## 前一实现：v45 命题复核、检查点和UI消费已完成切片验证
 
 986b336接入实际调查复核SDK、finding优先同40次/60秒pool、fresh来源/独立模型/usage/SARIF；其full194.834s/CI37444342848通过但独立REQUEST_CHANGES发现EXR-001取消冻结检查点漏review。dfc6340以每次checkpoint副本投影修复，原ledger与成功final不污染、group在ID合并后处理；实际Store/worker/group SDK取消、恢复与fence回归通过。最终full134.292s/CI37445789011success、独立scoped APPROVE/EXR-001 resolved；不批准全分支。UI五态/初审命题文案/长ID/键盘focus与配置消费已实现，实际360px/fresh source及running/cancelled/failed历史空态验证见claim-verification-ui-qa.md；53331c8 UI独立scoped APPROVE、无确认finding，冻结464文件、15项SSR状态检查、10项浏览器产物和8项源码hash复核通过；精确源码CI37447550923已核对success。该批准只覆盖dfc6340→53331c8 UI/文案/生成资源，不覆盖整分支语义质量。原模型805一次known regression已在53331c8验证fresh true捕获首审rejected实际命题分歧，27.005s/116724tokens/0finding/incomplete；详见regression-v45-claim.md。802/803原模型各一次回归见regression-v45-paired.md：安全改善判断正确、跨语言风险定位正确，但结构化关系/双侧引用及条件措辞仍缺口。这不是整体准确率或blind验收，R3完整证据尚未证明，AER-001 open，无合并部署。
 

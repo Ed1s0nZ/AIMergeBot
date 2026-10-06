@@ -1,3 +1,7 @@
+# v46 当前增量
+
+精确c5aa4d7：原子上下文工具/schema/唯一primary来源/固定SHA/side/20条及8000字节/同family恢复/旧finding与计划保留，full156.137s、race60.011s+9.047s、vet/diffcheck、CI37450141111success及独立delta APPROVE。真实802/803各一次，803采用新工具但两个样本漏双侧ID，803漏可用部署映射；当前AC003/005/完整质量仍incomplete、AER-001 open。详见regression-v46-context.md；其余R3继承范围见completion-audit-v45.md，不把切片批准扩为全部完成。
+
 # R3 交付核对矩阵
 
 ## 当前实现：v45 命题复核执行与检查点已验证，UI消费待冻结检视

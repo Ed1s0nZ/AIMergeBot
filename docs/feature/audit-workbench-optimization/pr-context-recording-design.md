@@ -12,4 +12,6 @@ Workflow Gate：phase P10/F2；backend adapter；required artifacts为Confirmed 
 
 F4实现：record_pr_context已注册typed SDK；锁内以当前记录合并显式IDs，完整输入/合并后的8000字节门禁及原20条/列表门禁保持，额外要求唯一trace、primary stage、evidence_eligible=true、输出ID匹配、固定授权SHA和非空来源，防止复核结果回灌初审。只最后保存，原字段不重写；独立pr_context错误family不与完整调查/update混用。新的source-linked关系仍由模型显式记录，不检验名字为真语义，unknown/inferred保留。后续条件风险措辞及旧反证同步尚未处理。
 
-F5初步：新增实际本地固定Git正反来源门禁/原子失败、输入及合并超限、错side/context冒充主侧/未知ID/错Claim、复核stage/duplicate trace/noneligible/stale/outputID、保留字段/旧finding快照与明确重提、同family显式纠正及失败历史、并发source merge；实际Eino SDK生成工具schema无status/plan/verdict可写，七轮源读→record→context补录→assessment→final真实链路与进度验证通过。定向test33.751s，先前基础定向45.147s，vet/diffcheck通过；相关调查/PR/纠正/SDK/只读/取消/分组定向race60.011s通过；full/精确CI和独立新契约检视待最终结果，不把synthetic SDK称语义模型效果。
+F5初步：新增实际本地固定Git正反来源门禁/原子失败、输入及合并超限、错side/context冒充主侧/未知ID/错Claim、复核stage/duplicate trace/noneligible/stale/outputID、保留字段/旧finding快照与明确重提、同family显式纠正及失败历史、并发source merge；实际Eino SDK生成工具schema无status/plan/verdict可写，七轮源读→record→context补录→assessment→final真实链路与进度验证通过。定向test33.751s，先前基础定向45.147s，vet/diffcheck通过；相关调查/PR/纠正/SDK/只读/取消定向race60.011s通过；分组取消/独立claim SDK/worker另行race9.047s通过；full平台156.137s、精确CI37450141111success、独立scoped APPROVE，不把synthetic SDK称语义模型效果。
+
+F5真实原模型：802/803各一次，803成功调用新工具并保存关系；仍漏显式双侧IDs、漏读可用mapping并提前返回，详见regression-v46-context.md，AER-001 open。
