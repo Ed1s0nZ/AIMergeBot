@@ -246,3 +246,11 @@ V39-001独立反例确认：首次目录检查点普通失败或ErrConflict之�
 每个动作只有相应固定操作说明；无未读context或合格纠正pair时不反复附加无关长说明。记录动作明确无告警也需changed-behavior检查和四方面pending计划；safe/compatibility claim有证据时supported且无需finding，rejected仅表示反证否定实际claim。相关关系必须实际两端/连接来源，缺失用unresolved_edges。末轮严格JSON和原硬预算优先，不能为清状态补造记录或强行重试。无 tool_choice=required、无新provider参数或接口假设（官方DeepSeek不同模式存在兼容差异，https://api-docs.deepseek.com/api/create-chat-completion/）；不变更原模型/工具校验与历史。
 
 只改变导航/局部工具说明和策略v40，不声称强制记录或自动消除语义错误。单样本后续真实回归绑定新源码，依然是已知回归；是否改善由实际ledger/plan/来源关系检查，不用completed数量替代。没有新UI/DB/API字段。
+
+## v41 所有调查的最终PR记录覆盖
+
+v40真实802 plan四项checked、status错误rejected、无finding，却缺before/after source links及relationships；最终服务端只投影plan，PR gap只对findings投影。Confirmed R3 AC003/005/006/012要求无告警也明确未核实关系，不能依赖模型自行承认。新增调查级PR coverage，复用prRecordingGaps固定分类，将缺结构、BASE/HEAD来源链接、未记录/推断关系追加最终coverage；不改Claim/status、不自动补来源、不当漏洞。
+
+纯元数据调查不强制虚构运行路径：只有至少一个引用，所有引用都为当前主阶段/主仓库/完整固定BASEHEAD、成功且sourceeligible的get_change_metadata，并逐项匹配included scope的valid metadataOnly canonical全文，才允许metadata-only比较/关系豁免；主/上下文源码混用、错快照/阶段/重复编号/错误/损坏/正文变化均不豁免。这个分类是所引来源种类，不判断Claim语义。canonical metadata可表明两个Git入口事实，不能宣称运行效果。其他调查仍保留记录缺口。原finding metadata规则和语义判断保持，历史不重写。
+
+追加说明会经既有Run结果持久化、group合并、UI覆盖列表和SARIF不可完成状态传播，无新字段/前端迁移。来源与判断门禁不变，策略v41。已有v40极性错误保持open，不把更多incomplete当判断修复或新完成标准。当前v40 CI37432182646已success；v41另验。

@@ -51,3 +51,9 @@ V39-001修复计划：grouped_agent child Progress wrapper串行化并记首erro
 Workflow Gate：Confirmed R3/design/source及真实802回执具备，缺口是记录动作未采用，不是新权限或产品决策；允许局部反馈迭代。Maintainability Gate：primary_progress_navigation104行、agent331行，新增纯action helper单职责，旧导航只接入；低风险narrow_fix，无广泛重构。生命周期分支codex/audit-quality-loop，先提交推送设计计划，再源/测试，再记录实际效应及独立边界检查。
 
 实现有限action纯helper及固定说明；primaryRecordingProgress仅添一个内部system字段，用现有合法来源/待办投影选择，不改变记录门禁；核心prompt与record_hypothesis说明明确每次PR行为检查包括no-findings。测试各动作优先顺序、未知gap安全降级、完整状态但真实unknown仍保留、源/模型text不入system；真实SDK第一源读后第二请求提示record_changed_behavior，工具调用后按服务器状态刷新，末轮预算优先。原记录/计划/纠正/分组/停止测试、race、full/vet；真模型focus802原15/80/240，无重跑。真实效果失败保留，AER-001仍open直到原验收充分。
+
+### v41 调查最终覆盖一致性（P10/F3）
+
+Workflow Gate：Confirmed R3、v40原始回执与具体producer/consumer遗漏已具备；允许只读调查结果可靠性修复，无新产品/权限决策。Maintainability Gate：新单职责helper及agent331行一处连接，prRecordingGaps保留共用，低风险narrow_fix，不广泛重构。
+
+先设计计划提交推送，再调查PR coverage/helper和agent正常结果连接；测试无finding已解析四项checked/support或reject调查缺链接时仍明确未完成、完整结构只表示字段齐全、inferred不能因unresolved_edges空消失；metadataOnly正例和错阶段/仓库/快照/重复/损坏/混源/变正文反例。实际SDK通过现有record/update及final[]覆盖；实际worker持久化status与报告无告警不当completed，原计划/finding metadata/分组/序列/SARIF回归、race/vet/full。独立边界review新SHA。真实旧802回执离线只验证新增projection，不称新模型/不重写原status；不盲重跑模型为取得completed。原Claim极性/跨项目关系仍需继续优化。
