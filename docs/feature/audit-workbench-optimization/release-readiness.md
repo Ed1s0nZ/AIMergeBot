@@ -1,8 +1,14 @@
 # R3 分支交付
 
-## 当前增量：23d3bc3（策略 v40），整体仍未完成
+## 当前增量：83671ea（策略 v41），整体仍未完成
 
-新增状态对应next_recording_action，建议真实源码/计划/PR链接/上下文/关系/收尾/纠正操作，未改变来源校验或自动确认记录。full Go exit0（platform134.382s）、race7.774s、vet/diffcheck通过；独立边界scope COMMENT/mergeable=false，无新blocking，非整体批准。源码CI run37432182646运行中。
+无finding调查也用共享PR recording gaps保留最终BASE/HEAD来源与关系缺口；metadata-only依固定来源分类，同步feedback/live/final，不制造执行路径。最终生产源码full Go exit0 platform111.423s、广泛定向race8.043s、追加SDK/worker/SARIF race4.447s、vet/diffcheck通过。独立切片COMMENT、无blocking，定向9.457s/自设计8类来源边界0.709s通过；非整分支批准。源码CI run37434193201运行中。
+
+旧真实v40-802离线投影新增三条缺口，全部Claim/status/原记录JSON未变，无新模型请求，不当作准确率/效果回归。原真实模型的错误Claim极性、跨项目关系及部分入口质量仍未充分证明，AER-001 open；v41只防止最终说明丢失，不修复语义判断。未合并、未部署。
+
+## 历史增量：23d3bc3（策略 v40），整体仍未完成
+
+新增状态对应next_recording_action，建议真实源码/计划/PR链接/上下文/关系/收尾/纠正操作，未改变来源校验或自动确认记录。full Go exit0（platform134.382s）、race7.774s、vet/diffcheck通过；独立边界scope COMMENT/mergeable=false，无新blocking，非整体批准。源码CI run37432182646 success。
 
 真实case-802在原模型/预算下102808tokens、四项checked计划与显式同陈述纠正已观察，但safeClaim错误rejected、结构化关系与BASE/HEAD链接仍缺，状态incomplete。详见regression-v40-actions.md；不能用结构化字段或0finding当质量证明，未重跑803/805，AER-001 open。只交付分支，未合并或部署。
 
