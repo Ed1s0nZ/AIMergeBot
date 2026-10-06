@@ -15,3 +15,5 @@
 第四切片实施计划：新增独立 audit_priority.go，词法信号最多权重3、默认1，不依据文件扩展名判断支持语言。audit_groups 排序和分组取最大权重；grouped_agent 的调用/时间按剩余权重分配，调用先给可覆盖的剩余组各保留1次，不增加全局工具预算。progress带 priority_weight，历史0按默认1解释；模型与UI明确这是调度提示。添加稳定排序、去掉guard优先、未知文本不漏、排除与总上限、预算极少/溢出保护的专项测试，再运行分组回归与全量。
 
 第五切片文件：repository_availability.go及测试；git_repository最小错误分类；agent_tools记录标记/model_usage请求门禁/agent错误归因/grouped停止后续付费阶段。优先SDK真实HTTP计数测试，普通read错误仍可修复。环境许可未恢复，F2/F3与后续F4提交暂待，不自动同意许可。
+
+第六切片文件：primary_round_budget.go/测试、agent最小重写包装、分组stop_reason/合并来源保护、audit-eval失败分类、UI类型与已有分组状态显示原因。验证原2/4/8轮最后一次请求可报告、不增加配置轮数、提醒不累计或污染原消息、原源码/工具消息不变、未完成不伪装通过、分组budget类型由真实SDK错误产生、模型伪造组原因被清除、receipt分类。Go相关/race/全量及前端构建/受控实际UI，保留现有真实失败而不为单例调高预算。
