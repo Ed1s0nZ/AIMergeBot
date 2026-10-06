@@ -29,7 +29,10 @@ func (t *auditTools) update(ctx context.Context, a Investigation) (toolOutput, e
 	return t.ledgerChange("update_investigation", a)
 }
 func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, error) {
-	return t.invoke(name, a, func() (toolOutput, error) {
+	return t.ledgerChangeWithInput(name, a, a)
+}
+func (t *auditTools) ledgerChangeWithInput(name string, a Investigation, submitted any) (toolOutput, error) {
+	return t.invoke(name, submitted, func() (toolOutput, error) {
 		raw, _ := json.Marshal(a)
 		if len(raw) > 8000 {
 			return toolOutput{}, fmt.Errorf("investigation JSON is %d UTF-8 bytes; maximum is 8000 bytes. Shorten repeated evidence text and PR facts; retain a few core source-linked statements and unresolved next_steps. Do not repeat the oversized payload", len(raw))
@@ -168,7 +171,7 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("record_hypothesis", "Record a changed-behavior inspection, including safe/compatible or no-finding conclusions. After the first relevant source read, record the actual concise claim, successful source IDs and pending plan before further exploration. Include evidence, counterevidence and next_steps as available; not private reasoning. Always creates status investigating regardless of input status; returns generated id. Resolve later with update_investigation only after source-linked inspection, or preserve actual unknowns. Entire serialized investigation max8000 UTF-8 bytes: keep only concise core facts, use observation IDs instead of repeating source text.", t.record)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("update_investigation", "Update existing id, claim and status investigating/supported/rejected with evidence/observation_ids for supported; rejected REQUIRES counterevidence AND counter_observation_ids. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Omitted plan and pr_context retain saved records; retained source IDs must still belong to this update. Entire serialized update including retained records max8000 UTF-8 bytes; keep a few core facts, not full repeated source blocks. Does not prove exploitability.", t.update)); e != nil {
+	if e := add(utils.InferTool("update_investigation", "Update existing id and assess the actual claim using claim_assessment: evidence_supports_claim needs evidence/observation_ids; evidence_refutes_claim REQUIRES counterevidence AND counter_observation_ids; insufficient_evidence retains an unresolved investigation. A safe/compatible or guard-improvement claim can be supported without a finding. Assess the claim, not whether a vulnerability exists. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Omitted plan and pr_context retain saved records; retained source IDs must still belong to this update. Entire serialized update including retained records max8000 UTF-8 bytes; keep a few core facts, not full repeated source blocks. Does not prove exploitability.", t.updateAssessment, utils.WithSchemaModifier(investigationAssessmentSchema))); e != nil {
 		return nil, e
 	}
 	if e := add(utils.InferTool("resolve_recording_errors", "Explicitly retire 1–8 pending recording errors after later successful correction of the same local artifact; use exact failed_observation_id/corrected_observation_id pairs. No source failures, pagination, or unrelated candidates; trace is retained and this is not evidence.", t.resolveRecordingErrors)); e != nil {

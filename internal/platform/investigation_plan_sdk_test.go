@@ -16,6 +16,12 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 		var calls atomic.Int32
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var req struct {
+				Tools []struct {
+					Function struct {
+						Name       string         `json:"name"`
+						Parameters map[string]any `json:"parameters"`
+					} `json:"function"`
+				} `json:"tools"`
 				Messages []struct {
 					Role    string `json:"role"`
 					Content string `json:"content"`
@@ -25,6 +31,11 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 				t.Error(err)
 			}
 			n := calls.Add(1)
+			for _, tool := range req.Tools {
+				if tool.Function.Name == "update_investigation" {
+					assertAssessmentSchema(t, tool.Function.Parameters)
+				}
+			}
 			if len(req.Messages) == 0 || !strings.Contains(req.Messages[0].Content, "Server-owned recording progress") {
 				t.Error("SDK missing current progress navigation")
 			}
@@ -79,7 +90,7 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 					plan[i].Reason = "synthetic counterevidence judgment, not semantic proof"
 					plan[i].ObservationIDs = []string{id}
 				}
-				toolCall("update_investigation", Investigation{ID: "plan", Claim: "static candidate examined", Status: "rejected", Counterevidence: []string{"fixture judgment"}, CounterObservationIDs: []string{id}, Plan: plan})
+				toolCall("update_investigation", investigationAssessmentUpdate{Investigation: Investigation{ID: "plan", Claim: "static candidate examined", Counterevidence: []string{"fixture judgment"}, CounterObservationIDs: []string{id}, Plan: plan}, ClaimAssessment: "evidence_refutes_claim"})
 			} else {
 				message["content"] = `{"findings":[],"summary":"static fixture, not safety certification","coverage_notes":[]}`
 			}

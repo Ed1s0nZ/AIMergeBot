@@ -280,3 +280,7 @@ F5：最终full go test ./... exit0（root10.043s、audit-eval1.343s、evaluatio
 真实v40 case-802回执离线projection检验：新增BASE/HEAD链接及relationship三条说明，原rejected错误极性与全部原记录JSON未变；没有新增API请求或重新宣称模型质量。最终helper离线0.799s通过，前版本0.772s仅历史。外部检查文件/overlay/output/source SHA保存 /Users/worker/.codex/evaluation-artifacts/aimangebot/v41-frozen-v40-projection-20261006。旧真实回执不修改，所有语义/关系完成阻塞继续open。v40源码CI37432182646 success，不继承为v41 CI。
 
 F5/F6：冻结83671eaecbdcdd1a8b71b8c77f68850cb81cd0b9。最终生产源码full go test ./... exit0 platform111.423s，其他包通过缓存；追加SARIF测试断言由race4.447s覆盖，无后续生产改动。独立fresh-context scope COMMENT、无blocking：自主定向9.457s及8模式source-basis overlay0.709s通过（counter-only正例，stale BASE/ineligible/scope removed/supplement/malformed args/reversed duplicate/mixed source负例）。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v41-83671ea/PR_REVIEW_REPORT.md，完整大分支显式排除，不作为整体批准。异常返回路径仍只有中断总说明，但worker/SARIF不能变clean；没有据未执行的细项补造coverage。源码CI run37434193201目前in_progress。离线归档5文件SHA与当前helper源SHA核对一致。整体AER-001 open：特别是v40 safeClaim错误rejected及跨项目/入口语义关系质量，v41只补最终说明，不声称判断修复。下一步应区分“是否支持实际Claim”与“是否有finding”的工具输入语义，减少状态误用；兼容旧记录与来源门禁，效果需原模型实际验证。
+
+### v42 命题评估适配实现
+
+模型update_investigation schema新增必填claim_assessment有限枚举，隐藏顶层legacy status并保留plan.status。独立DTO适配明确支持/反驳/证据不足到原状态；旧JSON status/direct update继续经过原ledger校验，矛盾新旧输入/未知枚举拒绝。真实提交DTO进入trace，标准状态写ledger；提交及规范化/保留数据预算均检查。来源资格、计划、纠正同陈述和所有审计预算未改。新增schema/兼容/冲突/无源码/字节预算测试；实际SDK HTTP捕获schema及新assessment解析为rejected。定向测试1.157秒、race含原纠正/动作/计划回归3.329秒通过；全量/vet进行中。真实模型语义效果未验证，AER-001保持open。

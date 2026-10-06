@@ -62,7 +62,7 @@ func recordingActionGuidance(action string) string {
 	case "record_relationships":
 		return "Use update_investigation to record pr_context.relationships only for connections supported by inspected caller/transform/contract source observations. Cite both endpoints and connection evidence where needed. If the connection is unknown, preserve unresolved_edges and coverage limitations; do not invent an edge to clear this reminder."
 	case "resolve_hypotheses":
-		return "Explicitly update each inspected hypothesis: supported if evidence supports that actual claim, rejected only if counterevidence refutes it. A compatibility or guard-improvement claim may be supported without a finding. Necessary missing evidence keeps status investigating."
+		return "Explicitly update each inspected hypothesis using claim_assessment: evidence_supports_claim if evidence supports that actual claim; evidence_refutes_claim only if counterevidence refutes it; insufficient_evidence for necessary missing evidence. A compatibility or guard-improvement claim may be supported without a finding."
 	case "resolve_recording_errors":
 		return "Explicitly pass relevant eligible_recording_corrections pairs to resolve_recording_errors. These same-statement candidates have not retired errors; absent candidates do not imply all errors are solved. Preserve history and actual source/coverage gaps."
 	default:
