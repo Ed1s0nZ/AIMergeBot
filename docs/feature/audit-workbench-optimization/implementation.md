@@ -260,3 +260,9 @@ F5补充：da039f3源码CI run37427483339 success；三份独立冻结范围报�
 V39-001修复冻结源码0e7db81bb84f2e0ba1b7d1f9f3291b6f27f75979。最终go test ./... exit0，platform102.421s，其他包通过缓存；并发启动的旧测试版本全量112.116s失败同前述第二检查点错误预期，未作为当前通过证据。修复race2.930s、vet/diffcheck通过。当前源码CI run37431241936运行中，旧dda3eda CI因后续push cancelled，不称失败或成功。真实模型定向17910tokens、原接口恢复的证据绑定dda3eda；全程无合并/部署。独立V39-001新SHA复查另补。
 
 独立新SHA复查0e7db81报告COMMENT（仅本边界scope，非整分支批准），V39-001 resolved，无新blocking。原overlay正确反例race2.966s；额外已完成第一组finding→第二组普通/冲突检查点失败→第三组及补充阻断race2.177s，验证原finding/trace保留、仅前组2次HTTP、失败callback仅一次。外部首fixture遗漏coverage_notes的失败保留；修正夹具后通过，未改源。报告保存在 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v39-0e7db81/PR_REVIEW_REPORT.md。整体仍incomplete，不能继承旧分支批准。
+
+## v40 状态对应的记录动作
+
+新增纯next_recording_action建议，用原来源/ledger/plan/context/correction状态稳定选择；固定文字按动作说明操作，不把Claim/path/source/error插入系统。无context/纠正pair时不重复附无关说明；未解决关系和必要证据仍保留。明确每个PR/组包括no-findings也记录changed-behavior检查，创建仍investigating，safe claim可supported且不需finding。原模型参数、工具校验、末轮预算与调查记录语义不变，没有forced tool_choice或自动填计划/关系。策略v40。
+
+定向exit0 2.866s；原计划/纠正/导航/分组停止与新增SDK/action race exit0 7.774s；vet/diffcheck通过。真实SDK三轮依次inspect_changed_source、record_changed_behavior、inspect_plan，实际记录四项pending、无checked来源/PR关系自动生成，仍incomplete。全量Go运行中；真实v40模型未执行，不把合成检查当质量证明。上一源码0e7db81 CI run37431241936已success；这不是v40 CI。

@@ -3,6 +3,7 @@ package platform
 import "encoding/json"
 
 type primaryRecordingProgress struct {
+	NextRecordingAction          string                `json:"next_recording_action"`
 	PrimaryHeadInventoryState    string                `json:"primary_head_inventory_state"`
 	PrimaryHeadListedFileCount   int                   `json:"primary_head_listed_file_count"`
 	EligibleRecordingCorrections []recordingCorrection `json:"eligible_recording_corrections,omitempty"`
@@ -71,8 +72,8 @@ func (t *auditTools) primaryProgressNavigation() string {
 			state.RecordingGaps = append(state.RecordingGaps, gap)
 		}
 	}
-	raw, _ := json.Marshal(state)
-	return "\nServer-owned recording progress (navigation only, not source evidence): " + string(raw) + ". Uninspected configured context is not unavailable: use repository-scoped tools to check relevant contracts before judging compatibility. If ledger_count is zero, record a source-linked changed-behavior inspection with a plan, which may conclude rejected/no-risk; do not invent a finding. Recent source IDs are candidates for deliberate linkage, not proof of relevance or connection. Preserve actual unknowns. eligible_recording_corrections lists at most four validated same-statement recording pairs; explicitly pass relevant pairs to resolve_recording_errors before final JSON. Listing a pair has not retired its pending failure or certified its claim. Do not change statements to obtain a pair; absent pairs do not mean all failures are solved. record_hypothesis always creates investigating status, even when its input plan is already checked. Before final JSON, explicitly update each inspected hypothesis using its saved id and successful source IDs: supported means the recorded claim is supported, rejected means counterevidence refutes that claim; neither status alone warrants a finding. A supported compatibility/no-risk claim needs no finding. Keep investigating when necessary evidence is missing; checked tasks alone never resolve a hypothesis. Do not change a claim or hide unknown relations merely to clear unresolved_ledger_count."
+	state.NextRecordingAction = nextRecordingAction(state)
+	return recordingProgressGuidance(state)
 }
 func primarySourceSides(tr ToolTrace) (bool, bool) {
 	switch tr.Name {
