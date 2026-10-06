@@ -226,3 +226,11 @@ Workflow Gate Report：用户目标为最佳实践优化，Confirmed R3 AC006/01
 Maintainability Gate Report：recording_corrections.go约110行、primary_progress_navigation.go约100行，职责清楚；局部helper extraction及窄投影，低风险。将单对验证提取为持锁helper，resolver和导航共用原全部校验，不放宽原子性、历史、当前阶段/快照与同陈述规则。导航按原trace顺序选待解决失败，为每条选择最后一个合格成功记录，稳定最多4对，排除非规范server observation编号（支持主组observation-N及分组group-N-observation-N），避免任意字段进入系统。导航不改变pending。
 
 生命周期F2/F3沿用codex/audit-quality-loop，F0/F1维持既有已确认R3。公共模型导航字段新增，策略v38；旧报告保持可读。验收：明确合法pair进入实际SDK请求、显式resolver清除后导航移除；源码失败/不同陈述/错阶段/错快照/partial/无接受产物/非规范ID不导航；有界稳定排序、导航无私密文本、源计划缺口及历史不被抹除。真实模型效果仍须独立记录，不由模拟SDK证明。
+
+## v39 主仓库范围预导航（P10/F2）
+
+Workflow Gate Report：Confirmed R3 AC002/003/005/006/011/012，AER-001真实802只查changed file且错称无其他文件。允许在首次模型请求前调用现有list_files page1，提供实际固定HEAD路径而非仅PR manifest；不要求读取全部仓库源码。该调用遵守原tool预算/回执/分页/checkpoint，发生在原context授权preflight成功之后，不引入独立未计费IO或新工具。文件列表是untrusted user导航、evidence_eligible=false；不得推导调用语义/无风险，BASE删除文件仍需base tree工具。
+
+Maintainability Gate Report：agent.go325行，新primary_repository_navigation.go局部单职责helper；连接替换原初始user导航，低风险narrow_fix。现有list_files输出有16000byte上限、More分页和pending；重用而不重复实现列表缓存/权限。普通列表失败保留trace/pending且允许工具恢复；执行器不可用、ctx取消或checkpoint失败必须在模型请求前停止。父预算不增，首次source编号正常顺延（不伪造/跳过模型工具计数），SDK测试改为真实回执编号。
+
+验收：实际首HTTP请求包括未修改caller/config路径，system不含路径；首list导航不可引用为source，当前snapshot/分页与失败保持；普通失败允许修正、不强制语言解析器；执行器不可用及checkpoint失败0模型请求；单组/多组总工具预算仍有界。新增有限导航primary_head_inventory_state/count，只依据成功主阶段list_files完整页序列投影；分页不完整不伪装full，未读文件仍不是已取证。策略v39，无UI/DB迁移，不改变记录/验证语义。真实模型取证改善另验证，不以预取目录证明调查完整。
