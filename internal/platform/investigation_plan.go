@@ -8,7 +8,7 @@ import (
 type InvestigationTask struct {
 	ID             string   `json:"id"`
 	Kind           string   `json:"kind"`
-	Question       string   `json:"question"`
+	Question       string   `json:"question" jsonschema:"description=On update copy the exact saved question text; do not paraphrase or expand it. Update only status/reason/observation_ids for an existing task."`
 	Status         string   `json:"status"`
 	Reason         string   `json:"reason,omitempty"`
 	ObservationIDs []string `json:"observation_ids,omitempty"`
@@ -89,11 +89,15 @@ func prepareInvestigationPlan(a *Investigation, previous Investigation) error {
 			}
 		}
 	}
+	conflicts := []investigationTaskIdentity{}
 	for _, old := range previous.Plan {
 		next, exists := tasks[old.ID]
 		if !exists || next.Kind != old.Kind || next.Question != old.Question {
-			return fmt.Errorf("existing plan tasks cannot be removed or redefined")
+			conflicts = append(conflicts, investigationTaskIdentity{ID: old.ID, Kind: old.Kind, Question: old.Question})
 		}
+	}
+	if len(conflicts) > 0 {
+		return investigationPlanIdentityError{expected: conflicts}
 	}
 	// Inheriting a plan can expand the submitted payload. Reapply the same limit.
 	raw, _ := json.Marshal(a)

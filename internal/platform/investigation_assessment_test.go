@@ -33,6 +33,10 @@ func assertAssessmentSchema(t *testing.T, schema map[string]any) {
 		t.Fatal("assessment not required")
 	}
 	plan := props["plan"].(map[string]any)["items"].(map[string]any)
+	question := plan["properties"].(map[string]any)["question"].(map[string]any)
+	if !strings.Contains(question["description"].(string), "exact saved question") {
+		t.Fatal("SDK omits immutable question guidance")
+	}
 	if _, ok := plan["properties"].(map[string]any)["status"]; !ok {
 		t.Fatal("plan status erased")
 	}

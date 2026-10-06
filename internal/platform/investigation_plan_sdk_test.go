@@ -11,7 +11,9 @@ import (
 )
 
 func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
-	for _, planned := range []bool{false, true} {
+	for _, mode := range []string{"unplanned", "planned", "recover"} {
+		planned := mode != "unplanned"
+		recoverPlan := mode == "recover"
 		repo, snap, _, _ := sequenceFixture()
 		var calls atomic.Int32
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +47,7 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 			if planned && n == 3 && (!strings.Contains(req.Messages[0].Content, `"unresolved_ledger_count":1`) || !strings.Contains(req.Messages[0].Content, "record_hypothesis always creates investigating")) {
 				t.Error("SDK omitted unresolved hypothesis closure guidance")
 			}
-			if planned && n == 4 && !strings.Contains(req.Messages[0].Content, `"unresolved_ledger_count":0`) {
+			if planned && ((!recoverPlan && n == 4) || (recoverPlan && n == 5)) && !strings.Contains(req.Messages[0].Content, `"unresolved_ledger_count":0`) {
 				t.Error("SDK unresolved count did not refresh after explicit resolution")
 			}
 			message := map[string]any{"role": "assistant"}
@@ -59,7 +61,7 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 				toolCall("read_file", readArgs{Path: "service.any", Start: 1, End: 2})
 			} else if planned && n == 2 {
 				toolCall("record_hypothesis", Investigation{ID: "plan", Claim: "static candidate examined", Plan: pendingPlan()})
-			} else if planned && n == 3 {
+			} else if planned && (n == 3 || (recoverPlan && n == 4)) {
 				seenGap := false
 				for _, m := range req.Messages {
 					var out toolOutput
@@ -77,6 +79,24 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 				if !seenGap {
 					t.Error("SDK did not receive timely plan gap")
 				}
+				if recoverPlan && n == 4 {
+					seen := false
+					for _, m := range req.Messages {
+						var out toolOutput
+						if m.Role == "tool" && json.Unmarshal([]byte(m.Content), &out) == nil && strings.Contains(out.Error, "expected_task_identities=") {
+							seen = true
+							if out.EvidenceEligible || !strings.Contains(out.Error, `"question":"Inspect input_control"`) || !strings.Contains(out.Error, `"question":"Inspect outcome"`) {
+								t.Error("SDK missing exact non-source identities", out)
+							}
+							if strings.Contains(req.Messages[0].Content, "expected_task_identities=") {
+								t.Error("untrusted identity inserted in system")
+							}
+						}
+					}
+					if !seen {
+						t.Error("SDK missing conflict feedback")
+					}
+				}
 				id := ""
 				for _, m := range req.Messages {
 					var out toolOutput
@@ -90,7 +110,13 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 					plan[i].Reason = "synthetic counterevidence judgment, not semantic proof"
 					plan[i].ObservationIDs = []string{id}
 				}
+				if recoverPlan && n == 3 {
+					plan[0].Question = "paraphrased input"
+					plan[3].Question = "paraphrased outcome"
+				}
 				toolCall("update_investigation", investigationAssessmentUpdate{Investigation: Investigation{ID: "plan", Claim: "static candidate examined", Counterevidence: []string{"fixture judgment"}, CounterObservationIDs: []string{id}, Plan: plan}, ClaimAssessment: "evidence_refutes_claim"})
+			} else if recoverPlan && n == 5 {
+				toolCall("resolve_recording_errors", recordingCorrectionsArgs{Corrections: []recordingCorrection{{"observation-4", "observation-5"}}})
 			} else {
 				message["content"] = `{"findings":[],"summary":"static fixture, not safety certification","coverage_notes":[]}`
 			}
@@ -102,6 +128,20 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 		server.Close()
 		if err != nil {
 			t.Fatal(err)
+		}
+		if recoverPlan {
+			if calls.Load() != 6 {
+				t.Fatal("unexpected SDK round count", calls.Load())
+			}
+			badRetained := false
+			for _, tr := range trace {
+				if tr.ObservationID == "observation-4" && strings.Contains(tr.Error, "expected_task_identities=") {
+					badRetained = true
+				}
+			}
+			if !badRetained {
+				t.Fatal("original failed trace erased")
+			}
 		}
 		if planned {
 			if len(result.CoverageNotes) != 1 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") || hasPlanGap(result.CoverageNotes) || len(result.Investigations) != 1 || result.Investigations[0].Status != "rejected" || len(trace) < 4 {

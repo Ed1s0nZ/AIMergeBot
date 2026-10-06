@@ -290,3 +290,9 @@ F5 v42：冻结b19ff4677f475d15bd5ab7d04e0da7c27bdd5807；全量Go exit0 platfor
 ### v42 剩余质量检查（生产源码未改）
 
 计划8129579已推送后，803/805各一次原模型/预算真实回归，actual revision8129579、生产源码b19ff46未变。803记录源支持跨项目关系和HEAD6条件风险，仍缺双侧结构化链接；805摘要正确default25兼容，但三次改写immutable plan question遭拒、拟提交命题极性仍错，保存调查investigating。总276845tokens、完整usage、无余额错误；归档132文件SHA核验一致，详见regression-v42-quality.md。不是新盲测、没提高预算/改真值/运行样本。AER-001仍open，不将工程测试或摘要当完整质量证明；明确下一步计划身份错误可恢复反馈。
+
+### v43 计划身份错误恢复实现
+
+保持prepareInvestigationPlan原校验顺序及不可删除/重定义规则，收集冲突原task identity并返回有界JSON（≤8、≤8000字节）；只含原id/kind/question，固定说明修改status/reason/IDs，不自动修改ledger/选极性/退休错误。无效历史tuple或过大JSON退回通用错误，tool feedback非源码，trusted system投影不含模型问题。schema question说明复制原文；策略v43，无UI/DB/API迁移。
+
+首轮定向失败来自测试设定：8×400双引号编码仍不到8000字节，以及fixture record后调用方Status仍空触发原status门禁；仅测试改为8×400四字节字符和明确investigating，不改生产拒绝条件。第二轮race沿用旧fixture仍失败；最终修正后相关身份/SDK/计划/assessment/纠正race3.675s通过。真实SDK验证两处问题改写拒绝、有界原身份回执、不成为证据/不进system、后续合法update与显式resolver保留失败history；完整计划/source/coverage门禁不松。vet/diffcheck通过，全量进行中；极性语义与真实新模型采用未证明，AER-001 open。
