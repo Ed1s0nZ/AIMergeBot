@@ -47,3 +47,5 @@ F5首切片真实case203回归已归档64文件SHA256复读验证，见evaluatio
 第七切片：stop_reason承接wrapped AuditResponseError有限code，字段未知、语法/类型、尾随数据、缺字段、数量/大小上限可区分；构造未知code统一invalid_structure，不泄漏任意文本；字符串相同不视为typed原因。UI翻译相同服务端有限码。真实SDK分组模拟unknown_field：仍failed/coverage不为空，synthesis不能洗成完成，具体原因保留。专项platform7.275s/eval6.610s；race含SDK分组platform7.421s/eval5.181s；TS和Vite10.03s通过，git diff --check通过。未改schema/自动修复/增加模型请求或预算，未重跑真实样本求通过，历史v33原receipt保持agent_failure。
 
 取证现状核查：已有side/path固定快照缓存16MB；agent_repeat_guard已有三次成功相同参数读取上限，重复搜索cursor分开。因此不能把新优化说成首次提供缓存/重复停止；重叠但不同参数范围读取及缺失依赖搜索仍是剩余效率问题，应据当前实现设计通用导航，不直接拒绝所有重读（独立复核仍需要新来源）。
+
+F6补验：发现内嵌web/dist尚未同步最新来源分项/计划/停止原因消费者，重新npm run build产出当前index-Za6eQMvX.js（2.92s），源码与发布内嵌产物一致。补充SDK分组边界：2轮继续tool→server-owned failed/agent_step_budget，第三次仅synthesis，不增加primary轮数；模型伪造audit_groups/stop_reason被清除，实际组id/status仍由runtime生成且账本缺失仍覆盖不足。race专项2.614s通过。下一步冻结本次代码，做原v2六例回归（已用于分析，不再称隔离验收）、当前全量与交付矩阵。
