@@ -15,3 +15,5 @@ Investigation新增plan（最多8项）：id、kind(input_control|pr_causality|g
 有计划的调查，supported/rejected要求输入、PR因果、保护、有害结果四种任务齐全，不能在pending或unavailable时被标为已解决，应继续investigating或用成功源解释完成项；无plan保留原读取/工具兼容，但最终追加明确“未记录计划”的gap，不能认证覆盖完成。重要假设要求模型先record pending plan，完成时关联source更新。没有任何ledger调查的结果也追加缺少调查记录，不将零finding视为计划完成。计划结构完整不保证语义，除来源/记录约束不推断自动安全。
 
 UI在调查账本展示计划问题、状态、理由与source链接；历史缺少plan显示未记录，不迁移历史数据。policy升级v30。
+
+第三切片（回归发现的记录修复）：更新省略PRContext继承已保存上下文，继承必须在来源所有权与BASE/HEAD来源校验之前，且仍受8000byte含继承数据预算。显式提交无效/空对象仍拒绝；不自动修补缺失source IDs或关系。调查getter深拷贝PRContext，避免返回值污染已验证账本。对应AC003/005/012，保留原证据边界。
