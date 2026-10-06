@@ -35,3 +35,7 @@
 ### v37 记录错误显式纠正（P10 / F3）
 
 输入Confirmed R3 AC006/011/012、首次801/804/805/806恢复缺口；已有design新增契约。Workflow Gate允许已有错误恢复的局部实现，不涉及UI/DB写权限；Maintainability Gate：新recording_corrections helper单职责，agent_investigation/verification仅注册/过滤局部连接，不广泛重构。新增helper、工具注册、只读过滤、策略；测试成功纠正、跨产物/源码/快照/逆序拒绝、批次原子性、历史保留/非证据、SDK及时刷新与预算/失败留存回归，race/vet；真实回归另冻结，旧首次样本不再称独立验收。源码失败/分页/语义极性不通过本工具自动解除，未验证事项仍保留。
+
+### v38 合格纠正导航（P10 / F3）
+
+提取recordingCorrectionKeyLocked，复用单对校验于resolver及新recording_correction_navigation.go纯投影；primaryRecordingProgress新增eligible_recording_corrections（最多4），提示显式处理，保持pending由resolver唯一删除。规范编号采用observation-正整数；只限制系统导航候选，不改工具输入契约。新增导航边界/隐私/幂等状态测试及实际SDK请求断言；运行原resolver回归、导航、SDK、只读/压缩及race/vet，随后全量Go检查。更新recording-corrections、implementation、CHANGELOG。单切片可回退导航而保留v37 resolver，无DB迁移。先提交推送此设计计划，再改代码；完成后按pr-review技能进行独立新上下文检视。不自动合并或部署。

@@ -218,3 +218,11 @@ Maintainability Gate Report：详情页590行只组合共享ResourceRefreshFailu
 全量检验发现时序图另有独立黑名单，新增工具会被漏过滤；v37统一独立复核/时序图只读筛选为源码工具+有限导航工具白名单，未知新工具默认不提供。只读工具语义不等于source证据资格；risk/list工具仍非证据。
 
 独立复查确认local ID不足以阻止改写命题后解除旧pending。收紧原陈述身份：调查Claim字节相同，候选Title/Description/Trigger字节相同，才可作结构纠正；源ID、锚点及其证据可修正。需要改写陈述者不能用此工具解除旧工作。比较仅保持陈述身份，不证明语义或来源真实；不引入额外模型或预算。
+
+## v38 合格记录纠正导航（P10 / F2）
+
+Workflow Gate Report：用户目标为最佳实践优化，Confirmed R3 AC006/011/012，当前为真实v37反馈迭代。回执801已存在同陈述成功纠正但模型未调用resolver。上游固定快照、pending、工具及只读边界已具备；允许在原导航加入eligible_recording_corrections，最多4对runtime observation IDs，不放入claim/path/error/source。该字段只是可调用导航，不是已执行纠正或证据，必须显式调用resolve_recording_errors。原陈述不同的失败仍保留。无新增授权、模型、预算或自动重试。
+
+Maintainability Gate Report：recording_corrections.go约110行、primary_progress_navigation.go约100行，职责清楚；局部helper extraction及窄投影，低风险。将单对验证提取为持锁helper，resolver和导航共用原全部校验，不放宽原子性、历史、当前阶段/快照与同陈述规则。导航按原trace顺序选待解决失败，为每条选择最后一个合格成功记录，稳定最多4对，排除非规范server observation编号，避免任意字段进入系统。导航不改变pending。
+
+生命周期F2/F3沿用codex/audit-quality-loop，F0/F1维持既有已确认R3。公共模型导航字段新增，策略v38；旧报告保持可读。验收：明确合法pair进入实际SDK请求、显式resolver清除后导航移除；源码失败/不同陈述/错阶段/错快照/partial/无接受产物/非规范ID不导航；有界稳定排序、导航无私密文本、源计划缺口及历史不被抹除。真实模型效果仍须独立记录，不由模拟SDK证明。
