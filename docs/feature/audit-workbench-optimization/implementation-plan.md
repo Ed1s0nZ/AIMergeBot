@@ -121,3 +121,7 @@ P10/F3，design13fd1dd先推送；Confirmed R3和真实v46早停足够，Workflo
 ### v48 独立来源要求与子断言覆盖（执行前）
 
 P10/F3，设计734acf2先推送；Confirmed R3/真实803必要context漏读及full/未核实载荷矛盾具备，Workflow允许，Maintainability narrow low-medium。claim_verification_sources.go提取排序去重context ID helper供原门禁和模型User要求共用；claim_verification_agent.go内部payload显式source_requirements，固定prompt明确每个context fresh证据与必要caller/contract；agent.go与verification_agent.go固定条件/具体子断言提示，不提高预算、不生成源、不新增public字段或按语言/关键字判断。policy48、相关SDK与来源测试、文档CHANGELOG；race/full/vet/CI和冻结独立trust/modelinput检视后原803一次known regression。保留原记录和失败/unknown，真实字段仍无法保证语义遵从时不关闭AER-001。无自动merge/deploy，rollback旧payload/prompt及policy不降低原sourcegate。
+
+### v49 关系schema/字段诊断适配（执行前）
+
+P10/F3；design24d3618已先推送，Confirmed R3与v48重复空to失败输入足够，Workflow允许，Maintainability low-medium narrow。pr_investigation.go共享DTO标签声明原非空/长度/枚举/source数上限，validation逐字段有界错误/index/未知edge处理说明，不回显untrusted值；agent_investigation仅工具说明，policy49。实际SDK nested schema和失败/纠正路径、字段negative/正例/atomic/无secret echo、v48实际失败离线请求反馈和显式修正产物；原PR/source/recording/history/取消/finding/收尾回归race/full/vet/精确CI。冻结公共工具schema/反馈边界fresh-context检视后原803一次，原预算/真值/源不变，不盲重跑或以契约测试代替真实采用。文档CHANGELOG随实现/实际效果更新，失败保留；无自动merge/deploy。
