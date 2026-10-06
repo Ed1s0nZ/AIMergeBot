@@ -1,6 +1,12 @@
 # R3 交付核对矩阵
 
-## 当前核对：da039f3（策略 v38）
+## 当前增量：0e7db81（策略 v39），整体仍未完成
+
+新增HEAD路径预导航保持非源身份和原预算。真实case-802定向回归绑定dda3eda：17910tokens、原API正常、caller.go/workflow.md确实读取，0finding但无调查计划仍incomplete；仅一个已知样本，不是普遍质量证明。详见regression-v39-navigation.md。
+
+独立dda3eda检视发现V39-001检查点失败后仍继续分组；已在0e7db81修复，首错阻断后组与补充、保留原错误链和trace。当前全量Go exit0 platform102.421s、定向race2.930s、vet/diffcheck通过；源码CI run37431241936运行中，独立修复复查COMMENT、V39-001 resolved，无新blocking（仅边界scope，非整体批准）。未修改UI，历史UI证据适用无变化组件，不当作全分支新批准。AER-001整体完成阻塞仍open：调查计划/跨项目关系/部分命题极性未充分证明；未合并、未部署。
+
+## 历史核对：da039f3（策略 v38）
 
 以下v28表格保留历史，不能当作最新整体质量结论。当前逐项完成审计见completion-audit-v38.md；源码CI run37427483339 success、本地全量Go/定向race/vet及当前frontend/嵌入资源一致性通过。最新真实模型仍为v37回归，v38只验证机制与实际SDK链路，不外推模型采用效果。
 

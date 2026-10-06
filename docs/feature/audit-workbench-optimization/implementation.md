@@ -256,3 +256,7 @@ F5补充：da039f3源码CI run37427483339 success；三份独立冻结范围报�
 独立检视冻结dda3eda报告REQUEST_CHANGES：首次list检查点普通失败或ErrConflict之后，外层回调成功使两组继续2个loopback模型HTTP请求，最终返回nil。保留finding ID V39-001。每组Progress wrapper现在同步保持首错误，后续checkpoint直接返回原error，不再尝试外部callback；child返回后先合并当前产物和trace，再标失败并返回原error链，后组维持unprocessed，补充阶段不执行。
 
 独立反例转换为回归：普通错误/冲突，分别首次和第二个启动检查点失败，均0实际模型HTTP请求，callback停止于失败次数，list trace保留、后组unprocessed、errors.Is保留。首次race1.974s失败因测试误把第二个启动检查点当作模型请求后的外层检查点，实际也是请求前；校正预期后race2.930s通过。没有改生产逻辑适配该断言。vet/diffcheck通过；最终全量与新SHA独立复查待完成，不继承dda3eda结论。v39真实802回归绑定修复前dda3eda，详见regression-v39-navigation.md；原样本真值与预算未改。
+
+V39-001修复冻结源码0e7db81bb84f2e0ba1b7d1f9f3291b6f27f75979。最终go test ./... exit0，platform102.421s，其他包通过缓存；并发启动的旧测试版本全量112.116s失败同前述第二检查点错误预期，未作为当前通过证据。修复race2.930s、vet/diffcheck通过。当前源码CI run37431241936运行中，旧dda3eda CI因后续push cancelled，不称失败或成功。真实模型定向17910tokens、原接口恢复的证据绑定dda3eda；全程无合并/部署。独立V39-001新SHA复查另补。
+
+独立新SHA复查0e7db81报告COMMENT（仅本边界scope，非整分支批准），V39-001 resolved，无新blocking。原overlay正确反例race2.966s；额外已完成第一组finding→第二组普通/冲突检查点失败→第三组及补充阻断race2.177s，验证原finding/trace保留、仅前组2次HTTP、失败callback仅一次。外部首fixture遗漏coverage_notes的失败保留；修正夹具后通过，未改源。报告保存在 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v39-0e7db81/PR_REVIEW_REPORT.md。整体仍incomplete，不能继承旧分支批准。
