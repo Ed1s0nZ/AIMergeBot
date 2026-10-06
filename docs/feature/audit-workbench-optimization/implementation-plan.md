@@ -117,3 +117,7 @@ P10/F3；design de20cfc先提交推送，Confirmed R3和v45真实遗漏齐备，
 ### v47 原决策预算内收尾适配（执行前）
 
 P10/F3，design13fd1dd先推送；Confirmed R3和真实v46早停足够，Workflow允许，Maintainability medium/adapter_extraction。新增primary_finalization_model.go（WithTools共享counter/callback委托/硬cap/一次finalization/源状态门禁/早draft合法candidate经原validator保留）；primary_round_budget提示抽纯helper复用，agent.go一处连接，compression/源/Store不改；policy47，文档CHANGELOG。实际SDK覆盖early final→补记录→final与失败/ctxcancel/最后工具阻断、WithTools重新绑定同cap、完整/nil源/无余量/重复final不续、usage无双callbacks/原token/compression/group/取消回归；race/full/vet/精确CI和冻结独立公共预算/信任边界检视后原802/803各一次。保留当前error/recovery/gap；禁止自动source/cited/status/summary同步、扩大15/80/240或复核pool，无部署合并。回退adapter连接和policy，旧record工具仍用。
+
+### v48 独立来源要求与子断言覆盖（执行前）
+
+P10/F3，设计734acf2先推送；Confirmed R3/真实803必要context漏读及full/未核实载荷矛盾具备，Workflow允许，Maintainability narrow low-medium。claim_verification_sources.go提取排序去重context ID helper供原门禁和模型User要求共用；claim_verification_agent.go内部payload显式source_requirements，固定prompt明确每个context fresh证据与必要caller/contract；agent.go与verification_agent.go固定条件/具体子断言提示，不提高预算、不生成源、不新增public字段或按语言/关键字判断。policy48、相关SDK与来源测试、文档CHANGELOG；race/full/vet/CI和冻结独立trust/modelinput检视后原803一次known regression。保留原记录和失败/unknown，真实字段仍无法保证语义遵从时不关闭AER-001。无自动merge/deploy，rollback旧payload/prompt及policy不降低原sourcegate。
