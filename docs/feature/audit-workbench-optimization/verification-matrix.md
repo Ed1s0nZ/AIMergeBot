@@ -2,7 +2,7 @@
 
 ## 当前增量：217db21（策略 v44），整体仍未完成
 
-空/未知update ID错误增加本次audit已有ID的有界排序JSON及复制说明；不自动选择记录或按Claim匹配。原验证顺序、源码门禁、未知ID拒绝、ledger/history/pending保持；跨identity resolver继续拒绝。相关race4.648s、vet/diffcheck通过；独立切片COMMENT、无blocking，自行定向1.000s/race4.265s通过，非整分支批准。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v44-217db21/PR_REVIEW_REPORT.md。最终full Go exit0 platform127.828s，源码CI run37437834569最后核对in_progress。
+空/未知update ID错误增加本次audit已有ID的有界排序JSON及复制说明；不自动选择记录或按Claim匹配。原验证顺序、源码门禁、未知ID拒绝、ledger/history/pending保持；跨identity resolver继续拒绝。相关race4.648s、vet/diffcheck通过；独立切片COMMENT、无blocking，自行定向1.000s/race4.265s通过，非整分支批准。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v44-217db21/PR_REVIEW_REPORT.md。最终full Go exit0 platform127.828s，源码CI run37437834569终态success。
 
 真实v43-805原预算59222tokens：五项question未改写、拟提交完整双侧引用/跨项目关系，但update ID空，保存结果仍incomplete；详见regression-v43-recovery.md。当前v44仅旧请求离线feedback0.745s，准确列出inv-1且不改原记录/错误assessment，无新模型请求，5文件SHA核验一致。非真实v44采用或准确率证明；AER-001极性和必要来源记录仍open，未合并/部署。
 
