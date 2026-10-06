@@ -41,6 +41,7 @@ type Finding struct {
 }
 
 type Investigation struct {
+	ClaimVerification     *ClaimVerification      `json:"claim_verification,omitempty"`
 	Plan                  []InvestigationTask     `json:"plan,omitempty"`
 	PRContext             *PRInvestigationContext `json:"pr_context,omitempty"`
 	ObservationIDs        []string                `json:"observation_ids,omitempty"`

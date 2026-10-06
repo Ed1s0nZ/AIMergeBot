@@ -15,6 +15,7 @@ func (t *auditTools) investigations() []Investigation {
 	defer t.mu.Unlock()
 	out := []Investigation{}
 	for _, v := range t.ledger {
+		v.ClaimVerification = cloneClaimVerification(v.ClaimVerification)
 		v.Plan = cloneInvestigationPlan(v.Plan)
 		v.PRContext = clonePRContext(v.PRContext)
 		out = append(out, v)
@@ -37,6 +38,8 @@ func (t *auditTools) ledgerChangeWithInput(name string, a Investigation, submitt
 		if len(raw) > 8000 {
 			return toolOutput{}, fmt.Errorf("investigation JSON is %d UTF-8 bytes; maximum is 8000 bytes. Shorten repeated evidence text and PR facts; retain a few core source-linked statements and unresolved next_steps. Do not repeat the oversized payload", len(raw))
 		}
+		// Keep the input-size gate before removing unauthorized server fields.
+		a.ClaimVerification = nil
 		if strings.TrimSpace(a.Claim) == "" {
 			return toolOutput{}, fmt.Errorf("investigation claim must be nonempty")
 		}
@@ -168,7 +171,7 @@ func (t *auditTools) register() ([]tool.BaseTool, error) {
 	if e := add(utils.InferTool("search_history", "Search changes in occurrence count of literal query in reachable history, optionally path; bounded history, limit/cursor.", t.historySearch)); e != nil {
 		return nil, e
 	}
-	if e := add(utils.InferTool("record_hypothesis", "Record a changed-behavior inspection, including safe/compatible or no-finding conclusions. After the first relevant source read, record the actual concise claim, successful source IDs and pending plan before further exploration. Include evidence, counterevidence and next_steps as available; not private reasoning. Always creates status investigating regardless of input status; returns generated id. Resolve later with update_investigation only after source-linked inspection, or preserve actual unknowns. Entire serialized investigation max8000 UTF-8 bytes: keep only concise core facts, use observation IDs instead of repeating source text.", t.record)); e != nil {
+	if e := add(utils.InferTool("record_hypothesis", "Record a changed-behavior inspection, including safe/compatible or no-finding conclusions. After the first relevant source read, record the actual concise claim, successful source IDs and pending plan before further exploration. Include evidence, counterevidence and next_steps as available; not private reasoning. Always creates status investigating regardless of input status; returns generated id. Resolve later with update_investigation only after source-linked inspection, or preserve actual unknowns. Entire serialized investigation max8000 UTF-8 bytes: keep only concise core facts, use observation IDs instead of repeating source text.", t.record, utils.WithSchemaModifier(investigationServerFieldsSchema))); e != nil {
 		return nil, e
 	}
 	if e := add(utils.InferTool("update_investigation", "Update existing id and assess the actual claim using claim_assessment: evidence_supports_claim needs evidence/observation_ids; evidence_refutes_claim REQUIRES counterevidence AND counter_observation_ids; insufficient_evidence retains an unresolved investigation. A safe/compatible or guard-improvement claim can be supported without a finding. Assess the claim, not whether a vulnerability exists. Copy only IDs whose output evidence_eligible=true; error eligible_observation_ids is guidance, not automatic linkage. Omitted plan and pr_context retain saved records; retained source IDs must still belong to this update. Entire serialized update including retained records max8000 UTF-8 bytes; keep a few core facts, not full repeated source blocks. Does not prove exploitability.", t.updateAssessment, utils.WithSchemaModifier(investigationAssessmentSchema))); e != nil {

@@ -317,3 +317,14 @@ F5/F6 v44：冻结217db2101696eb57293d7ecd98092bf9cebe1df9，修正SDK断言后r
 抽取原finding复核的60秒/40次工具pool，单项10次/15秒及父deadline最后10秒保留。兼容wrapper在原模型选择之后创建pool；新显式pool调用方拥有cancel，多个消费者不得重建预算。现有supplement仍调用兼容wrapper，尚无调查命题复核请求、持久化/UI字段或策略升级。
 
 定向race11.328s通过，实际SDK两个消费者共用2次尾额，第二个不发新HTTP且unavailable；父deadline不足10秒及cancel不再分配。vet、diffcheck通过。全量Go仍运行，未宣称通过；命题独立复核尚未实现，AER-001保持open。
+
+
+共享pool F5：冻结3f493d365ecfe53e5b56f12b0ab3ee457485fb21，全量Go通过（root46.323s、audit-eval1.940s、evaluation94.624s、platform189.787s）；vet/diffcheck通过。独立fresh-context COMMENT/无blocking，自行race2.067s、复核/上下文/token回归2.715s通过，报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v45-budget-3f493d3/PR_REVIEW_REPORT.md；不批准整分支。已推送，源码CI37440268079尚未核对终态。
+
+### v45 命题复核数据和来源契约（runner尚未接入）
+
+新增可选server-owned claim_verification历史兼容字段，record/update SDK schema隐藏，所有主审ledger写入清除；在清除前仍执行原8000bytes输入上限，提交原始trace保留。ledger读取深克隆复核数组。严格parser仅接收verdict/reason/limitations/IDs，拒绝权威字段、非字符串verdict、trailing、空/过大/重复ID。server比较true/false与supported/rejected仅返回一致/分歧，investigating/unknown保持inconclusive。
+
+新增fresh来源校验独立stage、当前prefix/唯一registry、输出ID一致、eligible、成功、非partial、固定主/context SHA和非空源码；完整主PR双侧 included changed-path读取（或精确canonical metadata-only）及必要固定context才允许接受确定判断。缺来源将模型提案降为unknown/inconclusive并保留有界解释，不翻转原Claim/status。源资格不能证明语义真值，元数据不证明执行路径。
+
+原supplement尚无新调查复核请求，策略仍v44，前端与SARIF契约后续切片接入；当前新增可选字段通常省略。实际API/质量验证尚未执行，AER-001 open。

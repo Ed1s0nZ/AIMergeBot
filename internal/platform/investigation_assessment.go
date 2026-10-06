@@ -17,6 +17,7 @@ type investigationAssessmentUpdate struct {
 }
 
 func investigationAssessmentSchema(name string, typ reflect.Type, _ reflect.StructTag, s *jsonschema.Schema) {
+	investigationServerFieldsSchema(name, typ, reflect.StructTag(""), s)
 	if name == "claim_assessment" {
 		s.Enum = []any{"evidence_supports_claim", "evidence_refutes_claim", "insufficient_evidence"}
 		s.Description = "Whether inspected evidence supports or refutes the exact claim, independent of whether a vulnerability was found."
@@ -32,6 +33,20 @@ func investigationAssessmentSchema(name string, typ reflect.Type, _ reflect.Stru
 		}
 	}
 	s.Required = append(required, "claim_assessment")
+}
+
+func investigationServerFieldsSchema(name string, typ reflect.Type, _ reflect.StructTag, s *jsonschema.Schema) {
+	if name != "_root" || (typ != reflect.TypeOf(Investigation{}) && typ != reflect.TypeOf(investigationAssessmentUpdate{})) {
+		return
+	}
+	s.Properties.Delete("claim_verification")
+	required := s.Required[:0]
+	for _, field := range s.Required {
+		if field != "claim_verification" {
+			required = append(required, field)
+		}
+	}
+	s.Required = required
 }
 
 func normalizeInvestigationAssessment(a investigationAssessmentUpdate) (Investigation, error) {
