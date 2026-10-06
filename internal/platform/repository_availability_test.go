@@ -133,3 +133,59 @@ func TestRepositoryUnavailableRetainsAcceptedSDKCandidate(t *testing.T) {
 		}
 	}
 }
+
+func TestContextRepositoryUnavailableStopsSDKAndGroupedModelRequests(t *testing.T) {
+	for _, grouped := range []bool{false, true} {
+		for _, fatal := range []bool{false, true} {
+			t.Run(fmt.Sprintf("grouped_%t_fatal_%t", grouped, fatal), func(t *testing.T) {
+				var calls atomic.Int32
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					n := calls.Add(1)
+					message := map[string]any{"role": "assistant", "content": `{"findings":[],"summary":"fixture result","coverage_notes":[]}`}
+					finish := "stop"
+					if n == 1 {
+						finish = "tool_calls"
+						message = map[string]any{"role": "assistant", "tool_calls": []any{map[string]any{"id": "read", "type": "function", "function": map[string]string{"name": "read_repository_file", "arguments": `{"repository_id":2,"path":"service.any","start":1,"end":1}`}}}}
+					}
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode(map[string]any{"id": "fixture", "object": "chat.completion", "usage": map[string]int{"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20}, "choices": []any{map[string]any{"index": 0, "finish_reason": finish, "message": message}}})
+				}))
+				defer server.Close()
+				failure := errors.New("requested file not found")
+				if fatal {
+					failure = fmt.Errorf("reader stopped: %w", ErrRepositoryUnavailable)
+				}
+				auditor := &EinoAuditor{Repository: runRepo{}, ContextSources: map[int]ContextSource{2: {Repository: unavailableFixtureRepo{failure: failure}, Snapshot: Snapshot{ProjectID: 2, SourceProjectID: 2, BaseSHA: "fixed", HeadSHA: "fixed"}}}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "fixture", MaxSteps: 4, MaxToolCalls: 8}}
+				snap := Snapshot{BaseSHA: "base", HeadSHA: "head", AuditPolicy: &AuditPolicy{ContextRepositories: []ContextRepository{{ProjectID: 2, SHA: "fixed"}}}}
+				scope := DiffScope{Added: map[string]map[int]bool{"service.any": {1: true}}}
+				var result AuditResult
+				var trace []ToolTrace
+				var err error
+				if grouped {
+					result, trace, err = auditor.AuditGroups(context.Background(), snap, AuditPlan{Groups: []AuditGroup{{ID: "first", Files: []string{"service.any"}, Scope: scope}, {ID: "second", Files: []string{"other.any"}, Scope: scope}}})
+				} else {
+					result, trace, err = auditor.Audit(context.Background(), snap, scope)
+				}
+				if fatal {
+					if !errors.Is(err, ErrRepositoryUnavailable) || calls.Load() != 1 || len(result.CoverageNotes) == 0 {
+						t.Fatal("billed after unavailable reader", calls.Load(), err, result.CoverageNotes)
+					}
+					if grouped && (result.AuditGroups[0].Status != "failed" || result.AuditGroups[0].StopReason != "repository_unavailable" || result.AuditGroups[1].Status != "unprocessed") {
+						t.Fatal("lost group coverage", result.AuditGroups)
+					}
+				} else if err != nil || calls.Load() < 2 {
+					t.Fatal("ordinary source failure blocked repair", calls.Load(), err)
+				}
+				found := false
+				for _, tr := range trace {
+					if tr.Name == "read_repository_file" && tr.Error != "" {
+						found = true
+					}
+				}
+				if !found {
+					t.Fatal("source failure trace lost")
+				}
+			})
+		}
+	}
+}

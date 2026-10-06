@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -88,6 +89,9 @@ func (t *auditTools) invokeContext(ctx context.Context, name string, id int, arg
 		}
 		out, err := fn(reader)
 		if err != nil {
+			if errors.Is(err, ErrRepositoryUnavailable) {
+				return toolOutput{RepositoryID: id}, fmt.Errorf("context repository read unavailable or incomplete: %w", ErrRepositoryUnavailable)
+			}
 			return toolOutput{RepositoryID: id}, fmt.Errorf("context repository read unavailable or incomplete")
 		}
 		// Recheck after network/object reads, including cached results.
