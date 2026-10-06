@@ -12,10 +12,9 @@ import (
 
 func TestPrimaryRoundGuidanceDoesNotAccumulateOrMutate(t *testing.T) {
 	original := []*schema.Message{schema.SystemMessage("trusted"), schema.UserMessage("untrusted source")}
-	rewrite := primaryRoundRewriter(4, "trusted", func(_ context.Context, m []*schema.Message) []*schema.Message { return m })
 	messages := original
 	for round := 1; round <= 4; round++ {
-		messages = rewrite(context.Background(), messages)
+		messages = primaryDecisionMessages(messages, "trusted", round, 4)
 		if strings.Count(messages[0].Content, "Server-owned decision budget") != 1 || !strings.Contains(messages[0].Content, fmt.Sprintf("decision %d of 4", round)) {
 			t.Fatalf("unbounded or wrong guidance: %s", messages[0].Content)
 		}

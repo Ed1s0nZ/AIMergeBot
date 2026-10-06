@@ -57,11 +57,14 @@ func TestProgressNavigationUsesOnlyRuntimeMetadata(t *testing.T) {
 }
 func TestProgressNavigationReplacementDoesNotAccumulate(t *testing.T) {
 	n := 0
-	rewrite := primaryRoundRewriter(4, "trusted", func(_ context.Context, m []*schema.Message) []*schema.Message { return m }, func() string { n++; return " nav revision " + strings.Repeat("x", n) })
+	rewrite := func(m []*schema.Message) []*schema.Message {
+		n++
+		return primaryDecisionMessages(m, "trusted", n, 4, func() string { return " nav revision " + strings.Repeat("x", n) })
+	}
 	original := []*schema.Message{schema.SystemMessage("trusted"), schema.UserMessage("source")}
 	m := original
 	for i := 0; i < 3; i++ {
-		m = rewrite(context.Background(), m)
+		m = rewrite(m)
 	}
 	if strings.Count(m[0].Content, "nav revision") != 1 || !strings.Contains(m[0].Content, "nav revision xxx") || original[0].Content != "trusted" {
 		t.Fatal("navigation accumulated or mutated original", m[0].Content)
