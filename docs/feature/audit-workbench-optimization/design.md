@@ -260,3 +260,7 @@ V41一致性补充：metadataOnly来源分类同时用于工具recording_gaps、
 ### v42 命题评估输入契约（P10/F2）
 
 v40真实802把“守卫加强，无安全回归”命题写成rejected，反证实际上支持命题。模型工具update_investigation改用claim_assessment：evidence_supports_claim、evidence_refutes_claim、insufficient_evidence，分别映射原supported/rejected/investigating。模型schema隐藏顶层旧status；嵌套plan.status保持。旧JSON status及直接Go调用继续兼容；同时提交矛盾新旧值拒绝，未知枚举拒绝。绝不按Claim文字或是否存在finding推断结论。原证据、计划、PR来源校验与预算完全保留。原提交含assessment进入trace，规范化状态进入ledger；输入及保留字段仍受8000字节限制。历史/UI/API结构不迁移。此输入澄清不证明模型语义正确，AER-001仍open。
+
+### v43 计划身份冲突恢复反馈（P10/F2）
+
+v42真实805三次重复改写p3/p5 question，原门禁正确拒绝但错误未指出原任务身份。保持计划id/kind/question不可删除/重定义；在该错误中返回所有冲突任务的原id/kind/question JSON及固定操作说明，只允许更新status/reason/observation_ids。不返回模型私有推理、源码、保存判断或自动修复；错误是非证据tool响应，不能进入trusted system导航。最多8个冲突身份、JSON最多8000字节，旧数据异常降级固定通用错误。错误前其他来源/计划校验顺序保持，旧接受拒绝规则不变；合法后续更新仍需原门禁与显式resolver，错误history保留。schema中question描述强调复制原文，预算不增加。无需DB/UI/API迁移，策略v43。此反馈只解决结构性恢复，不解决805实际命题极性；质量完成继续open。
