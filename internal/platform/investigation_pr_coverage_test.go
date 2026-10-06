@@ -126,10 +126,10 @@ func (coverageComparisonRepo) ReadFile(_ context.Context, _ Snapshot, _ string, 
 }
 
 func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing.T) {
-	for _, mode := range []string{"supported", "rejected", "complete", "claim_disagreement", "claim_interrupted"} {
+	for _, mode := range []string{"supported", "rejected", "complete", "claim_disagreement", "claim_interrupted", "claim_cancelled"} {
 		t.Run(mode, func(t *testing.T) {
 			status := mode
-			if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" {
+			if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" || mode == "claim_cancelled" {
 				status = "supported"
 			}
 			var calls atomic.Int32
@@ -138,7 +138,7 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 			if status == "rejected" {
 				inv.Claim = "fixture text is absent"
 			}
-			if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" {
+			if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" || mode == "claim_cancelled" {
 				inv.Claim = "PR changes old to new"
 				inv.ObservationIDs = []string{"observation-2", "observation-3"}
 				inv.PRContext.Before = "old"
@@ -150,6 +150,8 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 			for i, kind := range verificationKinds {
 				inv.Plan = append(inv.Plan, InvestigationTask{ID: []string{"input", "change", "guard", "effect"}[i], Kind: kind, Question: "Inspect fixture source", Status: "checked", Reason: "fixture text read", ObservationIDs: []string{"observation-2"}})
 			}
+			s := testStore(t)
+			var runner *Runner
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				n := calls.Add(1)
 				var request struct {
@@ -182,6 +184,16 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 					json.NewEncoder(w).Encode(map[string]any{"id": "fixture", "object": "chat.completion", "choices": []any{map[string]any{"index": 0, "message": msg, "finish_reason": finish}}, "usage": map[string]int{"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}})
 					return
 				}
+				if mode == "claim_cancelled" && n == 5 {
+					var id int64
+					if err := s.DB.QueryRow(`SELECT id FROM platform_runs WHERE status='running'`).Scan(&id); err != nil {
+						t.Error(err)
+					} else if err := runner.Cancel(context.Background(), id, 0); err != nil {
+						t.Error(err)
+					}
+					w.WriteHeader(400)
+					return
+				}
 				if mode == "claim_interrupted" && n == 5 {
 					w.WriteHeader(400)
 					return
@@ -190,7 +202,7 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 				finish := "tool_calls"
 				name, args := "read_file", `{"path":"a.go","start":1,"end":1}`
 				recordRound := int32(2)
-				if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" {
+				if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" || mode == "claim_cancelled" {
 					recordRound = 3
 					if n == 1 {
 						args = `{"path":"a.go","base":true,"start":1,"end":1}`
@@ -215,13 +227,12 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 				json.NewEncoder(w).Encode(map[string]any{"id": "fixture", "object": "chat.completion", "choices": []any{map[string]any{"index": 0, "message": msg, "finish_reason": finish}}, "usage": map[string]int{"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}})
 			}))
 			defer server.Close()
-			s := testStore(t)
 			ctx := context.Background()
 			if err := s.SaveProject(ctx, Project{ID: 1, Name: "one", Enabled: true}); err != nil {
 				t.Fatal(err)
 			}
-			auditor := &EinoAuditor{Repository: coverageComparisonRepo{}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "fixture", MaxSteps: 5, MaxToolCalls: 8, VerifyFindings: mode == "claim_disagreement" || mode == "claim_interrupted"}}
-			runner := &Runner{Store: s, Repository: coverageComparisonRepo{}, Auditor: auditor, Workers: 1, Timeout: 20 * time.Second}
+			auditor := &EinoAuditor{Repository: coverageComparisonRepo{}, Config: AgentConfig{APIKey: "synthetic", BaseURL: server.URL, Model: "fixture", MaxSteps: 5, MaxToolCalls: 8, VerifyFindings: mode == "claim_disagreement" || mode == "claim_interrupted" || mode == "claim_cancelled"}}
+			runner = &Runner{Store: s, Repository: coverageComparisonRepo{}, Auditor: auditor, Workers: 1, Timeout: 20 * time.Second}
 			if err := runner.Start(ctx); err != nil {
 				t.Fatal(err)
 			}
@@ -231,7 +242,7 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 				t.Fatal(err)
 			}
 			wantStatus, wantNotes, wantCalls := "incomplete", 3, int32(4)
-			if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" {
+			if mode == "complete" || mode == "claim_disagreement" || mode == "claim_interrupted" || mode == "claim_cancelled" {
 				wantStatus, wantNotes, wantCalls = "succeeded", 0, 5
 			}
 			if mode == "claim_disagreement" {
@@ -240,12 +251,15 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 			if mode == "claim_interrupted" {
 				wantStatus, wantNotes, wantCalls = "failed", 2, 5
 			}
-			waitStatus(t, s, id, wantStatus)
+			if mode == "claim_cancelled" {
+				wantStatus, wantNotes, wantCalls = "cancelled", 2, 5
+			}
+			waitStatus(t, s, id, wantStatus, runner.Timeout+time.Second)
 			run, err := s.Run(ctx, id)
 			if err != nil || calls.Load() != wantCalls || len(run.Result.Findings) != 0 || len(run.Result.Investigations) != 1 || len(run.Result.CoverageNotes) != wantNotes {
 				t.Fatal(err, calls.Load(), run.Result)
 			}
-			if run.Result.Investigations[0].Status != status || (mode != "complete" && mode != "claim_disagreement" && mode != "claim_interrupted" && run.Result.Investigations[0].PRContext.BeforeObservationIDs != nil) {
+			if run.Result.Investigations[0].Status != status || (mode != "complete" && mode != "claim_disagreement" && mode != "claim_interrupted" && mode != "claim_cancelled" && run.Result.Investigations[0].PRContext.BeforeObservationIDs != nil) {
 				t.Fatal("coverage fabricated resolution or source links", run.Result)
 			}
 			export := BuildSARIF(run, nil)["runs"].([]sarifObject)[0]
@@ -263,14 +277,14 @@ func TestNoFindingSDKInvestigationGapsPersistAsIncompleteWorkerResult(t *testing
 					t.Fatal("SARIF review lost", reviews)
 				}
 			}
-			if mode == "claim_interrupted" {
+			if mode == "claim_interrupted" || mode == "claim_cancelled" {
 				v := run.Result.Investigations[0].ClaimVerification
 				if v == nil || v.Status != "unavailable" || v.Verdict != "" || run.Result.Investigations[0].Status != "supported" || reviewCalls.Load() != 0 {
 					t.Fatal("skipped review disappeared or fabricated verdict", run)
 				}
 			}
 			notes := strings.Join(run.Result.CoverageNotes, " ")
-			if mode != "complete" && mode != "claim_disagreement" && mode != "claim_interrupted" && (!strings.Contains(notes, "BASE") || !strings.Contains(notes, "HEAD") || !strings.Contains(notes, "relationships")) {
+			if mode != "complete" && mode != "claim_disagreement" && mode != "claim_interrupted" && mode != "claim_cancelled" && (!strings.Contains(notes, "BASE") || !strings.Contains(notes, "HEAD") || !strings.Contains(notes, "relationships")) {
 				t.Fatal("recording gaps lost in final persistence", notes)
 			}
 		})

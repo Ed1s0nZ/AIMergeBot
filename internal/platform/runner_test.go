@@ -42,9 +42,13 @@ func (a *blockingAuditor) Audit(ctx context.Context, _ Snapshot, _ DiffScope) (A
 	<-ctx.Done()
 	return AuditResult{}, nil, ctx.Err()
 }
-func waitStatus(t *testing.T, s *Store, id int64, status string) {
+func waitStatus(t *testing.T, s *Store, id int64, status string, observationTimeout ...time.Duration) {
 	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
+	limit := 3 * time.Second
+	if len(observationTimeout) > 0 {
+		limit = observationTimeout[0]
+	}
+	deadline := time.Now().Add(limit)
 	for time.Now().Before(deadline) {
 		r, e := s.Run(context.Background(), id)
 		if e == nil && r.Status == status {

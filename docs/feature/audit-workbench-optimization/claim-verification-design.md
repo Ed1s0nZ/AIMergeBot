@@ -6,7 +6,7 @@
 
 ## 当前实现状态
 
-共享预算基础3f493d3及server-owned/parser/来源契约814c60a已实现并通过全量Go、定向race和独立切片检视。调查复核runner、共享pool和SARIF已接入并通过本地SDK/worker定向测试；最终源码full/独立检视、UI/配置文案及真实模型效果尚待完成。执行源码策略已升级v45，不能称整体验收完成。CVR-001比较BASE路径缺口已在814c60a修复，初版e52525d检视否决保留为历史。
+共享预算基础3f493d3及server-owned/parser/来源契约814c60a已实现并通过全量Go、定向race和独立切片检视。调查复核runner、共享pool和SARIF已接入并通过本地SDK/worker定向测试；986b336最终源码全量Go通过（platform194.834s，其他包通过），CI37444342848通过；独立执行检视REQUEST_CHANGES，EXR-001取消冻结检查点缺review。修复采用公共Audit/AuditGroups检查点投影，不改Store取消SQL：resolved nil review在每次checkpoint副本中明确unavailable/disabled，group在命名空间合并后投影，真实ledger和最终结果不受临时状态污染。实际SDK worker取消、分组SDK取消、Store恢复/SARIF及原失败/完成回归通过；修复full/独立re-review、UI/配置文案及真实模型效果仍待完成。执行源码策略已升级v45，不能称整体验收完成。CVR-001比较BASE路径缺口已在814c60a修复，初版e52525d检视否决保留为历史。
 
 ## 依据与边界
 
@@ -48,3 +48,9 @@ disagreed/inconclusive/unavailable追加CoverageNotes，worker仍incomplete，0f
 4. UI/types/配置说明/嵌入构建与实际360px/键盘/源码导航验证；冻结源码独立review，然后原模型/预算已知负例实际回归，记录语义/来源/判断/成本/失败。不将synthetic disagreement视为真实准确率，不把所有例completed当新门槛。
 
 每切片提交推送文档和源码证据；单切片不标整体完成。回退新增runner/UI字段时历史JSON仍可读，pool基础可独立保留，原配置键及首审数据不迁移。AER-001保持open直至实际需求逐项证据审计。
+
+### EXR-001 修复验证
+
+纯检查点投影在实际保存前生成未完成复核记录，保留原命题、初审status/evidence/IDs、trace和SHA。所有原progress调用仍有租约/取消fence；取消后late checkpoint仍ErrConflict，不试图覆写终态。公共入口只复制auditor配置以包装callback；PrimaryOnly子组不重复投影，由外层aggregate callback在group ID合并后统一处理，不把原local ID写入coverage note。记录账本及成功final从未获得placeholder，因此正常一致复核和关闭流程不残留unavailable覆盖项。历史结果不回填。
+
+定向race：checkpoint/worker/group/fencing/恢复/SDK复核16.605s通过；新增group+checkpoint+完整worker suite11.097s通过；vet/diffcheck通过。首次新增测试compile因Evidence为切片而修正测试类型；原worker观察窗口3s在race下complete用例超时，单独重跑complete/cancelled4.788s通过。改该suite观察期限为现有20s任务timeout+1s，默认其他waitStatus仍3s，不改模型执行预算/产品门禁或终态要求。最终full与独立检视后补证，不能借986b336绿CI宣称EXR-001已批准或整体完成。
