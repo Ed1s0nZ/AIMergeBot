@@ -93,7 +93,7 @@ func TestEinoPlanRequiresLedgerBeforeCleanCompletion(t *testing.T) {
 			t.Fatal(err)
 		}
 		if planned {
-			if len(result.CoverageNotes) != 0 || len(result.Investigations) != 1 || result.Investigations[0].Status != "rejected" || len(trace) < 4 {
+			if len(result.CoverageNotes) != 1 || !strings.Contains(result.CoverageNotes[0], "PR impact recording gap") || hasPlanGap(result.CoverageNotes) || len(result.Investigations) != 1 || result.Investigations[0].Status != "rejected" || len(trace) < 4 {
 				t.Fatal("planned recording not preserved", result)
 			}
 		} else if len(result.CoverageNotes) != 1 || !hasPlanGap(result.CoverageNotes) {

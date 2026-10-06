@@ -160,6 +160,7 @@ func (e *EinoAuditor) Audit(ctx context.Context, snap Snapshot, scope DiffScope)
 	result.CoverageNotes = append(result.CoverageNotes, primaryContextCoverage(snap, tools.trace)...)
 	result.Investigations = tools.investigations()
 	result.CoverageNotes = append(result.CoverageNotes, investigationPlanCoverage(result.Investigations)...)
+	result.CoverageNotes = append(result.CoverageNotes, tools.investigationPRCoverage(result.Investigations)...)
 	for _, item := range result.Investigations {
 		if item.Status == "investigating" {
 			result.CoverageNotes = append(result.CoverageNotes, "Unresolved hypothesis: "+item.ID)

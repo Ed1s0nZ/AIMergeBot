@@ -58,11 +58,12 @@ func (t *auditTools) primaryProgressNavigation() string {
 	if len(t.ledger) == 0 {
 		gaps["plan_missing"] = true
 	}
+	metadataSources := t.primaryMetadataOnlySourcesLocked()
 	for _, item := range t.ledger {
 		if item.Status != "supported" && item.Status != "rejected" {
 			state.UnresolvedLedgerCount++
 		}
-		for _, gap := range investigationRecordingGaps(item) {
+		for _, gap := range investigationRecordingGapsForBasis(item, metadataOnlyInvestigation(item, metadataSources)) {
 			gaps[gap] = true
 		}
 	}

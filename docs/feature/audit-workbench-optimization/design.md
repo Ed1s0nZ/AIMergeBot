@@ -254,3 +254,5 @@ v40真实802 plan四项checked、status错误rejected、无finding，却缺befor
 纯元数据调查不强制虚构运行路径：只有至少一个引用，所有引用都为当前主阶段/主仓库/完整固定BASEHEAD、成功且sourceeligible的get_change_metadata，并逐项匹配included scope的valid metadataOnly canonical全文，才允许metadata-only比较/关系豁免；主/上下文源码混用、错快照/阶段/重复编号/错误/损坏/正文变化均不豁免。这个分类是所引来源种类，不判断Claim语义。canonical metadata可表明两个Git入口事实，不能宣称运行效果。其他调查仍保留记录缺口。原finding metadata规则和语义判断保持，历史不重写。
 
 追加说明会经既有Run结果持久化、group合并、UI覆盖列表和SARIF不可完成状态传播，无新字段/前端迁移。来源与判断门禁不变，策略v41。已有v40极性错误保持open，不把更多incomplete当判断修复或新完成标准。当前v40 CI37432182646已success；v41另验。
+
+V41一致性补充：metadataOnly来源分类同时用于工具recording_gaps、live recording progress和最终调查coverage（共用同一source-basis helper），避免运行提示反复要求纯metadata来源虚构execution关系，而最终却豁免。保留纯默认investigationRecordingGaps wrapper供无trace上下文调用；只有持锁且有真实固定trace的调用点能使用分类，不由模型字段授予。验证正metadata record回执与live都不出现pr_context_missing，所有反例仍保留；plan/status门禁不变。

@@ -270,3 +270,11 @@ V39-001修复冻结源码0e7db81bb84f2e0ba1b7d1f9f3291b6f27f75979。最终go tes
 F5：最终full go test ./... exit0（root10.043s、audit-eval1.343s、evaluation26.160s、platform134.382s，web无测试）；race7.774s、vet/diffcheck通过。新源码23d3bc3独立scope COMMENT/mergeable=false、无新blocking，独立两批定向0.756/0.843s，actual SDK/有限枚举投影/来源/预算连接已核。不代表整分支批准，AER-001 open。真实802实际记录四项checked计划与显式纠正，但safeClaim错误rejected、关系/BASE HEAD链接缺失；102808tokens、高于v39，详见regression-v40-actions.md。无新增真实验收或全部completed门槛。
 
 源码CI run37432182646（23d3bc3）目前in_progress，待终态，不继承0e7db81成功。最终覆盖实现另已定位：agent.go只把investigationPlanCoverage加到所有调查，PR recording gaps只对findingPRCoverage加入。因而safe/no-findings调查即使BASE/HEAD链接和关系缺失，也可能仅靠模型自行写coverage；导航与最终缺口来源需要统一，不能靠假设status或四项checked就当记录充分。下一切片同时保持原Claim极性问题open，不将增加覆盖告警冒充语义修复。
+
+## v41 调查级最终PR覆盖
+
+所有真实ledger调查（包括无finding且supported/rejected）使用prRecordingGaps投影缺结构、BASE/HEAD来源链接、缺/推断关系到最终CoverageNotes；不修改claim/status/plan/source/history。metadataOnly来源分类严格依固定主阶段/主仓库成功canonical、scope.valid/metadataOnly、source flag/编号/快照/全文逐项一致且无重复trace ID；没有引用、混源码、正文变化或错误来源均不授予豁免。此来源种类不是语义判断，不证明metadata claim的运行效果。分类共用于工具feedback、live progress和final coverage，保持纯metadata比较不必制造执行路径；plan门禁未松动。策略v41、UI未改，无新DB/API字段。
+
+初定向1.874s及race4.646s通过。首全量131.408s失败于旧SDK假设plan勾完即无任何coverage，新增PR gap本应保留；改为assert无plan gap但仍有PR gap。追加完整记录正例首race6.321s失败：内存runRepo不支持get_diff原生Git，该工具真实被拒绝，不应当完成。改为一致BASE old/HEAD new的只读fixture仓库及分别真实读取双侧（仍由源工具给编号），完整记录正常succeeded，缺链接两种状态仍incomplete。校正race4.853s通过；元数据/live/原纠正/状态导航/分组停止广泛定向race8.043s通过；SARIF消费者追加断言race4.447s通过。第一次校正全量103.905s覆盖metadata共用前版本，不当作最终source proof。最终metadata共用源码全量运行中；vet/diffcheck通过，新增SARIF仅测试断言未改生产，全量启动后独立定向覆盖。
+
+真实v40 case-802回执离线projection检验：新增BASE/HEAD链接及relationship三条说明，原rejected错误极性与全部原记录JSON未变；没有新增API请求或重新宣称模型质量。最终helper离线0.799s通过，前版本0.772s仅历史。外部检查文件/overlay/output/source SHA保存 /Users/worker/.codex/evaluation-artifacts/aimangebot/v41-frozen-v40-projection-20261006。旧真实回执不修改，所有语义/关系完成阻塞继续open。v40源码CI37432182646 success，不继承为v41 CI。

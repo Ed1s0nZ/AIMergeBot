@@ -89,7 +89,7 @@ func (t *auditTools) ledgerChange(name string, a Investigation) (toolOutput, err
 		a.PRContext = clonePRContext(a.PRContext)
 		t.ledger[a.ID] = a
 		raw, _ = json.Marshal(a)
-		return toolOutput{Text: string(raw), RecordingGaps: investigationRecordingGaps(a)}, nil
+		return toolOutput{Text: string(raw), RecordingGaps: investigationRecordingGapsForBasis(a, metadataOnlyInvestigation(a, t.primaryMetadataOnlySourcesLocked()))}, nil
 	})
 }
 func (t *auditTools) submit(ctx context.Context, a Finding) (toolOutput, error) {
