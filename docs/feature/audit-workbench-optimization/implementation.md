@@ -250,3 +250,9 @@ F5补充：da039f3源码CI run37427483339 success；三份独立冻结范围报�
 分组最低有效预算为 HEAD 目录加一次源读取（2次）；有固定跨仓库配置再计已有授权导航（3次）。预算不足保留未处理组，不提高总预算。SDK夹具来源编号因真实新增首观察顺延；大仓库仅列第一页的 bounded list_files 缺口保留，未改生产门禁适配测试。
 
 验证：首轮定向暴露旧编号与最低预算问题；校正后相关定向2.685s通过。后续原生Git/跨仓库定向29.399s失败于 worker 仍假设只有一个覆盖说明，更新为计划缺口加真实分页缺口，单测3.822s通过。首次全量135.091s同样是该旧断言失败；最终 go test ./... exit0，platform137.901s，其他包通过或缓存。新增导航/纠正SDK/进度/优先级 race exit0 7.244s，go vet ./... 和 diff --check exit0。UI未改动。策略v39；尚未运行v39真实模型，不能把工程验证当效果证明。整体完成阻塞 AER-001 仍未关闭，不自动合并/部署。
+
+### V39-001 持久化失败阻断修复
+
+独立检视冻结dda3eda报告REQUEST_CHANGES：首次list检查点普通失败或ErrConflict之后，外层回调成功使两组继续2个loopback模型HTTP请求，最终返回nil。保留finding ID V39-001。每组Progress wrapper现在同步保持首错误，后续checkpoint直接返回原error，不再尝试外部callback；child返回后先合并当前产物和trace，再标失败并返回原error链，后组维持unprocessed，补充阶段不执行。
+
+独立反例转换为回归：普通错误/冲突，分别首次和第二个启动检查点失败，均0实际模型HTTP请求，callback停止于失败次数，list trace保留、后组unprocessed、errors.Is保留。首次race1.974s失败因测试误把第二个启动检查点当作模型请求后的外层检查点，实际也是请求前；校正预期后race2.930s通过。没有改生产逻辑适配该断言。vet/diffcheck通过；最终全量与新SHA独立复查待完成，不继承dda3eda结论。v39真实802回归绑定修复前dda3eda，详见regression-v39-navigation.md；原样本真值与预算未改。

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	eo "github.com/cloudwego/eino-ext/components/model/openai"
@@ -118,12 +119,20 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		child.Config.MaxToolCalls = priorityCallBudget(remaining, plan.Groups[i:], minimumCalls)
 		completed := result
 		completedTrace := append([]ToolTrace{}, trace...)
+		var checkpointMu sync.Mutex
+		var checkpointFailure error
 		child.Config.Progress = func(part AuditResult, current []ToolTrace) error {
+			checkpointMu.Lock()
+			defer checkpointMu.Unlock()
+			if checkpointFailure != nil {
+				return checkpointFailure
+			}
 			if e.Config.Progress == nil {
 				return nil
 			}
 			merged := mergeAuditGroup(completed, part, g.ID)
-			return e.Config.Progress(merged, append(append([]ToolTrace{}, completedTrace...), current...))
+			checkpointFailure = e.Config.Progress(merged, append(append([]ToolTrace{}, completedTrace...), current...))
+			return checkpointFailure
 		}
 		groupCtx := primaryCtx
 		groupCancel := func() {}
@@ -132,6 +141,12 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		}
 		part, current, err := child.Audit(groupCtx, snap, g.Scope)
 		groupCancel()
+		checkpointMu.Lock()
+		failedCheckpoint := checkpointFailure
+		checkpointMu.Unlock()
+		if failedCheckpoint != nil {
+			err = failedCheckpoint
+		}
 		calls := 0
 		for _, tr := range current {
 			if tr.Name != "model" {
@@ -151,6 +166,12 @@ func (e *EinoAuditor) AuditGroups(ctx context.Context, snap Snapshot, plan Audit
 		} else {
 			result.AuditGroups[i].Status = "completed"
 			summaries = append(summaries, g.ID+": "+part.Summary)
+		}
+		if failedCheckpoint != nil {
+			for _, remainingGroup := range plan.Groups[i+1:] {
+				result.CoverageNotes = append(result.CoverageNotes, "Unprocessed audit group: "+remainingGroup.ID)
+			}
+			return result, trace, fmt.Errorf("group checkpoint failed: %w", failedCheckpoint)
 		}
 		if e.Config.Progress != nil {
 			if err := e.Config.Progress(result, trace); err != nil {
