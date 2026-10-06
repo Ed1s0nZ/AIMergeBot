@@ -1,5 +1,9 @@
 # R3 分支交付
 
+## 当前增量：v49 工程通过，真实取证改善，复核结构失败仍待定位
+
+33eb7ee/full186.615s/race62.495s/精确CI37459758978 success，独立schema/反馈切片APPROVE。原模型803实际保存双侧引用及两条跨项目来源关系，fresh claim完整取证并consistent/true；finding复核结构被拒且缺分类诊断，原失败历史保留，receipt incomplete。详见regression-v49-feedback.md；AER-001 open，未合并main/部署。
+
 ## 当前增量：v48 独立来源要求工程通过，真实效果仍未验证
 
 2eb8daf把mandatory context ID清单与原fresh门禁共用，增加具体子断言条件提示，原预算/历史/公共shape不变。full172.055s、race12.568s、vet/diffcheck/精确CI37457629388 success，独立scoped APPROVE（484hash、目标Go48.723s）。真实803一次在primary关系目标字段为空的重复拒绝中耗尽15决策，独立阶段未执行；结果model_or_agent_failed，不能声称新提示真实有效。详见regression-v48-source.md。下一步关系字段错误反馈，AER-001 open；原失败保留，未合并main/部署。
