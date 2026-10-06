@@ -3,6 +3,7 @@ package platform
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -48,8 +49,8 @@ func validateClaimVerification(input claimVerificationInput, item Investigation,
 		return v, nil
 	}
 	missing := !base || !head || !changed
-	for _, source := range contextPolicyItems(fresh.snap) {
-		missing = missing || !inspected[source.ProjectID]
+	for _, id := range requiredClaimContextIDs(fresh.snap) {
+		missing = missing || !inspected[id]
 	}
 	if missing {
 		v.Status, v.Verdict = "inconclusive", "unknown"
@@ -135,4 +136,19 @@ func claimPrimaryCoverage(tr ToolTrace, out toolOutput, scope DiffScope) (base, 
 		}
 	}
 	return
+}
+
+// The review input and final source gate use the same fixed-policy IDs. These
+// are source requirements, not proof that any repository establishes the claim.
+func requiredClaimContextIDs(snap Snapshot) []int {
+	ids := []int{}
+	seen := map[int]bool{}
+	for _, source := range contextPolicyItems(snap) {
+		if !seen[source.ProjectID] {
+			ids = append(ids, source.ProjectID)
+			seen[source.ProjectID] = true
+		}
+	}
+	sort.Ints(ids)
+	return ids
 }
