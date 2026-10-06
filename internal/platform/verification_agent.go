@@ -20,6 +20,10 @@ func unavailableVerification(snap Snapshot, reason, status string) *FindingVerif
 	return &FindingVerification{Status: status, Reason: reason, Limitations: []string{"静态复核，不代表运行复现或漏洞可利用性已验证。"}, ObservationIDs: []string{}, BaseSHA: snap.BaseSHA, HeadSHA: snap.HeadSHA}
 }
 func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, parent *auditTools, model em.ToolCallingChatModel) {
+	e.verifyFindingsWithBudget(ctx, result, parent, model, nil)
+}
+
+func (e *EinoAuditor) verifyFindingsWithBudget(ctx context.Context, result *AuditResult, parent *auditTools, model em.ToolCallingChatModel, shared *verificationBudget) {
 	modelName := e.Config.Model
 	if e.Config.VerificationModel != "" {
 		modelName = e.Config.VerificationModel
@@ -44,28 +48,17 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 		model = budgetModel(selected)
 	}
 
-	budget := 60 * time.Second
-	if deadline, ok := ctx.Deadline(); ok {
-		left := time.Until(deadline) - 10*time.Second
-		if left < budget {
-			budget = left
-		}
+	if shared == nil {
+		shared = newVerificationBudget(ctx)
+		defer shared.cancel()
 	}
-	if budget < 0 {
-		budget = 0
-	}
-	phase, cancel := context.WithTimeout(ctx, budget)
-	defer cancel()
-	remaining := 40
+	phase := shared.ctx
 	for _, i := range sequenceOrder(result.Findings) {
 		f := &result.Findings[i]
-		if phase.Err() != nil || remaining <= 0 {
+		limit := shared.nextLimit()
+		if limit == 0 {
 			f.Verification = unavailableVerification(parent.snap, "独立复核预算不足，原发现已保留。", "unavailable")
 			continue
-		}
-		limit := 10
-		if remaining < limit {
-			limit = remaining
 		}
 		fresh := &auditTools{contextSources: parent.contextSources, repo: parent.repo, snap: parent.snap, scope: parent.scope, cache: map[string]string{}, stage: "verification", observationPrefix: "verify-" + f.ID + "-observation", maxCalls: limit}
 		fresh.progress = func(_ AuditResult, traces []ToolTrace) error {
@@ -143,10 +136,7 @@ func (e *EinoAuditor) verifyFindings(ctx context.Context, result *AuditResult, p
 		trace := append([]ToolTrace{}, fresh.trace...)
 		calls := fresh.calls
 		fresh.mu.Unlock()
-		if calls > limit {
-			calls = limit
-		}
-		remaining -= calls
+		shared.consume(calls, limit)
 		if callErr != nil || message == nil {
 			f.Verification = unavailableVerification(parent.snap, "独立复核失败或超时，原发现已保留。", "unavailable")
 		} else {

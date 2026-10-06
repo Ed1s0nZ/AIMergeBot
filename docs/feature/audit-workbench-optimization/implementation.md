@@ -310,3 +310,10 @@ SDK新增空ID拒绝→用户模型显式复制已知ID→合法update→跨iden
 F5/F6 v44：冻结217db2101696eb57293d7ecd98092bf9cebe1df9，修正SDK断言后race4.648s通过、vet/diffcheck通过。首次full141.464s失败于已修正的同一旧测试断言（启动时编译的旧测试），生产源码未再变；最终重新full exit0 platform127.828s、其他包缓存通过；生产源码及测试冻结217db21未再变。独立fresh-context scope COMMENT/无blocking、自行定向1.000s/race4.265s，报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v44-217db21/PR_REVIEW_REPORT.md，非整体批准。
 
 真实v43空ID请求离线projection0.745s：helper精确列出原ledger inv-1；模拟明确复制ID后仅plan校验通过，原空ID、refutes assessment及原ledger保持，不代表完整source门禁或语义判断通过。归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/v44-frozen-v43-id-feedback-20261006，5文件SHA与helper源SHA核验一致，无新模型请求。源码CI run37437834569终态success；AER-001仍open。
+
+
+### v45 共享预算基础（策略仍v44）
+
+抽取原finding复核的60秒/40次工具pool，单项10次/15秒及父deadline最后10秒保留。兼容wrapper在原模型选择之后创建pool；新显式pool调用方拥有cancel，多个消费者不得重建预算。现有supplement仍调用兼容wrapper，尚无调查命题复核请求、持久化/UI字段或策略升级。
+
+定向race11.328s通过，实际SDK两个消费者共用2次尾额，第二个不发新HTTP且unavailable；父deadline不足10秒及cancel不再分配。vet、diffcheck通过。全量Go仍运行，未宣称通过；命题独立复核尚未实现，AER-001保持open。
