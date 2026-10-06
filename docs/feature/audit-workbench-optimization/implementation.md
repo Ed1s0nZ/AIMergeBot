@@ -306,3 +306,7 @@ F5补充真实v43-805：一次原模型/预算已知回归，59222tokens、完�
 未知ID继续拒绝；错误投影当前audit ledger键，排序且30条/80bytes/UTF8/NUL/8000JSONbytes上限，异常退回固定错误。只含ID、不含Claim/plan/reason/source，字段schema要求更新复制成功record ID，非源tool数据不入trusted system。未自动从同Claim/单ledger匹配，未新增调用或放宽验证/预算；策略v44，无UI/DB/API字段迁移。
 
 SDK新增空ID拒绝→用户模型显式复制已知ID→合法update→跨identity resolver仍拒绝的实际HTTP路径；原空ID错误继续pending/保留历史和最终说明。最初race失败是测试误以为resolver自身也作为pending工具错误列出，实际仅原update失败保留，resolver错误仍在trace；只修断言，不改生产门禁。相关race重新运行；全量检查进行中。实际模型采用及语义极性仍未证明，AER-001 open。
+
+F5/F6 v44：冻结217db2101696eb57293d7ecd98092bf9cebe1df9，修正SDK断言后race4.648s通过、vet/diffcheck通过。首次full141.464s失败于已修正的同一旧测试断言（启动时编译的旧测试），生产源码未再变；最终重新full exit0 platform127.828s、其他包缓存通过；生产源码及测试冻结217db21未再变。独立fresh-context scope COMMENT/无blocking、自行定向1.000s/race4.265s，报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v44-217db21/PR_REVIEW_REPORT.md，非整体批准。
+
+真实v43空ID请求离线projection0.745s：helper精确列出原ledger inv-1；模拟明确复制ID后仅plan校验通过，原空ID、refutes assessment及原ledger保持，不代表完整source门禁或语义判断通过。归档 /Users/worker/.codex/evaluation-artifacts/aimangebot/v44-frozen-v43-id-feedback-20261006，5文件SHA与helper源SHA核验一致，无新模型请求。源码CI run37437834569最后核对in_progress；AER-001仍open。

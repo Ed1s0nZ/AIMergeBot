@@ -1,6 +1,12 @@
 # R3 分支交付
 
-## 当前增量：d8fff22（策略 v43），整体仍未完成
+## 当前增量：217db21（策略 v44），整体仍未完成
+
+空/未知update ID错误增加本次audit已有ID的有界排序JSON及复制说明；不自动选择记录或按Claim匹配。原验证顺序、源码门禁、未知ID拒绝、ledger/history/pending保持；跨identity resolver继续拒绝。相关race4.648s、vet/diffcheck通过；独立切片COMMENT、无blocking，自行定向1.000s/race4.265s通过，非整分支批准。报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v44-217db21/PR_REVIEW_REPORT.md。最终full Go exit0 platform127.828s，源码CI run37437834569最后核对in_progress。
+
+真实v43-805原预算59222tokens：五项question未改写、拟提交完整双侧引用/跨项目关系，但update ID空，保存结果仍incomplete；详见regression-v43-recovery.md。当前v44仅旧请求离线feedback0.745s，准确列出inv-1且不改原记录/错误assessment，无新模型请求，5文件SHA核验一致。非真实v44采用或准确率证明；AER-001极性和必要来源记录仍open，未合并/部署。
+
+## 历史增量：d8fff22（策略 v43），整体仍未完成
 
 计划身份冲突错误列出所有冲突任务的原id/kind/question；JSON≤8000字节且≤8条，异常历史数据退回固定错误。schema明确question不可改写。门禁、来源、正常预算、失败历史和显式resolver不变，不自动判断命题。full Go exit0 platform124.978s、相关race3.675s、vet/diffcheck通过。源码CI run37436813700终态success；独立fresh-context切片COMMENT/无blocking，自行定向0.967s及19类旧新门禁接受/产物一致性overlay0.939s通过；报告 /Users/worker/.codex/evaluation-artifacts/aimangebot/review-v43-d8fff22/PR_REVIEW_REPORT.md，非整分支批准。
 
