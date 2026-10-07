@@ -688,3 +688,11 @@ fec020f设计先提交。新增独立GitHub lexer/bare owner校验及RE2 pattern
 受控编译产物8802浏览器：已有配置原项目1与候选就绪；项目503刷新隐藏原项目名/全部候选并disabled保存（owner空）；选owner2后项目403刷新隐藏候选、保留选中数且不可保存，明确清空owner后仍不可保存。项目1缺失时只剩项目2和“移除不可用项目#1”，明确移除后选择项目2，候选仅admin/both3且恢复保存。项目1停用时原选择保留、显示停用原因/保存disabled；3秒项目加载过程中不显示旧项目/候选，成功后项目1与候选恢复/saveEnabled=true。没有实际POST/PATCH或渠道测试发送。360×800 DOM scrollWidth==innerWidth360，临时tab15关闭、viewport重置、fixture23406停止。
 
 typecheck/临时Vite及正式build通过，embedded index-DuJUZKMO.js/index-SQxcMfgg.css；Go build ./...、vet ./...最终43168 completed/success及diff检查通过。本阶段只修改前端，Go生产源码不变。529516d精确CI37622635264仍in_progress（Go tests and race checks），本生产改动等待该CI终态再推送，未取消/重启其run。完整REQ及其他平台闭环仍未完成。
+
+### G1 跨平台仓库身份绑定存储
+
+cdae9f8完整provider设计、8f01c3b G1契约已先推送，101f089补明HTTP开放前必须有provider admission保护。新增repository_binding.go/current+history迁移，Store.migrate只委托；内部project ID与provider/origin/remote ID独立。规范HTTPS API根、GitHub owner/repo（含.github仓库）、GitLab nested group、有效端口/字符，归一化host大小写、默认443/端口前导零。保存须启用admin及启用目标项目、同kind/启用/包含项目/有token/同API根的已保存集成；无网络调用，绑定对象/历史/事件不含凭据。CAS server生成revision、唯一远端身份及配置/历史/事件同事务，不新增ACL、不改run；未知旧项目revision0，损坏/超限/字段不一致不能降级legacy。
+
+专项race初版6.444s、补充迁移/损坏证据8.162s、控制字符/非法端口11.584s、.github兼容13.074s通过。最终端口归一化后的全RepositoryBinding专项race9.801s、全项目vet/build/diff通过。覆盖两平台相同remoteID、跨origin、重复身份拒绝、scope/kind/token/endpoint/disabled拒绝、viewer/撤权、8并发仅一writer、事件ABORT整体回滚/同版本恢复、实际文件SQLite重开/重复migration/旧无绑定schema升级，history无token/无额外权限。全Go62430 success platform136.111s；控制字符版本90806 success platform113.729s；.github版本65960 success platform141.798s/evaluation10.401s。最后端口归一化仅改变新binding validator，以上broader全量不声称包含最后该小改动；最终模块race覆盖所有新Store/校验场景，精确新HEAD CI继续全量验证。
+
+cdae9f8精确CI37623659140 completed/success，通知项目失败恢复切片完整检查通过后才推送G1代码。G1仅内部存储，尚无HTTP/UI/new project/factory/真实GitHub审计；既有Runner路径不变。下一阶段先实现admission guard，再开放绑定入口，禁止未实现factory时误向GitLab查询同值ID。其余完整REQ/自动owner通知/邮件与bots闭环持续保留，未认定整体完成。
