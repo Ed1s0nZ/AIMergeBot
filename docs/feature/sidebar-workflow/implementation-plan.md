@@ -470,3 +470,9 @@ P8/F4，新增 GET /api/v1/bot-binding-channels，只返回启用 Slack、签名
 P8/F4，个人绑定页面同时加载自身绑定与可用授权渠道，明确手动选择渠道，提交 captured expected_revision，已绑定渠道不允许重复申请。一次性 token 仅 React 内存显示，无 URL/localStorage 持久化；刷新/换渠道/撤销/到期清除，重新发行替换旧凭据。显示 bind 参数、到期时间、勿分享说明和绑定完成后手动刷新；不猜测管理员实际 Slack 命令名称。异常响应 token/expiry 拒绝展示，发行失败清空渠道选择等待显式刷新，不自动重试。
 
 typecheck 与临时独立目录 Vite build 成功。真实编译前端+受控本地 fixture 浏览器验证：默认空选择禁止发行、选择 Controlled Slack 后 POST 携带 expected_revision=7、有效 48hex token与到期提示显示、DELETE 撤销后令牌消失且选择回到空值。测试无实际 Slack 消息或真实凭据。当前 e5f88b3 后端全量 32125 仍运行，正式 embedded build 等该进程结束后执行；前一 e21a8a2 远端 CI 37606369057 仍 in_progress，不覆盖推送。创建 UI 的移动/失败/短期限回归、Slack 配置界面与操作权限仍待完成。
+
+### S7 绑定创建页面错误与到期回归证据
+
+ff33a4f 的真实编译前端在本地可切换受控 fixture 完成浏览器回归：POST challenge 返回 409 后渠道选择/生成/凭据区消失，只保留错误和可用刷新；显式刷新恢复空选择；随后签发四秒凭据，在到期前可见 bind 参数，到期后令牌区消失且显示重新生成提示。360x800 screenshot 检查标题、错误/到期提示、渠道 select 与生成按钮均在页面内，凭据未残留。结束恢复默认视口、关闭测试标签和 fixture，不操作真实 Slack 或生产身份。
+
+本次验证未改动产品代码，只增加当前 UI 证据；尚未验证慢请求、所有键盘状态和实际 Slack 配置/回调联调。后端全量 32125 同一进程仍 live（go/platform.test 均在，未因观察超时重启）；精确 e21a8a2 CI 37606369057 仍 in_progress（Go tests and race checks）。暂不更新 embedded assets 或推送覆盖该 CI。完整需求保持未完成。
