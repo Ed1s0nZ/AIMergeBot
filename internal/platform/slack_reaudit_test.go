@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
@@ -126,21 +128,72 @@ func TestSlackReauditAtomicPinnedAdmissionAndAuthorization(t *testing.T) {
 				if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_runs`).Scan(&count); err != nil || count != want {
 					t.Fatal("rejected callback admitted run", count, err)
 				}
-				return
+			} else {
+				if err != nil || !created || id <= 0 || id == run {
+					t.Fatal(id, created, err)
+				}
+				admitted, err := s.Run(ctx, id)
+				if err != nil || admitted.HeadSHA != snap.HeadSHA || admitted.BaseSHA != snap.BaseSHA || admitted.RequestedBy != member.ID || admitted.Status != "pending" {
+					t.Fatal(admitted, err)
+				}
+				if _, _, err := call(at); err == nil {
+					t.Fatal("reaudit replay")
+				}
+				duplicate, created, err := call(at.Add(time.Second))
+				if err != nil || created || duplicate != id {
+					t.Fatal("duplicate active run", duplicate, created, err)
+				}
 			}
-			if err != nil || !created || id <= 0 || id == run {
-				t.Fatal(id, created, err)
+			stamp := strconv.FormatInt(time.Now().Unix(), 10)
+			mac := hmac.New(sha256.New, []byte(secret))
+			mac.Write([]byte("v0:" + stamp + ":"))
+			mac.Write(body)
+			signature := "v0=" + hex.EncodeToString(mac.Sum(nil))
+			httpCall := func(runner *Runner, signature string) *httptest.ResponseRecorder {
+				router := gin.New()
+				(&HTTP{Store: s, Runner: runner}).Register(router)
+				req := httptest.NewRequest("POST", fmt.Sprintf("/api/v1/bot-callbacks/slack/%d/%d/command", channel.ID, channel.Revision), strings.NewReader(string(body)))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				req.Header.Set("X-Slack-Request-Timestamp", stamp)
+				req.Header.Set("X-Slack-Signature", signature)
+				res := httptest.NewRecorder()
+				router.ServeHTTP(res, req)
+				return res
 			}
-			admitted, err := s.Run(ctx, id)
-			if err != nil || admitted.HeadSHA != snap.HeadSHA || admitted.BaseSHA != snap.BaseSHA || admitted.RequestedBy != member.ID || admitted.Status != "pending" {
-				t.Fatal(admitted, err)
+			runner := &Runner{Store: s}
+			if change == "valid" {
+				if res := httpCall(nil, signature); res.Code != 503 {
+					t.Fatal("missing runner", res.Code)
+				}
+				stopped, cancel := context.WithCancel(ctx)
+				cancel()
+				unavailable := &Runner{Store: s}
+				unavailable.state.Store(&workerRunState{ctx: stopped})
+				if res := httpCall(unavailable, signature); res.Code != 503 {
+					t.Fatal("stopped runner", res.Code)
+				}
+				if res := httpCall(runner, "invalid"); res.Code != 403 {
+					t.Fatal("forged reaudit", res.Code)
+				}
 			}
-			if _, _, err := call(at); err == nil {
-				t.Fatal("reaudit replay")
+			res := httpCall(runner, signature)
+			want := 403
+			if change == "valid" {
+				want = 200
 			}
-			duplicate, created, err := call(at.Add(time.Second))
-			if err != nil || created || duplicate != id {
-				t.Fatal("duplicate active run", duplicate, created, err)
+			if change == "quota" {
+				want = 429
+			}
+			if res.Code != want {
+				t.Fatal("HTTP reaudit", change, res.Code, res.Body.String())
+			}
+			if change == "valid" {
+				if !strings.Contains(res.Body.String(), "already queued") || !strings.Contains(res.Body.String(), `"response_type":"ephemeral"`) {
+					t.Fatal(res.Body.String())
+				}
+				if replay := httpCall(runner, signature); replay.Code != 403 {
+					t.Fatal("HTTP replay", replay.Code)
+				}
 			}
 		})
 	}
