@@ -2,9 +2,11 @@ package platform
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"github.com/xanzy/go-gitlab"
 	"net/url"
+	"strings"
 )
 
 type CheckPublication struct {
@@ -14,7 +16,12 @@ type CheckPublication struct {
 }
 
 // Publication is opt-in at the caller. A transport error is never a receipt.
-func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL string, blocking bool, authorize func(context.Context) error) CheckPublication {
+func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL string, blocking bool, namespace string, authorize func(context.Context) error) CheckPublication {
+	decoded, decodeErr := hex.DecodeString(namespace)
+	if decodeErr != nil || len(namespace) != 32 || len(decoded) != 16 {
+		return CheckPublication{State: "failed", Code: "invalid_identity"}
+	}
+	namespace = strings.ToLower(namespace)
 	if authorize == nil {
 		return CheckPublication{State: "failed", Code: "permission_changed"}
 	}
@@ -54,7 +61,7 @@ func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL
 		rules.Mode = "blocking"
 	}
 	state, thresholdCount := checkStateForRules(r, rules)
-	name := fmt.Sprintf("aimangebot/run/%d", r.ID)
+	name := fmt.Sprintf("aimangebot/%s/run/%d", namespace, r.ID)
 	mode := "advisory"
 	if blocking {
 		mode = "blocking"

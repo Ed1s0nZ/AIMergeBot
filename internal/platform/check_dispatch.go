@@ -32,6 +32,10 @@ func (r *Runner) DispatchRunCheck(ctx context.Context) (bool, error) {
 	if cfg.PublicURL != "" {
 		target = strings.TrimRight(cfg.PublicURL, "/") + fmt.Sprintf("/#/runs/%d", run.ID)
 	}
+	var namespace string
+	if err = r.Store.DB.QueryRowContext(ctx, `SELECT namespace FROM platform_comment_installation WHERE id=1`).Scan(&namespace); err != nil {
+		return finish(CheckPublication{State: "failed", Code: "preflight_unavailable"})
+	}
 	authorize := func(ctx context.Context) error { _, err := r.Store.CheckPublicationRun(ctx, d); return err }
-	return finish(repo.PublishRunCheck(ctx, run, target, d.Blocking, authorize))
+	return finish(repo.PublishRunCheck(ctx, run, target, d.Blocking, namespace, authorize))
 }
