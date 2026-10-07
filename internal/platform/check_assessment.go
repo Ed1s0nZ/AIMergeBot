@@ -3,6 +3,8 @@ package platform
 // CheckAssessment describes this run only. Publishing to a provider is a
 // separate operation and must verify the remote current HEAD first.
 type CheckAssessment struct {
+	PublicationState string `json:"publication_state"`
+	RemoteID         int    `json:"remote_id,omitempty"`
 	RunID            int64  `json:"run_id"`
 	HeadSHA          string `json:"head_sha"`
 	State            string `json:"state"`
@@ -13,7 +15,7 @@ type CheckAssessment struct {
 }
 
 func assessRunCheck(r Run) CheckAssessment {
-	out := CheckAssessment{RunID: r.ID, HeadSHA: r.HeadSHA, State: "unknown"}
+	out := CheckAssessment{RunID: r.ID, HeadSHA: r.HeadSHA, State: "unknown", PublicationState: "disabled"}
 	for _, f := range r.Result.Findings {
 		switch f.Severity {
 		case "critical", "high":

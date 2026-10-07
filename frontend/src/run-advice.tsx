@@ -1,4 +1,6 @@
 export type CheckAssessment = {
+  publication_state?: string;
+  remote_id?: number;
   run_id: number;
   head_sha: string;
   state: string;
@@ -31,6 +33,20 @@ export function RunCheckAdvice({ value }: { value: CheckAssessment }) {
         运行 #{value.run_id} · HEAD {value.head_sha.slice(0, 12)}
         。当前摘要尚未发布为平台合并检查，未启用阻断；完成不代表代码安全，也不代表当前
         PR 最新提交。
+      </p>
+      <p>
+        {value.published
+          ? `平台已确认检查 #${value.remote_id} · ${value.blocking ? "阻断模式（实际合并规则以平台设置为准）" : "建议模式"}`
+          : (
+              {
+                disabled: "尚未启用平台检查发布，未启用阻断。",
+                pending: "检查发布已排队。",
+                sending: "正在发布，尚未确认远端结果。",
+                unknown: "远端结果未知，不能视为未发送或成功。",
+                failed: "检查发布失败。",
+                stale: "检查快照已过期，未发布为当前结果。",
+              } as Record<string, string>
+            )[value.publication_state || "disabled"] || "发布状态待确认。"}
       </p>
     </section>
   );

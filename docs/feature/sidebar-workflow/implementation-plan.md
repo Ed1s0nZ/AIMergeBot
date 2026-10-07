@@ -128,3 +128,29 @@ CI 修复关闭证据：b4c8a447ae19a9f4eceeb4e407a0c5b68aaa2cac 的 [GitHub CI 
 状态/身份/优先级定向测试通过，前端 typecheck/build 通过。本地完整 Go（platform 79.568s）覆盖空白提示切片，随后检查摘要新增逻辑另有定向测试覆盖；实际 worker 可选空白提示 race 3.688s 通过。提供者 API、持久发布队列、远端 HEAD 防旧结果覆盖、可配置阻断仍未实现，此基础不等于 REQ-021 完成。
 
 项目策略 7b03f13 的远端 CI 37586897943 completed/success。
+
+### S5 GitLab 提交检查协议适配（开发验证中）
+
+依据 [GitLab Commits API](https://docs.gitlab.com/api/commits/)：状态发布目标为 MR 来源项目的固定 SHA；状态集合 pending/running/success/failed/canceled/skipped。新增显式 PublishRunCheck 适配器，先读目标 MR 并比对来源项目、BASE、HEAD，拒绝旧快照。检查名称带 run ID，隔离同 SHA 的不同运行；正文仅运行状态/高风险计数/模式，不发送发现描述、源代码或私密摘要。advisory 对高风险/失败/不完整用 skipped + 明确描述，不伪造 success；blocking 模式映射 failed。回执必须 ID>0 且 SHA/name/state 全部匹配，网络或异常回执保留 unknown，不当作成功。target URL 有界且禁止 userinfo。
+
+受控 HTTP 协议测试覆盖 fork 项目路径、固定 SHA/分支/名称、过期 HEAD/BASE/来源变更零写入、非法 target URL、错误回执、服务端失败及 advisory/blocking 映射；定向测试通过，race/完整 Go 待收尾。该适配器尚未接入自动 loop，没有真实外部写入。持久发布队列/租约/撤权、最新运行仲裁与旧 blocking job 的处理、项目可配置条件、GitHub 全流程、真实服务验证仍待完成，不能宣称 REQ-021 已实现。
+
+### S5 检查发布持久队列基础（开发验证中）
+
+新增 platform_check_deliveries，以 run ID 为唯一键，保存 HEAD、发起管理员、模式、有限状态/错误码、租约和远端回执 ID。显式排队要求当前管理员快照权限、有效 HEAD、终态及同目标 MR 最新运行；重复同参数排队幂等，不覆写模式，不重试 unknown/published。claim 将旧 pending 运行标记 stale，过期 sending 保留 unknown，避免中断后盲目重发。finish 要求正确且未过期租约及 HEAD，确认成功要求有效回执 ID，错误码有限且不存原始提供者错误/URL。
+
+协议+队列定向 race 初轮 2.530s，通过重复排队/模式冲突/旧运行/双 claim/旧租约/中断 unknown/空回执/重复确认；管理员身份持久字段与角色拒写扩展正在复验。协议切片完整 Go platform 77.758s 通过，随后队列表迁移另有定向测试覆盖。此队列尚无生产自动消费者或 HTTP 入口；发布前撤权/最新运行复查与状态展示将在后续接入，未发生真实外部写入。
+
+空白提示与运行检查摘要 355c42c 的 CI 37587352105 completed/success。
+
+队列角色回归发现 operator/admin 共用 roleRank=3，使内部 required=admin 判断允许 operator。HTTP 策略路由有 admin middleware，但内部 SaveWorkflowPolicy/QueueRunCheck 必须独立拒写。将 admin 提升为 rank 4（operator 保持 3），不改变 viewer/reviewer/operator 常规能力；补充实际 operator 策略拒写与发布排队拒写验证。当前尚无生产检查发布入口或自动消费者，未发生外部写入。修正后的项目/策略/队列 race 与全量回归需通过后提交。
+
+### S5 检查发布前置复查与受控消费（开发验证中）
+
+CheckPublicationRun 用单个读快照复查正确租约、最新运行、固定 HEAD、发布管理员、原发起者及目标/来源/关联仓库权限与启用状态；授权后才读最多 1 MiB 结果，保留 error 字段参与失败判定。Runner.DispatchRunCheck 串联 claim、复查、运行时凭据与固定仓库 origin 对照、协议发布、有限回执保存。协议适配器强制授权回调，并在远端 MR GET 之后、POST 之前再次调用，避免 GET 期间撤权绕过复查。
+
+受控端到端测试覆盖有效 fork 检查回执落库、远端 HEAD 已变更零写入、GET 中途来源权限撤销零写入、POST 服务端异常记 unknown、终态不重复发送；前置测试覆盖租约不符、关联权限撤销、管理员禁用、来源项目禁用和排队后新运行。协议/队列/preflight/dispatcher 最终 targeted race 7.525s 通过。此前修正后的完整 Go platform 77.884s 通过；新增消费链路的完整 Go/vet 正在执行。无生产 loop 或 HTTP 入口，未写入真实服务，配置/状态展示/条件与自动事件接入仍待完成。
+
+管理员权限修正 9c07eb4 的远端 CI 37588299319 completed/success。
+
+消费链路完整 Go platform 77.493s 通过，随后错误分类/详情发布状态展示新增定向覆盖。最终 check/protocol/preflight/dispatcher/assessment race 8.043s 和前端 typecheck/build 通过。详情从持久记录展示 disabled/pending/sending/published/failed/stale/unknown；仅正确 HEAD、有效回执 ID 的 published 标为已确认，unknown 不假称未发送或成功。预检区分身份过期、权限变更与不可用错误，不混同所有失败。新增详情状态读取后的远端完整 CI 待推送验证。
