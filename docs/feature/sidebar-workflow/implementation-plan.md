@@ -624,3 +624,13 @@ typecheck及临时独立Vite构建成功，受控真实浏览器8800从编译产
 Store首轮race14.653s通过：target/source/context独立权限、候选缺context过滤、授予后显式映射、停用过滤、未映射与排除不fallback、missing/unavailable区别，网络读取期间viewer各scope撤权/配置变更/候选撤权后的二次拒绝或过滤，未授权零repo reads。追加origin mismatch零HTTP、201section候选/证据截断，实际HTTP匿名401/完整viewer200/no-store/字段最小化/missingfinding404/target-source-context撤权404零repo read/账号停用401，合并race17.200s通过。重复finding与停用项目专项正在补充；vet/diff通过。推荐UI、通知消费和GitHub真实provider尚未交付，REQ-019/AC-017仍未完成。
 
 重复finding与停用context项目负例、权限预查补强后的最终推荐/HTTP专项race17.905s通过，均拒绝且零仓库读取。该版生产推荐链独立完整Go继续执行，后续精确CI验证，不以来源前版全量替代。
+
+推荐后端d542f61完整Go76599 completed/success，platform109.637s；匹配模块e3c6193远端CI37613999458 completed/success，未把前版green替代本推荐链版本检查。
+
+### S8 发现详情责任人推荐与显式草稿回填
+
+新增独立finding-owners.tsx/css，在风险处理编辑器窄委托，不向run-detail堆积请求/匹配逻辑。维护性gate见owner-recommendation-ui-gate.md。详情惰性读取owners，显示configrevision/file/source仓库/完整固定HEAD/CODEOWNERS状态、规则行/section、候选来源、未映射/过滤/截断及不足说明。推荐runID/findingID/HEAD须与当前风险处理快照一致，否则不展示候选。viewer只有查看；can_manage且非busy时可明确点击候选回填owner草稿，最终PUT沿用现有风险处理expected_revision/head_sha/ACL，查询与选择不自动写入。loading/error隐藏旧候选，刷新清理选择提示。
+
+受控编译产物浏览器8801验证：操作权限打开推荐/来源与警示齐全；选择fixture-owner将草稿owner置2，确认没有PUT；明确“保存风险处理”后实际fixture收到expected_revision1/owner2/固定b*40HEAD，服务端版本变2且页面显示当前owner2。推荐刷新403时旧候选清除；响应HEADc*40时提示任务/提交变化且无回填按钮；完整viewer可看候选但无选择/保存控件。360×800初次视觉发现完整SHA被父区域裁切，独立CSS overflow-wrap:anywhere及button/code换行修正，复验完整SHA换行可见且scrollWidth=innerWidth=360。viewport重置，临时tabs与fixture关闭；所有写入仅受控内存fixture，无真实服务或生产数据修改。
+
+前端typecheck与临时Vite build通过；新来源元数据错误分支保留captured仓库/SHA，使unavailable状态也可核对身份，来源/真实HTTP专项race3.114s通过。正式build顺序安排在完整Go终态之后，embedded assets为index-BCQP5P9m.js/index-DkeKj69i.css。推荐UI不代表通知路由、GitHub真实provider、兼容性全部完成；REQ-019/AC-017仍保留剩余。

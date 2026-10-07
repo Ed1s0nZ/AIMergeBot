@@ -29,14 +29,14 @@ type CodeOwnerDocument struct {
 func LoadCodeOwnerDocument(ctx context.Context, repo Repository, snap Snapshot) (CodeOwnerDocument, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	doc := CodeOwnerDocument{RepositoryID: snap.SourceProjectID, SHA: snap.HeadSHA}
 	if dynamic, ok := repo.(*DynamicRepository); ok {
 		frozen, err := dynamic.repo()
 		if err != nil {
-			return CodeOwnerDocument{}, err
+			return doc, err
 		}
 		repo = frozen
 	}
-	doc := CodeOwnerDocument{RepositoryID: snap.SourceProjectID, SHA: snap.HeadSHA}
 	source, ok := repo.(CodeOwnerDirectoryReader)
 	if !ok || snap.SourceProjectID <= 0 || !validCodeOwnerSHA(snap.HeadSHA) {
 		return doc, ErrCodeOwnersSource

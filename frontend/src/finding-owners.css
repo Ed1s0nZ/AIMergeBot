@@ -1,0 +1,11 @@
+.owner-recommendations {
+  overflow-wrap: anywhere;
+}
+.owner-recommendations code {
+  white-space: normal;
+  word-break: break-all;
+}
+.owner-recommendations button {
+  white-space: normal;
+  text-align: left;
+}
