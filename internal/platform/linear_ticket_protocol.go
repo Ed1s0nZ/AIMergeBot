@@ -53,9 +53,13 @@ func linearTicketReceipt(status int, body []byte) TicketReceipt {
 		}
 	}
 	created := reply.Data.IssueCreate
-	u, err := url.Parse(created.Issue.URL)
-	if !created.Success || !ticketUUID.MatchString(created.Issue.ID) || err != nil || len(created.Issue.URL) > 2048 || u.Scheme != "https" || u.Host != "linear.app" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || !strings.Contains(u.Path, "/issue/") {
+	if !created.Success || !validLinearTicketIdentity(created.Issue.ID, created.Issue.URL) {
 		return unknown
 	}
 	return TicketReceipt{State: "created", RemoteID: created.Issue.ID, URL: created.Issue.URL}
+}
+
+func validLinearTicketIdentity(id, address string) bool {
+	u, err := url.Parse(address)
+	return ticketUUID.MatchString(id) && err == nil && len(address) <= 2048 && u.Scheme == "https" && u.Host == "linear.app" && u.User == nil && u.RawQuery == "" && u.Fragment == "" && strings.Contains(u.Path, "/issue/")
 }

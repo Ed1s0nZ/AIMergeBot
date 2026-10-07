@@ -252,3 +252,9 @@ P8/F4，确认 REQ-013：创建前按 run/finding/integration 唯一预留，随
 首轮测试修正两处 fixture 错误：Store 私有迁移方法为 migrate；撤权后现有权限层隐藏资源，精确错误为 sql.ErrNoRows。修正后权限/HEAD/渠道 revision/重复 unknown 保留/重复迁移保持身份的定向 race 3.088s 通过，vet 和 diff 检查通过。完整 Go 验证进行中，前一 8299131 的 CI 37596410965 仍 in_progress。没有网络发送，本切片不构成工单功能全链路完成。
 
 本切片完整 Go 验证通过（platform 86.327s）。后续仍需 ticket 租约/发送授权复查、明确团队与 Jira 项目映射、HTTP/UI、真实服务验证；当前保持唯一预留的安全基础，不把 pending 当作已建工单。
+
+### S6 工单领取与回执栅栏（开发验证中）
+
+P8/F4，沿用持久幂等契约：旧表增列 lease/lease_until/error_code，领取随机 token、60 秒期限；过期 sending 转 unknown，禁止自动重发。确认回执必须匹配 ID/HEAD/幂等身份/渠道版本/actor 和有效租约。created 必须有效 Linear 回执，Jira 暂无适配器时不得伪造 created。验证旧租约、过期确认、重复确认、迁移重复执行和 unknown 不再领取；尚未接入实际发送消费。
+
+审核中修正空队列分支：过期 sending 的恢复与查询同事务，查询无 pending 时必须先提交恢复，再返回 sql.ErrNoRows，不能 defer rollback 丢失 unknown 状态。无效期限也转 unknown。租约/迁移/预留/Linear 协议定向 race 3.281s、完整 Go（platform 87.084s）、vet 与 diff 检查通过。unknown 可保留经过校验的远端回执；failed 不接受远端身份，任何状态的链接均拒绝仿冒域名/凭据 URL。前一 a5bf5a9 的 CI 37597019196 尚 in_progress，等待终态后推送。

@@ -25,7 +25,10 @@ type TicketLink struct {
 
 func migrateTicketLinks(tx *sql.Tx) error {
 	_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS platform_ticket_links(id INTEGER PRIMARY KEY,run_id INTEGER NOT NULL REFERENCES platform_runs(id),finding_id TEXT NOT NULL,integration_id INTEGER NOT NULL REFERENCES platform_integrations(id),integration_revision INTEGER NOT NULL,provider TEXT NOT NULL,head_sha TEXT NOT NULL,actor INTEGER NOT NULL REFERENCES platform_users(id),state TEXT NOT NULL DEFAULT 'pending',remote_id TEXT NOT NULL DEFAULT '',url TEXT NOT NULL DEFAULT '',idempotency_key TEXT NOT NULL UNIQUE,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(run_id,finding_id,integration_id))`)
-	return err
+	if err != nil {
+		return err
+	}
+	return migrateTicketLease(tx)
 }
 
 const ticketLinkColumns = `id,run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,state,remote_id,url,idempotency_key`
