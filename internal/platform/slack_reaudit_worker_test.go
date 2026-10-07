@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -26,7 +27,12 @@ func TestSlackReauditHTTPFirstAdmissionExecutesPinnedSnapshot(t *testing.T) {
 	for _, revoke := range []bool{false, true} {
 		t.Run(fmt.Sprint(revoke), func(t *testing.T) {
 			ctx := context.Background()
-			s := testStore(t)
+			path := filepath.Join(t.TempDir(), "bot-worker.db")
+			s, err := OpenStore(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { s.Close() }()
 			if err := s.Bootstrap(ctx, "admin", "a-long-password"); err != nil {
 				t.Fatal(err)
 			}
@@ -111,6 +117,16 @@ func TestSlackReauditHTTPFirstAdmissionExecutesPinnedSnapshot(t *testing.T) {
 				waitStatus(t, s, id, "succeeded", 15*time.Second)
 			}
 			runner.Stop()
+			if err := s.Close(); err != nil {
+				t.Fatal(err)
+			}
+			s, err = OpenStore(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			runner.Store = s
+			router = gin.New()
+			(&HTTP{Store: s, Runner: runner}).Register(router)
 			if err := runner.Start(ctx); err != nil {
 				t.Fatal(err)
 			}
@@ -120,6 +136,12 @@ func TestSlackReauditHTTPFirstAdmissionExecutesPinnedSnapshot(t *testing.T) {
 			var count int
 			if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_runs`).Scan(&count); err != nil || count != 2 {
 				t.Fatal("replay created run", count, err)
+			}
+			if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_bot_bindings WHERE user_id=?`, user.ID).Scan(&count); err != nil || count != 1 {
+				t.Fatal("binding lost across database reopen", count, err)
+			}
+			if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_bot_callback_receipts`).Scan(&count); err != nil || count != 1 {
+				t.Fatal("receipt lost across database reopen", count, err)
 			}
 		})
 	}
