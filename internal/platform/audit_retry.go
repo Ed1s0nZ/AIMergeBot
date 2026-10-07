@@ -137,6 +137,14 @@ func (s *Store) failAndRetry(ctx context.Context, id int64, owner, message strin
 	} else if state != "" {
 		info.State = state
 	}
+	if info.State == "scheduled" {
+		if err := requireLegacyRunRepository(ctx, tx, id); err != nil {
+			if !errors.Is(err, ErrRepositoryUnavailable) {
+				return 0, err
+			}
+			info.State = "repository_unavailable"
+		}
+	}
 	retryAt := ""
 	if info.State == "scheduled" {
 		info.DelaySeconds = int64((delay + time.Second - 1) / time.Second)

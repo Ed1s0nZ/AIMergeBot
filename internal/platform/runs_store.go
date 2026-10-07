@@ -50,6 +50,9 @@ func (s *Store) enqueueTx(ctx context.Context, tx *sql.Tx, snap Snapshot, actor 
 			return 0, false, err
 		}
 	}
+	if err = requireLegacyRepositorySnapshot(ctx, tx, snap); err != nil {
+		return 0, false, err
+	}
 	if err = validateFollowupEnqueue(ctx, tx, snap); err != nil {
 		return 0, false, err
 	}

@@ -29,6 +29,9 @@ func (r *Runner) authorizeContextRead(ctx context.Context, run Run) error {
 	if err := r.Store.OwnsRunningRun(ctx, run.ID, r.owner); err != nil {
 		return err
 	}
+	if err := requireLegacyRepositorySnapshot(ctx, r.Store.DB, run.Snapshot); err != nil {
+		return err
+	}
 	if err := validateContextAdmission(ctx, r.Store.DB, run.Snapshot); err != nil {
 		return err
 	}

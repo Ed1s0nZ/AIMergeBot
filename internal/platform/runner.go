@@ -124,6 +124,9 @@ func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bo
 	if !enabled {
 		return 0, false, errors.New("project disabled")
 	}
+	if err := requireLegacyRepositoryProject(ctx, r.Store.DB, pid); err != nil {
+		return 0, false, err
+	}
 	repository := r.Repository
 	var policy *AuditPolicy
 	if r.Settings != nil {
@@ -237,6 +240,10 @@ func (r *Runner) execute(parent context.Context, id int64) {
 			}
 			return
 		}
+	}
+	if err := requireLegacyRepositorySnapshot(parent, r.Store.DB, run.Snapshot); err != nil {
+		r.finish(id, "failed", "repository identity execution unavailable; audit not started", run.Result, run.Trace)
+		return
 	}
 	var gitConfig GitAuditSettings
 	timeout := r.Timeout

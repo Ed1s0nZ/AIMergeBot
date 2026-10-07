@@ -696,3 +696,13 @@ cdae9f8完整provider设计、8f01c3b G1契约已先推送，101f089补明HTTP�
 专项race初版6.444s、补充迁移/损坏证据8.162s、控制字符/非法端口11.584s、.github兼容13.074s通过。最终端口归一化后的全RepositoryBinding专项race9.801s、全项目vet/build/diff通过。覆盖两平台相同remoteID、跨origin、重复身份拒绝、scope/kind/token/endpoint/disabled拒绝、viewer/撤权、8并发仅一writer、事件ABORT整体回滚/同版本恢复、实际文件SQLite重开/重复migration/旧无绑定schema升级，history无token/无额外权限。全Go62430 success platform136.111s；控制字符版本90806 success platform113.729s；.github版本65960 success platform141.798s/evaluation10.401s。最后端口归一化仅改变新binding validator，以上broader全量不声称包含最后该小改动；最终模块race覆盖所有新Store/校验场景，精确新HEAD CI继续全量验证。
 
 cdae9f8精确CI37623659140 completed/success，通知项目失败恢复切片完整检查通过后才推送G1代码。G1仅内部存储，尚无HTTP/UI/new project/factory/真实GitHub审计；既有Runner路径不变。下一阶段先实现admission guard，再开放绑定入口，禁止未实现factory时误向GitLab查询同值ID。其余完整REQ/自动owner通知/邮件与bots闭环持续保留，未认定整体完成。
+
+### G2 前置：显式绑定不能进入 legacy GitLab 路径
+
+c502247、25ba5d0已先推送guard/HTTP契约。新增repository_binding_guard.go仅本地存在性检查（损坏binding同样不能fallback）。Submit在Snapshot前查target，enqueueTx在原ACL之后查target/source/context再去重/配额/写入，保护读取期间绑定变化及Store/Slack入队旁路。execute在原请求者授权之后、仓库/模型前拒绝绑定，保留checkpoint。Scope/followup、context授权、CODEOWNERS推荐读取前后皆检查全部scope。retry/recovery在原事务查run target/source/持久context，repository_unavailable保留父失败/恢复证据，不创建child。
+
+poll每项目/页/Snapshot前守卫，捕获context后再核对全部scope；seen改为独立短事务内检查，拒绝项目不标initialized/seen。手工Submit及GitLab Webhook特殊错误分支和统一fail映射ErrRepositoryUnavailable→503/code repository_unavailable、固定脱敏提示，不加虚假短暂恢复Retry-After。未授权仍原session/ACL优先。所有网络在SQLite事务外，无真实外部发送/模型调用。
+
+首轮guard专项race11.715s通过；扩大RepositoryBinding/Polling/QuotaPolling/OwnerRecommendation/OwnerRouting/SlackReaudit/BotEnqueue/Retry/Followup race70.302s通过。真实HTTP首轮发现submit特殊分支将新错误吞为422，修正两条手工/Webhook分支，最终guard+真实Register/Login Submit匿名401/授权503及真实GitLab事件Webhook503专项race14.871s通过，零legacy仓库请求/无run。竞态包含Snapshot期间创建binding后零入队、轮询meta读取期间创建binding后admit/baseline均零run/seen、target/source/context各自拒绝、旧pending启动后零repo/model、父retry失败证据保留。完整Go83793（HTTP改前）success platform123.873s；最终完整Go11740 completed/success platform125.057s。最后vet/build10852 success，diff通过。前端未改变。
+
+G1 6f54bec精确CI37625207628 completed/success后才推送新生产guard。本阶段不开放binding HTTP/UI，也不宣称GitHub已可审计；旧nil项目测试继续成功。历史check/comment发布队列的身份守卫、冻结binding factory/真实GitHub读取、入口配置及原完整REQ继续保留，下一阶段须接入远端发布边界后方可开放配置。

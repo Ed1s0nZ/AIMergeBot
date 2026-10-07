@@ -171,6 +171,9 @@ func makeRunScope(run Run, changes []Change, notes []string) RunScope {
 	return out
 }
 func (r *Runner) pinnedScopeChanges(ctx context.Context, run Run) ([]Change, []string, error) {
+	if err := requireLegacyRepositorySnapshot(ctx, r.Store.DB, run.Snapshot); err != nil {
+		return nil, nil, err
+	}
 	if run.AuditPolicy == nil {
 		return nil, nil, ErrFollowupScope
 	}

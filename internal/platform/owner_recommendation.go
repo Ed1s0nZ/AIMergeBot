@@ -55,6 +55,9 @@ func readOwnerRecommendationInput(ctx context.Context, tx *sql.Tx, run, actor in
 	if err := requireTicketProjectsEnabled(ctx, tx, input.Snapshot); err != nil {
 		return input, err
 	}
+	if err := requireLegacyRepositorySnapshot(ctx, tx, input.Snapshot); err != nil {
+		return input, err
+	}
 	if !validCodeOwnerSHA(input.Snapshot.HeadSHA) {
 		return input, ErrConflict
 	}
