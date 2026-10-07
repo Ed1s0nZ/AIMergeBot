@@ -98,3 +98,5 @@ G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Githu
 协议证据补充：见[github-compare-protocol-evidence.md](github-compare-protocol-evidence.md)。2022-11-28真实公开fork请求证明该样本owner:完整SHA可用，并证明identical/behind可以合法返回空commits；源码读取顺序将compare也纳入来源ACL之后。仅缩小协议不确定性，不关闭diverged/大比较/rename与完整差异、来源权限集成或UAR-001恢复，不授予生产实施许可。
 
 研究进展（上海2026-10-08）：上述证据文档补充真实改名fork/diverged、5616提交/250返回、首二页文件字段差异，以及两份truncated=false固定树核对。compare返回300项而同路径变化498，证实独立完整差异集合的必要性；不选未经明确的patch/rename实现，不将协议样本当应用端授权/执行验收。
+
+完整差异设计草案见[github-diff-design.md](github-diff-design.md)：核对默认Git审计与镜像依赖，识别单token/network helper复用限制，定义两树覆盖/模式/rename/partial边界，并验证隔离no-index合成字节原型11场景。草案未批准，默认完整工具链、rename、共享预算/网络及绑定恢复仍待闭合，无F3实施许可。
