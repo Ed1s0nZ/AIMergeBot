@@ -594,3 +594,11 @@ HTTP配置版本7441cb4对应完整Go96926 completed/success，platform287.890s�
 新增独立owner-routing.tsx，从项目卡片“责任人配置”惰性加载当前配置、账号与项目成员。候选仅启用admin或当前项目启用成员；不把同名账号自动绑定。默认owner可清空，alias最多100条，每条选择1–20位明确责任人，重复/空白/空owner客户端拒绝。已有不可用owner明确显示并需移除/更换；当前配置不能授予权限或修改已有发现owner。保存提交捕获revision；409保留草稿但锁定编辑/保存，必须显式丢弃重载，401/403/404清空配置与候选，加载失败无旧数据继续显示。请求加载AbortController；卸载后保存不更新已卸载状态。原项目文件仅入口/委托。
 
 typecheck及临时独立Vite构建成功，受控真实浏览器8800从编译产物验证：初始版本0无映射、候选仅fixture-admin/fixture-owner排除非成员；实际PUT expected_revision0/default_owner2/@org/team:[2]，成功版本1提示；409草稿@org/new-team保留且编辑/保存disabled；重载503清除字段/候选只剩error+retry；retry恢复服务器版本1与原@org/team；保存403清除字段只剩错误与retry。360×800窄屏scrollWidth=innerWidth=360，无横向溢出；textbox Tab焦点进入多选SELECT。没有真实外部请求或生产配置操作，viewport重置、临时tab/fixture关闭。正式embedded build按后端全量完成后顺序执行，避免emptyOutDir/go:embed竞争。CODEOWNERS推荐/通知消费尚未实现，不能据配置UI判定REQ-019完成。
+
+### S8 有界双 provider CODEOWNERS 匹配基础
+
+新增codeowners_rules.go/codeowners_gitlab.go：GitHub全局最后匹配含空owner覆盖；GitLab每section最后匹配、默认owner、重复名称大小写合并、同模式替换顺序、排除抑制所属section、optional/审批数证据、引用提取含inline comment。固定HEAD文件读取/实际source provider确定、映射完整快照授权、发现推荐与通知尚未接入；纯匹配模块不表示REQ-019完成。
+
+专项race初轮2.087s通过，扩大转义花括号/取反字符集/命名默认section后2.060s通过。身份提取改用官方分类顺序后测试发现相邻角色第二个漏提取（分隔空格被第一次匹配消费），修正为匹配后边界校验，最终race1.716s通过。覆盖Github lastmatch/emptyoverride/case、GitLab多section/default/email/group/roles/inline、目录/相对root/globstar/字面花括号/转义空格/Unicode路径、exclude不能被其他模式重新包含、重复默认section、错误语法/超限/非法路径拒绝。仅受控规则字符串，未读取生产仓库。go mod tidy与vet通过，新增依赖版本固定；完整Go与精确CI待后续闭合。
+
+6ad3a7a精确CI37612408776已completed/success，责任人配置HTTP/UI前版全链检查通过，不代替新解析模块完整检查。

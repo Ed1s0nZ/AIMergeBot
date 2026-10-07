@@ -18,7 +18,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.17 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/eino-contrib/jsonschema v1.0.3 // indirect
 	github.com/evanphx/json-patch v0.5.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -58,8 +57,11 @@ require (
 )
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.10.2
 	github.com/cloudwego/eino v0.9.21
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
+	github.com/eino-contrib/jsonschema v1.0.3
+	github.com/hmarr/codeowners v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/meguminnnnnnnnn/go-openai v0.1.2
 	golang.org/x/crypto v0.56.0

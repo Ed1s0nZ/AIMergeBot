@@ -27,3 +27,11 @@ platform_owner_routing_history 按 project_id/revision 追加配置、actor 和�
 管理员 PUT 同一路径，提交 `expected_revision`、`default_owner` 和 `aliases`。默认责任人0清空默认值，空映射清空alias配置。每个映射必须明确列出平台用户ID，且这些用户当前启用并已具备目标项目读取权限。客户端传入的 `actor` 不参与授权或历史记录。配置自身不会赋予权限，也不会立即改变现有发现的负责人。
 
 请求最大64KiB；格式或缺少版本400、无登录401、无修改权限或跨站请求403、不可访问项目/账号404、版本冲突409。发生冲突须重新读取并核对草稿，再提交新版本；不能自动覆盖。历史与审计事件写入失败时整笔配置更新回滚。本接口尚未提供推荐结果、CODEOWNERS解析或通知派发。
+
+## 匹配模块实施记录
+
+新增显式 provider 的有界规则解析模块；GitHub 使用 hmarr/codeowners v1.2.1；GitLab 使用独立 section/default/exclusion 解析和 doublestar v4.10.2 路径匹配。GitLab 匹配前按官方 File/PatternIndex 归一化相对路径、目录、转义空格、尾部 globstar 与字面花括号；不直接套用 GitHub 的根目录匹配。保留原模式、规则行、section、optional/approvals、owner声明及排除证据，不把声明转成平台审批资格。
+
+预算为256KiB文件、4096行、4096字节单行、2048条有效规则、1024字节模式、100身份/规则、8192身份总数；输入必须UTF-8且无NUL。解析失败不返回部分规则作为完整结果。当前 hmarr 的字符/邮箱限制可能拒绝官方允许的路径或邮箱，这须后续兼容性补齐，并由调用方显示无法推荐；不能将严格解析失败当文件缺失或无owner。尚未接入固定HEAD文件查找、Store完整快照过滤、推荐HTTP/详情或通知。
+
+GitLab依据同时核对官方源码 [File](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/file.rb)、[PatternIndex](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/pattern_index.rb)、[SectionParser](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/section_parser.rb)、[ReferenceExtractor](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/reference_extractor.rb)。当前角色/名字/邮箱提取只提供显式alias候选，不推断真实代码平台成员资格。HEAD上的责任人推荐与GitHub原生PR审批使用base分支CODEOWNERS是不同用途，后续UI须明确推荐的仓库与SHA，不声称等同原生必审人。
