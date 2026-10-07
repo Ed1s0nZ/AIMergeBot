@@ -43,3 +43,13 @@ API版本明确固定2022-11-28（当前官方仍支持、与旧GHES兼容），
 ### F3 读取限制与限流补强
 
 实现中固定suffix上限1024 bytes、query≤10 keys/每key≤64/每key≤4 values/每value≤512，拒绝过大路由不消耗HTTP；响应header≤64KiB。官方[REST最佳实践](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)补充：primary remaining=0须尊重UTC epoch reset，secondary无明确wait须至少一分钟。分类函数因此优先Retry-After，再primary X-RateLimit-Reset；合法期限不提前、超24h暂停自动重试，缺失或非法reset至少一分钟并保留状态。普通403无上述header仍永久权限错误，不读取body猜限流。source/tree上层按序请求；调度跨run串行/缓存等在G4/G5接入，client并发预算只保证并发误用不会突破读取上限。禁止redirect与官方通用follow建议不同，是已绑定远端身份/token固定origin约束；rename需管理员显式更新绑定，不自动跟随重解释。
+
+## F4/F5 实现与定向证据
+
+F2 7b8d831、F3 9cf732e及限流补充c6b35c4均已先推。新增github_read_client.go独立只读客户端：安全transport、同origin/仓库route、API版本、64KiB header、并发128 requests/32MiB累计正文预算、单请求≤8MiB、JSON单对象验证、remoteID/full_name身份核对、脱敏永久/临时/限流分类。无生产factory调用，bound执行保护保持；G3剩余固定commit/tree/blob/diff/metadata与G4–G6继续实施。
+
+真实TLS httptest只使用fixture token，生产默认仍禁止loopback；测试内部替换TLS transport，未开公开测试绕过参数。首轮Github race11640 success平台2.314s；新增网络取消/temporary分类与相关Notification/RetryTransport扩大race23386 success23.923s；route/query大小补强后Github race70486 success1.750s；最终primary/secondary wait及RetryTransport race60844 success2.255s。用例覆盖API header/Enterprise前缀、canonical绑定与凭据拒绝、非法路径/超长query零HTTP、redirect第二target零访问、401/普通403/404/410/422固定错误、429/403 primary/5xx正常RetryInfo、secret body/URL/网络err不逃逸、Content-Length/stream上限、null/array/多JSON/尾随/非法UTF8拒绝、Unicode、16并发仅4剩余request成功与准确字节refund、取消前零访问与请求中取消、身份漂移、默认transport无proxy/TLS/timeout/禁loopback、primary reset/Retry-After优先与超24h/未知secondary一分钟。
+
+较早client版本全Go63299 success平台124.798s，不含后续限流/header补强；最终版本全Go39897仍运行，待终态后再写独立结果。最终vet/build12201 success，diff检查通过。allowlist复制代码已实现，但未单独以实际私网拨号证明输入mutation（测试禁止访问非fixture网络）；64KiB header上限由默认transport字段证明，未对超大header做真实响应实验。没有真实GitHub凭据/远端仓库/模型/通知，也不能以TLS fixture宣称完整GitHub PR审计完成。此前仓库管理c73a1dd精确CI37637933151已completed/success，可在当前完整验证通过后推新生产提交。
+
+最终client代码全Go39897已completed/success：platform131.594s，其余包通过。代码之后未变，最终Github/RetryTransport race60844、vet/build12201与diff均已通过。F4/F5客户端切片可提交并推送；G3固定对象读取与全链路验收不因此完成。
