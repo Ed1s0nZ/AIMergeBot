@@ -198,12 +198,17 @@ func validateSettings(c Settings) error {
 func (s *SettingsService) Save(next Settings) error { return s.save(next, false) }
 
 func (s *SettingsService) SyncProjects(projects []Project) error {
-	next := s.Snapshot()
-	next.Projects = []legacy.ProjectConfig{}
+	items := []legacy.ProjectConfig{}
 	for _, p := range projects {
 		enabled := p.Enabled
-		next.Projects = append(next.Projects, legacy.ProjectConfig{ID: p.ID, Name: p.Name, Enabled: &enabled, ContextRepositories: append([]ContextRepository{}, p.ContextRepositories...)})
+		items = append(items, legacy.ProjectConfig{ID: p.ID, Name: p.Name, Enabled: &enabled, ContextRepositories: append([]ContextRepository{}, p.ContextRepositories...)})
 	}
+	return s.syncProjectConfigs(items)
+}
+
+func (s *SettingsService) syncProjectConfigs(projects []legacy.ProjectConfig) error {
+	next := s.Snapshot()
+	next.Projects = projects
 	return s.save(next, true)
 }
 

@@ -77,28 +77,11 @@ func run() error {
 	if !importProjects {
 		cfg.Projects = nil
 	}
-	projects, err := store.Projects(ctx)
+	legacyProjects, err := store.ImportConfiguredProjects(ctx, cfg.Projects)
 	if err != nil {
 		return err
 	}
-	known := map[int]platform.Project{}
-	for _, p := range projects {
-		known[p.ID] = p
-	}
-	for _, p := range cfg.Projects {
-		enabled := true
-		if previous, ok := known[p.ID]; ok {
-			enabled = previous.Enabled
-		}
-		if p.Enabled != nil {
-			enabled = *p.Enabled
-		}
-		if err = store.SaveProject(ctx, platform.Project{ID: p.ID, Name: p.Name, Enabled: enabled}); err != nil {
-			return err
-		}
-	}
-
-	if err = store.ImportContextRepositories(ctx, cfg.Projects); err != nil {
+	if err = store.ImportContextRepositories(ctx, legacyProjects); err != nil {
 		return err
 	}
 	repo := &platform.DynamicRepository{Settings: settings}

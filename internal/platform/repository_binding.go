@@ -194,5 +194,8 @@ func (s *Store) SaveRepositoryBinding(ctx context.Context, project int, actor, e
 	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'repository.binding.updated',?,?)`, actor, strconv.Itoa(project), stamp); err != nil {
 		return RepositoryBinding{}, err
 	}
+	if err = markProjectSync(tx); err != nil {
+		return RepositoryBinding{}, err
+	}
 	return p, tx.Commit()
 }

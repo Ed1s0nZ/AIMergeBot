@@ -33,6 +33,7 @@ type ContextRepositoryConfig struct {
 }
 
 type ProjectConfig struct {
+	InternalProject     bool                      `yaml:"internal_project,omitempty" json:"internal_project,omitempty"`
 	ContextRepositories []ContextRepositoryConfig `yaml:"context_repositories,omitempty"`
 	ID                  int                       `yaml:"id"`
 	Name                string                    `yaml:"name"`

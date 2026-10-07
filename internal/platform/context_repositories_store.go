@@ -98,6 +98,11 @@ func (s *Store) saveContextRepositories(ctx context.Context, project int, items 
 		return err
 	}
 	defer tx.Rollback()
+	if importing {
+		if err = requireLegacyRepositoryProject(ctx, tx, project); err != nil {
+			return err
+		}
+	}
 	if !importing {
 		role, err := projectRole(ctx, tx, project, actor)
 		if err != nil {
@@ -151,7 +156,7 @@ func contextProjectIDs(items []ContextRepository) []int {
 // must run first; nil on old configuration leaves existing links unchanged.
 func (s *Store) ImportContextRepositories(ctx context.Context, projects []legacy.ProjectConfig) error {
 	for _, project := range projects {
-		if project.ContextRepositories == nil {
+		if project.InternalProject || project.ContextRepositories == nil {
 			continue
 		}
 		if err := s.saveContextRepositories(ctx, project.ID, project.ContextRepositories, 0, true); err != nil {

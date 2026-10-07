@@ -61,5 +61,11 @@ func (h *HTTP) saveRepositoryBinding(c *gin.Context) {
 		fail(c, err)
 		return
 	}
+	if h.Settings != nil {
+		if err := h.Store.SyncProjectConfig(c.Request.Context(), h.Settings); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "repository binding saved; configuration synchronization pending; reload before saving again", "code": "project_config_sync_pending"})
+			return
+		}
+	}
 	c.JSON(http.StatusOK, saved)
 }

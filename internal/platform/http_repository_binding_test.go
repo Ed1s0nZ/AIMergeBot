@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -112,6 +114,12 @@ func TestRepositoryBindingHTTPContract(t *testing.T) {
 	}
 	request("PATCH", path, adminToken, body, "", "", 409)
 	request("PATCH", "/api/v1/projects/2/repository-binding", adminToken, body, "", "", 409)
+	request("POST", "/api/v1/projects", adminToken, `{"id":1,"name":"colliding-gitlab","enabled":false}`, "", "", 409)
+	var projectName string
+	var projectEnabled bool
+	if err := s.DB.QueryRow(`SELECT name,enabled FROM platform_projects WHERE id=1`).Scan(&projectName, &projectEnabled); err != nil || projectName != "project-1" || !projectEnabled {
+		t.Fatal("legacy creation overwrote bound project", projectName, projectEnabled, err)
+	}
 	next := strings.Replace(body, `"expected_revision":0`, `"expected_revision":1`, 1)
 	request("PATCH", path, adminToken, strings.Replace(next, fmt.Sprintf(`"integration_id":%d`, integration.ID), `"integration_id":999`, 1), "", "", 404)
 	request("PATCH", path, adminToken, strings.Replace(next, "https://API.EXAMPLE:443/", "https://wrong.example", 1), "", "", 409)
@@ -149,5 +157,91 @@ func TestRepositoryBindingHTTPContract(t *testing.T) {
 	}
 	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_runs`).Scan(&history); err != nil || history != 0 {
 		t.Fatal("bound request created run", history, err)
+	}
+}
+
+func TestRepositoryBindingHTTPSyncRecovery(t *testing.T) {
+	for _, failure := range []bool{false, true} {
+		t.Run(fmt.Sprint(failure), func(t *testing.T) {
+			s, admin, _ := accessFixture(t)
+			ctx := context.Background()
+			integration := bindingIntegration(t, s, admin.ID, "github", "https://api.example", 1, 2)
+			target := filepath.Join(t.TempDir(), "config.yaml")
+			settings, err := OpenSettings(target, "../../config.example.yaml")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = s.SyncProjectConfig(ctx, settings); err != nil {
+				t.Fatal(err)
+			}
+			_, token, err := s.Login(ctx, "admin", "admin-long-password")
+			if err != nil {
+				t.Fatal(err)
+			}
+			router := gin.New()
+			(&HTTP{Store: s, Settings: settings}).Register(router)
+			if failure {
+				if err = os.Remove(target); err != nil {
+					t.Fatal(err)
+				}
+				if err = os.Mkdir(target, 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			path := "/api/v1/projects/1/repository-binding"
+			request := func(method, body string) *httptest.ResponseRecorder {
+				req := httptest.NewRequest(method, path, strings.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				req.AddCookie(&http.Cookie{Name: sessionCookie, Value: token})
+				res := httptest.NewRecorder()
+				router.ServeHTTP(res, req)
+				return res
+			}
+			body := fmt.Sprintf(`{"expected_revision":0,"provider":"github","api_origin":"https://api.example","remote_id":7,"full_name":"org/repo","integration_id":%d}`, integration.ID)
+			res := request("PATCH", body)
+			want := 200
+			if failure {
+				want = 500
+			}
+			if res.Code != want {
+				t.Fatal(res.Code, res.Body.String())
+			}
+			if failure && (!strings.Contains(res.Body.String(), "project_config_sync_pending") || strings.Contains(res.Body.String(), target)) {
+				t.Fatal("ambiguous or leaking sync failure", res.Body.String())
+			}
+			read := request("GET", "")
+			var binding RepositoryBinding
+			if err = json.Unmarshal(read.Body.Bytes(), &binding); err != nil || read.Code != 200 || binding.Revision != 1 {
+				t.Fatal("committed binding missing after response", read.Body.String(), err)
+			}
+			if res = request("PATCH", body); res.Code != 409 {
+				t.Fatal("old revision retried after committed save", res.Code)
+			}
+			status, err := s.ProjectSyncStatus(ctx)
+			if err != nil || status.Pending != failure {
+				t.Fatal(status, err)
+			}
+			if failure {
+				if err = os.Remove(target); err != nil {
+					t.Fatal(err)
+				}
+				if allow, err := s.RestorePendingProjects(ctx, settings); err != nil || !allow {
+					t.Fatal(allow, err)
+				}
+			}
+			reopened, err := OpenSettings(target, "../../config.example.yaml")
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, p := range reopened.Snapshot().Projects {
+				if p.ID == 1 {
+					found = p.InternalProject
+				}
+			}
+			if !found {
+				t.Fatal("HTTP save did not persist namespace")
+			}
+		})
 	}
 }

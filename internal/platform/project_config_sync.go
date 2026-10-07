@@ -9,26 +9,15 @@ import (
 func (s *Store) SyncProjectConfig(ctx context.Context, settings *SettingsService) error {
 	s.projectSyncMu.Lock()
 	defer s.projectSyncMu.Unlock()
-	var generation int64
-	var dirty bool
-	if err := s.DB.QueryRowContext(ctx, `SELECT generation,dirty FROM platform_project_sync WHERE id=1`).Scan(&generation, &dirty); err != nil {
+	projects, generation, dirty, err := s.projectConfiguration(ctx)
+	if err != nil {
+		_, _ = s.DB.ExecContext(ctx, `UPDATE platform_project_sync SET last_error='configuration synchronization failed',updated_at=? WHERE id=1 AND dirty=1`, now())
 		return err
 	}
 	if !dirty {
 		return nil
 	}
-	projects, err := s.Projects(ctx)
-	if err == nil {
-		for i := range projects {
-			projects[i].ContextRepositories, err = s.ContextRepositories(ctx, projects[i].ID)
-			if err != nil {
-				break
-			}
-		}
-	}
-	if err == nil {
-		err = settings.SyncProjects(projects)
-	}
+	err = settings.syncProjectConfigs(projects)
 	if err != nil {
 		_, _ = s.DB.ExecContext(ctx, `UPDATE platform_project_sync SET last_error='configuration synchronization failed',updated_at=? WHERE id=1 AND generation=?`, now(), generation)
 		return err

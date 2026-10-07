@@ -24,3 +24,5 @@ Maintainability Gate：http_auth.go约300行，session/security/route assembly�
 6b89c47精确CI37628377399仍in_progress。生产代码可本地提交，暂不推送以保留该run；终态后推送并跟踪本HEAD独立CI。仅API完成，G2页面、内部ID创建/同步防碰撞及G3–G6全链路和其余完整REQ继续保留，GitHub不能实际审计。phase push仍pending，不宣称F4/F5远端验收完成。
 
 远端状态更新：6b89c47精确CI37628377399已completed/success；60850dd生产API随a7e914d（含后续同步设计）已推送codex/sidebar-workflow。精确HEAD a7e914d CI37629722882已in_progress，仍待远端完整验收；上述“暂不推送”是当时状态，不再为当前状态。无main合并或发布。后续同步设计见github-project-identity-sync-design.md。
+
+配置同步扩展（github-project-identity-sync-design）：保存binding与project_sync generation/dirty在同一数据库事务提交。HTTP有Settings时提交后尝试导出配置；文件写失败返回500/code project_config_sync_pending及固定“绑定已保存，需重新读取”提示，不能宣称CAS回滚。GET会显示已提交revision，重用旧expected_revision仍409；dirty在重启优先恢复，外部文件写不在数据库事务内。HTTP无Settings的受控用例仍保存dirty，无远端请求。

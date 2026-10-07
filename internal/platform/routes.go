@@ -100,7 +100,17 @@ func (h *HTTP) saveProject(c *gin.Context) {
 		}
 		p.ID = int(id)
 	}
-	if err := h.Store.SaveProject(c.Request.Context(), p); err != nil {
+	var err error
+	if c.Request.Method == http.MethodPost {
+		err = h.Store.SaveLegacyProject(c.Request.Context(), p)
+	} else {
+		err = h.Store.SaveProject(c.Request.Context(), p)
+	}
+	if errors.Is(err, ErrConflict) {
+		c.JSON(409, gin.H{"error": "project identity conflict; use the existing project configuration"})
+		return
+	}
+	if err != nil {
 		c.JSON(400, gin.H{"error": "invalid project"})
 		return
 	}
