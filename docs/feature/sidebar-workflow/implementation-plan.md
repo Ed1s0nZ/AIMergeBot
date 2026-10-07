@@ -586,3 +586,11 @@ Store权限/版本/8并发writer专项race6.534s通过：未授权owner拒绝、
 前版144e5d3的完整Go测试78497已成功，platform165.378s；e840375精确远端CI37610294851已completed/success，Go/race/vet、工具测试、漏洞检查、前端与embedded构建均成功。截图73be028对应旧run37583262424失败原因为迁移测试移除revision时notification trigger仍引用NEW.revision；最新CI已通过该测试。该证据不代替本HTTP版本完整检查。REQ-019/AC-017的UI、固定HEAD CODEOWNERS读取与provider语义、完整快照权限过滤及通知消费仍未完成。
 
 追加事件故障专项race12.058s：owner.routing.updated事件触发器强制ABORT时，当前配置与追加历史均保持旧版本；移除故障后同一expected_revision可成功保存。明确路径SQLite Close/Open专项race5.618s：默认owner/alias/revision/history持久保留，重开后旧版本不能覆盖。vet/diff通过；实际推荐链和管理UI尚未交付。
+
+HTTP配置版本7441cb4对应完整Go96926 completed/success，platform287.890s，evaluation134.795s；后补事件回滚/DB重开测试分别有race专项证明。无失败重启或同分支CI覆盖。
+
+### S8 责任人配置管理员页面
+
+新增独立owner-routing.tsx，从项目卡片“责任人配置”惰性加载当前配置、账号与项目成员。候选仅启用admin或当前项目启用成员；不把同名账号自动绑定。默认owner可清空，alias最多100条，每条选择1–20位明确责任人，重复/空白/空owner客户端拒绝。已有不可用owner明确显示并需移除/更换；当前配置不能授予权限或修改已有发现owner。保存提交捕获revision；409保留草稿但锁定编辑/保存，必须显式丢弃重载，401/403/404清空配置与候选，加载失败无旧数据继续显示。请求加载AbortController；卸载后保存不更新已卸载状态。原项目文件仅入口/委托。
+
+typecheck及临时独立Vite构建成功，受控真实浏览器8800从编译产物验证：初始版本0无映射、候选仅fixture-admin/fixture-owner排除非成员；实际PUT expected_revision0/default_owner2/@org/team:[2]，成功版本1提示；409草稿@org/new-team保留且编辑/保存disabled；重载503清除字段/候选只剩error+retry；retry恢复服务器版本1与原@org/team；保存403清除字段只剩错误与retry。360×800窄屏scrollWidth=innerWidth=360，无横向溢出；textbox Tab焦点进入多选SELECT。没有真实外部请求或生产配置操作，viewport重置、临时tab/fixture关闭。正式embedded build按后端全量完成后顺序执行，避免emptyOutDir/go:embed竞争。CODEOWNERS推荐/通知消费尚未实现，不能据配置UI判定REQ-019完成。

@@ -1,3 +1,4 @@
+import { OwnerRoutingEditor } from "./owner-routing";
 import { ContextRepositories } from "./context-repositories";
 import { useState } from "react";
 import { Plus, FolderGit2 } from "lucide-react";
@@ -6,6 +7,7 @@ import { ErrorBox, Empty } from "./components";
 import { useResource, Heading } from "./page-utils";
 import { ProjectMembers, projectRoleNames } from "./project-members";
 export function Projects({ admin }: { admin: boolean }) {
+  const [ownerProject, setOwnerProject] = useState<Project | null>(null);
   const [contextProject, setContextProject] = useState<Project | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const resource = useResource<{ items: Project[] }>("/projects"),
@@ -98,6 +100,7 @@ export function Projects({ admin }: { admin: boolean }) {
                 aria-expanded={selectedProject?.id === p.id}
                 aria-controls="project-members-panel"
                 onClick={() => {
+                  setOwnerProject(null);
                   setContextProject(null);
                   setSelectedProject(p);
                 }}
@@ -110,11 +113,25 @@ export function Projects({ admin }: { admin: boolean }) {
                 aria-expanded={contextProject?.id === p.id}
                 aria-controls="context-repositories-panel"
                 onClick={() => {
+                  setOwnerProject(null);
                   setSelectedProject(null);
                   setContextProject(p);
                 }}
               >
                 关联仓库
+              </button>
+            )}
+            {admin && (
+              <button
+                aria-expanded={ownerProject?.id === p.id}
+                aria-controls="owner-routing-panel"
+                onClick={() => {
+                  setSelectedProject(null);
+                  setContextProject(null);
+                  setOwnerProject(p);
+                }}
+              >
+                责任人配置
               </button>
             )}
             {admin && (
@@ -151,6 +168,13 @@ export function Projects({ admin }: { admin: boolean }) {
           }
           projects={resource.data?.items || []}
           onClose={() => setContextProject(null)}
+        />
+      )}
+      {admin && ownerProject && (
+        <OwnerRoutingEditor
+          key={ownerProject.id}
+          project={ownerProject}
+          onClose={() => setOwnerProject(null)}
         />
       )}
       {admin && selectedProject && (
