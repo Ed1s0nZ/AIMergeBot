@@ -434,3 +434,9 @@ Slack 定向 race 3.293s、vet/diff 通过，新增同秘密有效签名但不�
 P8/F4，新增内部撤销事务，依据已认证平台账号删除该渠道下自己的绑定与全部未用挑战，不接受外部用户名或其他用户参数。渠道停用或重配置后仍可解除；停用账号拒绝调用；重复撤销返回未变化。删除挑战避免旧 token 在撤销后重新绑定。尚无撤销 HTTP/UI，此内部函数不能替代端到端身份认证证据。
 
 Slack 定向 race 3.596s 通过，覆盖其他账号不能删除既有绑定、渠道停用后所有者仍可撤销、绑定与挑战共同清空、重复撤销幂等。完整 Go 与 vet 正在执行。此前 e6b29e5 的 CI 37603901544 已确认 completed/success；后续本地 Slack 切片未推送、未据此声明远端已验证。AC-013 仍缺认证发行/撤销入口、实际回调与项目快照权限授权。
+
+### S7 自身绑定认证接口（开发验证中）
+
+P8/F4，认证路由新增 POST /api/v1/bot-bindings/:id/challenge 与 DELETE /api/v1/bot-bindings/:id，沿用真实 session guard 和 origin 检查。挑战请求体限制 4KiB，必须提供当前渠道 revision；身份仅从 currentUser 取得。响应一次性返回 token/expires_at 且 no-store，不返回渠道 secret；删除接口只撤销当前登录用户的绑定/挑战，重复请求返回 revoked=false。发行不增加项目权限；当前仍没有公开 Slack callback 或操作授权入口。
+
+真实 HTTP.Register+Store.Login 定向 race 与全部 Slack 测试 7.430s 通过，覆盖匿名 401、跨站发行/删除 403、无 revision 400、有效发行 201、请求 user_id 不能覆盖 session 身份、另一用户删除不影响 owner 挑战、重复撤销幂等。vet 与 diff 检查通过。此前 c6de0b7 完整 Go 61475 已 completed/success（platform 112.869s）；新增认证接口尚需自身全量验证，不能沿用前版结果。配置/自身绑定界面、公开签名回调和 snapshot 权限授权仍未完成。
