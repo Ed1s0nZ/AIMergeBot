@@ -540,3 +540,11 @@ P8/F4，检查现有 Runner.Submit/SubmitFollowup 与 Store.EnqueueUser：用户
 现有并发入队/配额/提交/context/followup相关race13.260s通过。新真实SQLite事务test race2.179s验证receipt+run+run.created一起rollback或一起commit，无部分状态。该test采用受控receipt插入，仅证明事务边界，不声称签名复审整链完成。vet/diff通过。
 
 前版证据链接babcac2全量62154终态success，platform170.132s；随后绑定audit与当前enqueue提取需当前独立全量。复审请求格式、固定HEAD约束、真实Runner admission与HTTP签名/重复/配额故障矩阵仍待实施，AC-013未完成；GitHub/其他bots等完整范围保持。
+
+### S7 固定提交签名机器人复审 admission（内部验证中）
+
+P8/F4，新增内部 slackReaudit，严格 reaudit <parentRunID> <完整HEAD>，有效签名/domain/revision/replay后解析当前绑定启用账号，加载有界原任务policy与快照，要求HEAD精确匹配、base有效commit、当前PolicyVersion和terminal父任务。当前operator完整target/source/context ACL、项目enabled、渠道scope与原enqueueTx admission/context/配额/去重全部同事务。新run保留parent base/head/diffVersion/title/url/policy和当前requester，不偷偷切换最新提交；已存在pending/running同快照复用。bot.reaudit.requested事件与nonce/run/context/run.created同一提交。当前未公开HTTP复审命令，worker availability与错误恢复将在接入时验证。
+
+首轮13类真实SQLite签名复审race25.785s通过：valid创建固定快照/当前actor、重放拒绝、第二个新nonce复用active任务；viewer、head不匹配、legacy政策、active父任务、target/source/context撤权、账号或项目停用、channel scope移出、绑定撤销均无run/nonce写入。追加quota/history专测race3.654s通过，容量拒绝或bot审计事件强制失败时receipt与新run全部回滚。vet/diff通过。该证据仅内部Store，不替代HTTP/Runner执行/真实平台联调，AC-013仍未完成。
+
+前版7cb3819全量99064 completed/success，platform141.074s。本复审新函数需独立全量，后续推送精确CI；其他机器人与GitHub/fullREQ不缩小范围。
