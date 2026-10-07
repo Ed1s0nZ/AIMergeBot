@@ -19,3 +19,11 @@
 - validation：npm typecheck、临时Vite build、受控浏览器验证、正式embedded build后Go build/vet/diff；无额外无关测试。
 - lifecycle docs：implementation-plan.md写实现/证据，独立commit/push；最新cdd2204 CI先跟至终态后再推代码，避免取消。
 - remaining：自动推荐路由、其他完整REQ仍保留；本UI完成不代替整体交付验收。
+
+## 项目读取失败恢复补强（P9 / F2–F5）
+
+Confirmed原需求及上述UI/后端契约允许实施。发现useResource在503保留缓存，而集成页仍渲染缓存项目、选择器仅接收loading，因此项目来源失败也可显示候选；刷新列表未重新读取projects。高复杂度原页仍采用窄委托，不广泛重排。
+
+契约：项目请求loading/error/无data时隐藏缓存项目标签及候选，保留用户草稿ID且禁止保存（包括owner为空）；独立selector接收projectsError并阻止读取成员/使用旧候选。刷新列表同时重新读取integrations/projects，成功后允许用户继续原草稿，项目停用或消失必须明确调整；后端ACL/CAS仍是最终授权。仅GET刷新，不发送通知。既有403保存清除凭据/409锁定保持。
+
+实施：integrations增加projectReady与项目有效性校验、错误/加载展示、复合刷新；notification-owner-selector增加项目错误状态。验证typecheck/build、真实编译产物受控浏览器项目503/403/延迟/恢复/项目停用及空owner保存限制，窄屏；Go embedded build/vet。文档阶段先提交推送；生产代码待529516d精确CI37622635264终态后推送，不覆盖live CI。更新implementation-plan证据，完整REQ仍继续推进。
