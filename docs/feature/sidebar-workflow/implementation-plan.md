@@ -86,3 +86,5 @@ S1 补充：HTTP 分类与非法项目/筛选负例测试通过；具体发现�
 GitHub 73be028 的 run 37583262424 与 53068a2 的 run 37583804618 在全量 Go 测试中失败。TestReviewRevisionMigratesLegacyDecisionWithoutChangingHistory 用已升级数据库 DROP revision 模拟旧库，但新增通知触发器引用该字段，SQLite 在 DROP 时拒绝。真实旧库无这些触发器，因此修正 fixture：先移除两个依赖 revision 的新通知触发器，再重建旧结构；迁移后要求两触发器自动恢复、旧复核/通知历史均不重复。不删除生产触发器、不跳过或弱化迁移测试。
 
 本地同名测试失败与 GitHub 日志一致；目标修复测试通过。此前定向通过不代表全量通过，当前需要完整 Go/race/vet 与最新提交 GitHub CI 成功才能关闭此回归。统计接口正在开发的未提交改动与此修复分开提交。
+
+CI 修复关闭证据：b4c8a447ae19a9f4eceeb4e407a0c5b68aaa2cac 的 [GitHub CI 37584113122](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37584113122) completed/success，verify job 112670223096 全部检查成功。包含完整 Go/race/vet、operations tooling、govulncheck、npm audit/typecheck/build、embedded application build。本地 go test ./... platform 74.434s、完整 platform race 159.672s、go vet ./... 退出 0；本地统计接口未提交开发改动已明确与该修复 commit 分开，远端精确提交 CI 是本次回归关闭的权威证据。后续切片继续跟踪各自 CI；这不表示完整产品需求已经完成。
