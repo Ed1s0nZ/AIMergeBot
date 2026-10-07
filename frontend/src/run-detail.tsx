@@ -7,6 +7,7 @@ import { FindingWorkbench } from "./finding-workbench";
 import { FrozenContextRepositories } from "./context-repositories";
 import { SARIFDownload } from "./sarif-download";
 import { PRInvestigationPanel } from "./pr-investigation";
+import { FindingTicketsPanel } from "./finding-tickets";
 import { FindingDispositionPanel } from "./finding-disposition";
 import { RunComparisonPanel } from "./run-comparison";
 import { FindingAssociationsPanel } from "./finding-associations";
@@ -46,12 +47,16 @@ export function FindingCard({
   runId,
   onSaved,
   canReview,
+  headSHA,
+  canCreateTicket,
 }: {
   finding: Finding;
   review?: Review;
   runId: number;
   onSaved: () => void;
   canReview: boolean;
+  headSHA: string;
+  canCreateTicket: boolean;
 }) {
   const [status, setStatus] = useState(review?.status || "pending"),
     [reason, setReason] = useState(review?.reason || ""),
@@ -187,6 +192,7 @@ export function FindingCard({
         </small>
       )}
       <FindingDispositionPanel runId={runId} findingId={finding.id} />
+      <FindingTicketsPanel runId={runId} findingId={finding.id} headSHA={headSHA} canCreate={canCreateTicket} />
       <ErrorBox error={error} />
     </article>
   );
@@ -479,6 +485,8 @@ export function RunDetail({ id }: { id: number }) {
             key={`${id}:${f.id}`}
             finding={f}
             runId={id}
+            headSHA={r.head_sha}
+            canCreateTicket={resource.data?.permissions.can_submit || false}
             review={review}
             onSaved={resource.load}
             canReview={resource.data?.permissions.can_review || false}

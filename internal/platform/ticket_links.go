@@ -108,3 +108,37 @@ func (s *Store) FindingTicket(ctx context.Context, runID, actor, integrationID i
 	}
 	return v, tx.Commit()
 }
+
+func (s *Store) FindingTickets(ctx context.Context, runID, actor int64, findingID string) ([]TicketLink, error) {
+	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	if _, err := requireDispositionFinding(ctx, tx, runID, actor, findingID, "viewer"); err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT `+ticketLinkColumns+` FROM platform_ticket_links WHERE run_id=? AND finding_id=? ORDER BY id LIMIT 501`, runID, findingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []TicketLink{}
+	for rows.Next() {
+		v, err := scanTicketLink(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+		if len(out) > 500 {
+			return nil, ErrConflict
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	return out, tx.Commit()
+}

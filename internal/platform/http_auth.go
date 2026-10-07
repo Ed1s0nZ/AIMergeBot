@@ -214,6 +214,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.GET("/runs/:id/findings/:finding_id/disposition", h.disposition)
 	api.PUT("/runs/:id/findings/:finding_id/disposition", h.saveDisposition)
 	api.POST("/runs/:id/findings/:finding_id/tickets", h.reserveFindingTicket)
+	api.GET("/runs/:id/findings/:finding_id/tickets", h.findingTickets)
 	api.GET("/runs/:id/findings/:finding_id/ticket-channels", h.findingTicketChannels)
 	api.GET("/runs/:id/findings/:finding_id/tickets/:integration_id", h.findingTicket)
 	api.PUT("/runs/:id/findings/:finding_id/review", h.review)

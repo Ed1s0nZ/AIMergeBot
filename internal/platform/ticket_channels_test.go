@@ -48,6 +48,20 @@ func TestFindingTicketChannelsScopeReadinessAndSecrets(t *testing.T) {
 	if _, err := s.FindingTicketChannels(ctx, run, viewer.ID, "f"); !errors.Is(err, ErrProjectPermission) {
 		t.Fatal("viewer channel access", err)
 	}
+	if _, _, err := s.ReserveFindingTicket(ctx, run, 1, integration.ID, integration.Revision, "f", strings.Repeat("b", 40)); err != nil {
+		t.Fatal(err)
+	}
+	links, err := s.FindingTickets(ctx, run, viewer.ID, "f")
+	if err != nil || len(links) != 1 || links[0].State != "pending" {
+		t.Fatal(links, err)
+	}
+	public, _ := json.Marshal(links)
+	if strings.Contains(string(public), "idempotency_key") {
+		t.Fatal("internal key disclosed")
+	}
+	if _, err := s.FindingTickets(ctx, run, viewer.ID, "missing"); err == nil {
+		t.Fatal("missing finding list accepted")
+	}
 	for _, mutation := range []string{`enabled=0`, `project_ids='[2]'`, `credentials='{}'`, `credentials='broken'`, `kind='jira'`} {
 		t.Run(mutation, func(t *testing.T) {
 			raw, _ := json.Marshal(credentials)

@@ -302,3 +302,11 @@ HTTP/消费者/真实 Runner 生命周期定向 race 14.921s、vet 通过；当�
 P8/F4，新增 operator 专用 GET /runs/:id/findings/:finding_id/ticket-channels，重新校验完整发现快照权限。返回仅 ID/revision/name/provider；按目标项目范围过滤，排除禁用、损坏或缺团队/token/非官方端点配置，Jira 适配器完成前不提供其选择。凭据读取在 SQL 限制 64 KiB，候选最多 500，超过明确失败不悄悄截断。真实数据库测试覆盖 viewer 拒绝、缺发现、项目范围/禁用/损坏配置/不支持类型过滤和输出不含 token/团队 UUID。初次定向 race 2.716s 通过，随后 SQL 凭据读取上限调整后重新验证；vet/diff 通过。详情 UI 与完整工单状态列表仍待完成。
 
 SQL 上限调整后的定向 race 2.651s 通过。GitHub 恢复访问，精确 c07558a 的 CI 37599173842 已核实 completed/success。新渠道版本完整 Go 测试运行中，待终态后统一推送本地 API/后台/渠道提交并跟踪新 HEAD CI。
+
+渠道版本完整 Go 测试通过（platform 103.192s）。
+
+### S6 发现详情工单入口（开发验证中）
+
+P8/F4，新增 viewer 可读的发现工单列表（完整 snapshot 权限、最多 500 超限明确失败、内部 key 不输出）。详情卡片按需打开工单区，operator 可选择服务器过滤后的渠道，POST 携带固定 HEAD/revision；响应展示 pending 而不虚构创建成功，已有任何终态/待处理记录禁用重复创建，unknown 提示人工核对且无自动重发，显式刷新状态。权限/提交错误清空旧数据并要求刷新，加载失败不展示旧选项。远端链接严格允许 Linear HTTPS issue 路径且不含凭据/query/fragment。创建仅使用 can_submit 显示权限，服务器仍独立校验完整 snapshot operator。
+
+列表/渠道/HTTP 定向 race 5.911s、前端 build、diff 检查通过。首次写入命令工作目录误设 frontend 导致路径不存在，未产生源变更；改正根目录后写入并重新构建。尚未完成浏览器加载/错误/窄屏/键盘验证，因此不宣称 UI 验收完成。Jira/机器人和其余完整范围仍待实施。
