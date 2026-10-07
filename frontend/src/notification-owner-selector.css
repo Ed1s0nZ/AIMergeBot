@@ -1,0 +1,14 @@
+.notification-owner-selector {
+  min-width: 0;
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+.notification-owner-selector select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.notification-owner-selector button {
+  white-space: normal;
+  text-align: left;
+}

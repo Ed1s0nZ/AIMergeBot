@@ -658,3 +658,17 @@ collector新委托notificationOwnerEventAllowed，按事件捕获owner/revision/
 前版事件依据39fedd7精确CI37617419334 completed/success（Go/race/vet、工具、漏洞、前端与embedded检查全部通过）。本路由后端需独立精确CI，不能借前版green宣称完成。
 
 最终路由生产代码完整Go83475 completed/success，platform111.956s；最终专项race25.383s、vet及diff通过。当前仅后端/API/发送依据链已实现；管理员选择器与实际UI验证待下一阶段，不将源码/配置存在视为完整用户场景交付。
+
+### S8 管理页面责任人通知筛选
+
+8bc4d9a已推送UI workflow/maintainability gate，见notification-owner-ui-gate.md。新增独立notification-owner-selector.tsx/css，候选读取/users与全部所选项目成员，最多5并发；仅启用账号且admin或拥有全部已选启用项目viewer/reviewer/operator。所有状态带scope/attempt，AbortController取消换项目/刷新/卸载旧请求，加载/失败不展示旧候选。已选不可用账号显示ID并要求明确移除或更换，不静默清空；最多100责任人，空数组恢复原项目通知，非空要求仅复核/到期事件。主表单同一次显式POST/PATCH提交owner_ids和expected_revision，候选有效状态签名包含项目/责任人/事件，不能凭上一范围的校验状态提交。选择/刷新不发送通知，也不分配发现。
+
+集成页只增加类型、独立组件委托及ownerReady校验；409保留草稿并锁定编辑/保存/渠道测试，必须明确重新选择最新配置或新建。401/403/404清除编辑、候选与全部凭据草稿，再锁定；列表读取失败时缓存配置不可重新选择。保存成功后不盲目清空相同scope的候选有效状态，避免按钮一直disabled。
+
+受控8802编译产物真实浏览器验证：初始项目1候选admin/owner2/both3，排除disabled4/outsider5；选择owner2时记录文件尚不存在（无PATCH），显式保存实际提交owner_ids[2]/expected_revision1/不替换凭据，成功rev2。初次发现保存后ownerValidity清空导致按钮长期禁用，修正后重复保存rev3且按钮恢复。审计完成勾选保留原事件但保存禁用/说明原因。加入项目2候选交集admin/both3，已选owner2显示不可用、保存禁用；明确移除并选择both3后实际保存projects[1,2]/owner_ids[3]/expected_revision3，rev4。503/403候选读取隐藏旧名字、保留选中ID、保存禁用，恢复刷新可继续。409保留名称草稿与owner3但所有编辑/保存/渠道测试锁定，明确重选服务器配置恢复；清空筛选实际PATCH owner_ids[]/expected_revision4，rev5。2秒受控成员读取中刷新并换项目时无旧候选/保存禁用；旧请求完成不能覆盖新范围，最终项目1含owner2。保存403后名称/项目/owner/占位凭据全部清空且锁定。未点击渠道测试，无真实发送或生产配置读取。
+
+360×800实际截图和DOM宽度验证scrollWidth=innerWidth=360，筛选说明/多选/按钮均可见无横溢；ArrowDown选择admin、Tab焦点到刷新候选按钮。最终正式编译产物再次验证选择owner2保存成功后按钮启用，添加run事件立刻禁用。列表503后缓存配置按钮disabled。全部测试只用临时内存fixture，视口重置、tab14关闭、两次fixture进程已停止。
+
+npm typecheck及正式build通过，embedded assets index-DS_jxutd.js/index-SQxcMfgg.css；Go build/vet最终验证中。后端cdd2204精确CI37618965760 completed/success（完整Go/race/vet、工具、漏洞、前端与embedded检查），途中一次TLS handshake timeout重查同一run成功，没有据观察超时重启。此UI版本仍需独立精确CI。自动推荐路由、GitHub全链路、其他完整REQ与整体验收继续保留，不能据本筛选UI完成认定整体目标完成。
+
+最终embedded Go build与go vet ./... completed/success，git diff --check通过。该阶段未修改Go生产源码，前版后端完整Go/race及精确CI已证明后端；新UI编译/实际浏览器与embedded构建提供本阶段证据，新推送仍跟踪独立CI。
