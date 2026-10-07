@@ -516,3 +516,11 @@ P8/F4，新增 /api/v1/bot-callbacks/slack/:id/:revision/command，保持旧 /bi
 27ab672 后的测试扩展将每个独立状态授权 fixture 通过实际 HTTP.Register 的 /command 路由执行有有效 Slack 签名的请求，不含浏览器 session。target1/source3/context2 三域权限分开：目标/来源/context 成员撤销、source/context 项目停用、平台账号停用、渠道 scope 变更、绑定撤销均返回相同 403 {"error":"callback rejected"}，无任务 ID、HEAD 或状态泄露。合法完整授权返回固定 HEAD 和 ephemeral 状态。内部成功与 HTTP 成功使用不同 timestamp，避免测试误命中内部消费 nonce。
 
 定向 race14.960s、vet/diff通过。本次仅扩展测试，不改变生产行为；完整测试31572仍同进程运行，未将观察超时当失败。当前已确认远端CI仍为旧e21a8a2 success，新命令版本待本地全量终态后推送并验证独立CI。有效证据链接与复审操作、机器人provider范围及全部REQ仍待完成，状态查询不替代AC-013。
+
+### S7 Slack 状态命令证据导航（开发验证中）
+
+P8/F4，已授权 status 响应从 Settings.PublicURL 构造固定 /#/runs/<id> 证据页面，只采用服务端站点地址，不读取 callback response_url/仓库URL，不包含source/trace/匿名访问token。明确平台登录要求并设置 unfurl_links/media=false。未配置或不合法站点地址时省略链接，不影响纯状态；拒绝凭据userinfo/query/fragment/markup控制符。页面继续执行现有session与完整snapshot ACL。
+
+测试增加URL拒绝矩阵及实际 SettingsService+HTTP.Register 合法状态回调链接验证。初始fixture错误使用带路径public_url，被真实配置校验拒绝；改为符合现有契约的HTTPS origin，不弱化配置规则，race重跑51710待终态。前一27ab672全量31572已success，platform121.234s。当前新增链接生产代码需自身全量与精确远端CI，仍未推送。该导航不替代复审交互或其他providers，AC-013未完成。
+
+51710终态success，race22.951s，包含实际配置origin回调输出正确证据链接、关闭unfurl以及所有HTTP授权拒绝矩阵。上一vet已通过，diff通过；新增链接版本全量继续执行。

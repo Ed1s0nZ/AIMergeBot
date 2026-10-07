@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -101,7 +102,20 @@ func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) 
 			mac.Write(body)
 			signature = "v0=" + hex.EncodeToString(mac.Sum(nil))
 			router := gin.New()
-			(&HTTP{Store: s}).Register(router)
+			handler := &HTTP{Store: s}
+			if change == "valid" {
+				settings, err := OpenSettings(filepath.Join(t.TempDir(), "config.yaml"), "../../config.example.yaml")
+				if err != nil {
+					t.Fatal(err)
+				}
+				cfg := settings.Snapshot()
+				cfg.PublicURL = "https://audit.example.com"
+				if err := settings.Save(cfg); err != nil {
+					t.Fatal(err)
+				}
+				handler.Settings = settings
+			}
+			handler.Register(router)
 			request := httptest.NewRequest("POST", fmt.Sprintf("/api/v1/bot-callbacks/slack/%d/%d/command", channel.ID, channel.Revision), strings.NewReader(string(body)))
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			request.Header.Set("X-Slack-Request-Timestamp", stamp)
@@ -111,6 +125,9 @@ func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) 
 			if change == "valid" {
 				if response.Code != 200 || !strings.Contains(response.Body.String(), snap.HeadSHA) || !strings.Contains(response.Body.String(), `"response_type":"ephemeral"`) {
 					t.Fatal(response.Code, response.Body.String())
+				}
+				if !strings.Contains(response.Body.String(), fmt.Sprintf("https://audit.example.com/#/runs/%d", run)) || !strings.Contains(response.Body.String(), `"unfurl_links":false`) {
+					t.Fatal("configured evidence link missing", response.Body.String())
 				}
 			} else if response.Code != 403 || response.Body.String() != `{"error":"callback rejected"}` {
 				t.Fatal("HTTP disclosed unauthorized status", response.Code, response.Body.String())

@@ -36,7 +36,13 @@ func (h *HTTP) slackBindingCallback(c *gin.Context) {
 				c.JSON(403, gin.H{"error": "callback rejected"})
 				return
 			}
-			c.JSON(200, gin.H{"response_type": "ephemeral", "text": fmt.Sprintf("Audit #%d · %s · HEAD %s", out.ID, out.Status, out.HeadSHA)})
+			text := fmt.Sprintf("Audit #%d · %s · HEAD %s", out.ID, out.Status, out.HeadSHA)
+			if h.Settings != nil {
+				if link := slackEvidenceLink(h.Settings.Snapshot().PublicURL, out.ID); link != "" {
+					text += "\nEvidence (platform login required): " + link
+				}
+			}
+			c.JSON(200, gin.H{"response_type": "ephemeral", "text": text, "unfurl_links": false, "unfurl_media": false})
 			return
 		}
 	}
