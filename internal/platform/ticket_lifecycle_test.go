@@ -11,6 +11,11 @@ import (
 )
 
 func TestTicketRunnerStartStopAndRestart(t *testing.T) {
+	for _, provider := range []string{"linear", "jira"} {
+		t.Run(provider, func(t *testing.T) { testTicketRunnerLifecycle(t, provider) })
+	}
+}
+func testTicketRunnerLifecycle(t *testing.T, provider string) {
 	s := testStore(t)
 	ctx := context.Background()
 	if err := s.Bootstrap(ctx, "admin", "a-long-password"); err != nil {
@@ -21,13 +26,20 @@ func TestTicketRunnerStartStopAndRestart(t *testing.T) {
 	}
 	zero := int64(0)
 	team := "9cfb482a-81e3-4154-b5b9-2c805e70a02d"
-	integration, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Linear", Kind: "linear", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture", LinearTeamID: team}})
+	credentials := IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture", LinearTeamID: team}
+	if provider == "jira" {
+		credentials = IntegrationCredentials{Endpoint: "https://fixture.atlassian.net", Username: "fixture@example.com", Token: "fixture", JiraProjectID: "10001", JiraIssueTypeID: "10002"}
+	}
+	integration, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: provider, Kind: provider, Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &credentials})
 	if err != nil {
 		t.Fatal(err)
 	}
 	var posts atomic.Int32
 	runner := &Runner{Store: s, Workers: 1, Repository: runRepo{}, ticketClient: &http.Client{Transport: retryTransportFunc(func(req *http.Request) (*http.Response, error) {
 		posts.Add(1)
+		if provider == "jira" {
+			return &http.Response{StatusCode: 201, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"id":"10003","key":"AUDIT-12","self":"https://fixture.atlassian.net/rest/api/3/issue/10003"}`))}, nil
+		}
 		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"data":{"issueCreate":{"success":true,"issue":{"id":"` + team + `","url":"https://linear.app/example/issue/LIN-123/finding"}}}}`))}, nil
 	})}}
 	defer runner.Stop()

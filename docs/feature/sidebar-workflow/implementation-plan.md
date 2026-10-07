@@ -378,3 +378,9 @@ Jira/Linear 消费/渠道定向 race 8.779s、vet/diff 通过。尚需管理员 
 P7/F4，既有凭据替换表单新增 Jira 账户邮箱、项目 ID、问题类型 ID（启用时必填），写入 username/jira_project_id/jira_issue_type_id；默认保留既有凭据，不回填秘密。公开状态显示 has_jira_mapping。表单说明直接站点 HTTPS 根地址、Cloud v3 与账户邮箱/API token；scoped-token 网关、Data Center、额外自定义必填字段暂未实现，需要无需额外必填字段的普通 issue 类型。保存不创建，用户从发现详情明确操作。
 
 详情链接支持 Jira HTTPS /browse/<合法 key>，Store 查询先用固定 endpoint_origin 与 remote ID 再校验链接，避免损坏持久数据变成外站链接。数据库测试注入外站 url 并验证返回 URL 为空。Jira 回执/消费者定向 race 4.914s、前端 typecheck、vet/diff 通过。旧完整 Go 47530 仍运行，尚未执行本版本 build/全量/浏览器表单验收；避免 Vite 清理产物与 go:embed 并发。相关能力仍在开发验证阶段。
+
+Jira 预留消费版本完整 Go 测试通过（platform 98.838s）。Jira 表单/链接前端 build 已顺序完成，vet/diff 通过。
+
+### S6 Jira 实际 Runner 生命周期（开发验证中）
+
+P9/F5，将已有真实 Start/Stop/Restart 测试改为 Linear/Jira 共享场景，复用同一生命周期验证逻辑，分别配置各自映射与受控回执。覆盖真实后台周期创建、Stop 连续调用及时结束、停止超过一个完整周期的新预留保持 pending、重启只处理新记录、再次重启不重复已有工单。两种 provider 定向 race 19.700s 通过，不访问真实远端。表单和 Jira 链接实际浏览器验收仍待执行，当前重建版本完整 Go 验证随后执行；先前 CI 9a80965 已 success，尚未追加推送。
