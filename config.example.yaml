@@ -64,6 +64,10 @@ audit_quotas:
 # 判断分歧/未完成保留覆盖不足，不修改原结论，不执行仓库代码
 verify_findings: true
 
+# 确定性检测"代码格式化范围约束"：对变更中只含空白差异、没有内容修改的
+# 区块（hunk）产生低危"formatting scope"发现，语言无关；默认关闭。
+check_formatting_scope: false
+
 # Shared across primary audit, groups, verification and diagrams.
 # 0 disables; provider usage is known after each request (one request may exceed).
 model_budget:

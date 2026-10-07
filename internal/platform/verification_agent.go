@@ -55,6 +55,9 @@ func (e *EinoAuditor) verifyFindingsWithBudget(ctx context.Context, result *Audi
 	phase := shared.ctx
 	for _, i := range sequenceOrder(result.Findings) {
 		f := &result.Findings[i]
+		if f.Origin == deterministicFormattingOrigin {
+			continue
+		}
 		limit := shared.nextLimit()
 		if limit == 0 {
 			f.Verification = unavailableVerification(parent.snap, "独立复核预算不足，原发现已保留。", "unavailable")

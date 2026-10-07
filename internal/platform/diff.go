@@ -11,17 +11,18 @@ import (
 var hunkPattern = regexp.MustCompile(`^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
 
 type DiffScope struct {
-	Included []string
-	Metadata map[string]GitChangeMetadata
-	Excluded []string
-	Removed  map[string]map[int]bool
-	Text     string
-	Added    map[string]map[int]bool
-	Notes    []string
+	Included   []string
+	Metadata   map[string]GitChangeMetadata
+	Excluded   []string
+	Removed    map[string]map[int]bool
+	Text       string
+	Added      map[string]map[int]bool
+	Formatting map[string]FileFormattingScope
+	Notes      []string
 }
 
 func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
-	d := DiffScope{Metadata: map[string]GitChangeMetadata{}, Added: map[string]map[int]bool{}, Removed: map[string]map[int]bool{}, Notes: []string{}}
+	d := DiffScope{Metadata: map[string]GitChangeMetadata{}, Added: map[string]map[int]bool{}, Removed: map[string]map[int]bool{}, Formatting: map[string]FileFormattingScope{}, Notes: []string{}}
 	var out strings.Builder
 	for _, c := range changes {
 		p := c.NewPath
@@ -72,6 +73,13 @@ func BuildDiff(changes []Change, excluded []string, maxBytes int) DiffScope {
 		}
 		if textual == "" {
 			continue
+		}
+		if stat, ok := formattingScopeForDiff(textual); ok {
+			stat.Path = p
+			merged := d.Formatting[p]
+			merged.mergeFile(stat)
+			merged.Path = p
+			d.Formatting[p] = merged
 		}
 		lines := map[int]bool{}
 		removed := map[int]bool{}

@@ -242,6 +242,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 			cfg.WhitelistExtensions = p.Excluded
 			cfg.GenerateSequenceDiagrams = p.GenerateDiagrams
 			cfg.VerifyFindings = p.VerifyFindings
+			cfg.CheckFormattingScope = p.CheckFormattingScope
 		}
 		gitConfig = cfg.GitAudit
 		timeout = time.Duration(cfg.AuditTimeoutSeconds) * time.Second
@@ -256,7 +257,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if model == "" {
 			model = cfg.OpenAI.Model
 		}
-		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
+		auditor = &EinoAuditor{Repository: pinned, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings, CheckFormattingScope: cfg.CheckFormattingScope}}
 	}
 	if original, ok := auditor.(*EinoAuditor); ok {
 		copy := *original

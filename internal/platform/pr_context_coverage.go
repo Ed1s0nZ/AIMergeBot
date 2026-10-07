@@ -9,6 +9,10 @@ func findingPRCoverage(findings []Finding) []string {
 	for _, finding := range findings {
 		prefix := fmt.Sprintf("Finding %s PR impact recording gap: ", finding.ID)
 		p := finding.PRContext
+		if p == nil && finding.Origin == deterministicFormattingOrigin {
+			// Deterministic formatting-scope facts come from the pinned diff itself.
+			continue
+		}
 		if p == nil && finding.AnchorType == "git_metadata" && finding.Metadata != nil {
 			// Validated canonical metadata already contains both snapshot facts.
 			continue

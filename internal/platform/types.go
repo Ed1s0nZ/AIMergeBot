@@ -27,6 +27,7 @@ type Finding struct {
 	ObservationIDs  []string                `json:"observation_ids,omitempty"`
 	SequenceDiagram *SequenceDiagram        `json:"sequence_diagram,omitempty"`
 	Side            string                  `json:"side"`
+	Origin          string                  `json:"origin,omitempty"`
 	Type            string                  `json:"type"`
 	ID              string                  `json:"id"`
 	File            string                  `json:"file"`

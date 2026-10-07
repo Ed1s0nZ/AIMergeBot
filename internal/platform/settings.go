@@ -45,6 +45,7 @@ type Settings struct {
 	ModelBudget              ModelBudgetSettings `yaml:"model_budget" json:"model_budget"`
 	Revision                 uint64              `yaml:"config_revision" json:"config_revision"`
 	VerifyFindings           bool                `yaml:"verify_findings" json:"verify_findings"`
+	CheckFormattingScope     bool                `yaml:"check_formatting_scope" json:"check_formatting_scope"`
 	GenerateSequenceDiagrams bool                `yaml:"generate_sequence_diagrams" json:"generate_sequence_diagrams"`
 	AuditQuotas              AuditQuotas         `yaml:"audit_quotas" json:"audit_quotas"`
 	GitAudit                 GitAuditSettings    `yaml:"git_audit" json:"git_audit"`
@@ -301,7 +302,7 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 		return Settings{}, err
 	}
 	current := s.Snapshot()
-	cfg := Settings{VerificationModel: current.VerificationModel, ModelBudget: current.ModelBudget, AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, VerifyFindings: current.VerifyFindings, TrustedProxies: current.TrustedProxies}
+	cfg := Settings{VerificationModel: current.VerificationModel, ModelBudget: current.ModelBudget, AuditQuotas: current.AuditQuotas, GitAudit: current.GitAudit, GenerateSequenceDiagrams: current.GenerateSequenceDiagrams, VerifyFindings: current.VerifyFindings, CheckFormattingScope: current.CheckFormattingScope, TrustedProxies: current.TrustedProxies}
 	decoder := yaml.NewDecoder(strings.NewReader(string(encoded)))
 	decoder.KnownFields(true)
 	if err = decoder.Decode(&cfg); err != nil {
@@ -366,6 +367,6 @@ func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope)
 	if model == "" {
 		model = cfg.OpenAI.Model
 	}
-	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
+	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings, CheckFormattingScope: cfg.CheckFormattingScope}}
 	return a.Audit(ctx, s, scope)
 }
