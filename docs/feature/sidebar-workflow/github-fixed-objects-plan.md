@@ -42,3 +42,11 @@ sequenceDiagram
 失败固定分类，不泄露token/URL/body；临时/限流/context错误原样保留已有脱敏分类。404表示source unavailable而不是path_absent，tree truncated表示tree incomplete，未知/格式/对象ID漂移拒绝。预算失败仍是未可读，不自动回落到GitLab/contents/动态分支。回滚只移除内部对象读取器；bound执行保护及原nil GitLab保持，远端无写入。
 
 来源（2026-10-07核对）：[Git commit object](https://docs.github.com/en/rest/git/commits#get-a-commit-object)、[Git tree](https://docs.github.com/en/rest/git/trees#get-a-tree)、[Git blob](https://docs.github.com/en/rest/git/blobs#get-a-blob)。读取API版本继续2022-11-28，github-read-client-plan已有版本支持证据。tree mode与truncated按官方契约；实际256KiB/2000文件等为本系统预算，不是GitHub服务端上限。
+
+## F3 实施计划
+
+新增github_read_objects.go：verified reader构造、context可取消串行gate、严格SHA/UTF8路径校验、commit/tree缓存与完整性校验、目录逐段解析、普通文件读取与blob hash/size验证；新增github_tree_listing.go：固定root非递归完整枚举、祖先cycle、普通文件稳定100分页。遍历还限制≤20000展开entry、队列path累计≤8MiB，防止共享tree DAG在缓存命中时指数展开；完整列表按root SHA缓存，累计path cache≤8MiB，超界返回error而非成功部分页。列举不得缓存失败/partial结果；返回值复制。
+
+新增github_read_objects_test.go/github_tree_listing_test.go，用真实TLS fixture与read-client预算：固定SHA/旧对象读取/缓存与Unicode空格；输入零object HTTP；commit/tree drift/缺字段/truncated/重复path/未知mode/nullsize/entry/depth/cache预算拒绝；symlink/submodule/目录不可源码且零blob访问；blob坏base64/缺字段/错SHA/假size/内容hash不符/零字节与256KiB/二进制原字节；404/限流/取消不冒充absence；稳定分页/reused subtrees/cycle/2000+文件/展开预算/失败重试不缓存partial，以及并发gate取消。现有GitHub read客户端、CodeOwners/metadata专项race和全Go/vet/build/diff完成后提交；前版e6a2f35精确CI37640077799终态后再推生产。无frontend改动/真实凭据/远端通知/模型调用。
+
+文档保存实际实现、已验证和未验证的边界；后续PR observation/compare/diff/metadata、RepositoryFactory及完整snapshot ACL执行仍保留，不把对象reader视作完整G3或可运行Github审计。
