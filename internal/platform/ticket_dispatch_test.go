@@ -32,9 +32,6 @@ func TestTicketDispatcherPersistsReceiptWithoutReplay(t *testing.T) {
 			}
 			team := "9cfb482a-81e3-4154-b5b9-2c805e70a02d"
 			credentials := IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture", LinearTeamID: team}
-			if mode == "missing_team" {
-				credentials.LinearTeamID = ""
-			}
 			zero := int64(0)
 			input := IntegrationInput{Integration: Integration{Name: "Linear", Kind: "linear", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &credentials}
 			integration, err := s.SaveIntegration(ctx, 0, 1, input)
@@ -43,6 +40,13 @@ func TestTicketDispatcherPersistsReceiptWithoutReplay(t *testing.T) {
 			}
 			if _, _, err := s.ReserveFindingTicket(ctx, run, 1, integration.ID, integration.Revision, "f", head); err != nil {
 				t.Fatal(err)
+			}
+			if mode == "missing_team" {
+				credentials.LinearTeamID = ""
+				raw, _ := json.Marshal(credentials)
+				if _, err := s.DB.Exec(`UPDATE platform_integrations SET credentials=? WHERE id=?`, string(raw), integration.ID); err != nil {
+					t.Fatal(err)
+				}
 			}
 			if mode == "revoked" {
 				if _, err := s.DB.Exec(`UPDATE platform_integrations SET enabled=0 WHERE id=?`, integration.ID); err != nil {

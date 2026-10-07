@@ -35,7 +35,7 @@ func TestTicketPreflightRechecksForkPolicyAndLease(t *testing.T) {
 				t.Fatal(err)
 			}
 			zero := int64(0)
-			integration, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Linear", Kind: "linear", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture"}})
+			integration, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Linear", Kind: "linear", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture", LinearTeamID: "9cfb482a-81e3-4154-b5b9-2c805e70a02d"}})
 			if err != nil {
 				t.Fatal(err)
 			}

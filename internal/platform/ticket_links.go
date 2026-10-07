@@ -52,13 +52,17 @@ func (s *Store) ReserveFindingTicket(ctx context.Context, runID, actor, integrat
 	if headSHA != snap.HeadSHA || !commitID.MatchString(headSHA) {
 		return TicketLink{}, false, ErrConflict
 	}
-	var provider, projects string
+	var provider, projects, rawCredentials string
 	var revision int64
 	var enabled bool
-	if err := tx.QueryRowContext(ctx, `SELECT kind,project_ids,revision,enabled FROM platform_integrations WHERE id=?`, integrationID).Scan(&provider, &projects, &revision, &enabled); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT kind,project_ids,revision,enabled,CASE WHEN length(CAST(credentials AS BLOB))<=65536 THEN credentials ELSE '' END FROM platform_integrations WHERE id=?`, integrationID).Scan(&provider, &projects, &revision, &enabled, &rawCredentials); err != nil {
 		return TicketLink{}, false, err
 	}
 	if !enabled || revision != expectedRevision || (provider != "jira" && provider != "linear") {
+		return TicketLink{}, false, ErrConflict
+	}
+	var credentials IntegrationCredentials
+	if provider != "linear" || json.Unmarshal([]byte(rawCredentials), &credentials) != nil || !linearTicketReady(credentials) {
 		return TicketLink{}, false, ErrConflict
 	}
 	var scope []int

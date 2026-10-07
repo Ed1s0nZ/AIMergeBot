@@ -62,7 +62,7 @@ func TestFindingTicketChannelsScopeReadinessAndSecrets(t *testing.T) {
 	if _, err := s.FindingTickets(ctx, run, viewer.ID, "missing"); err == nil {
 		t.Fatal("missing finding list accepted")
 	}
-	for _, mutation := range []string{`enabled=0`, `project_ids='[2]'`, `credentials='{}'`, `credentials='broken'`, `kind='jira'`} {
+	for _, mutation := range []string{`enabled=0`, `project_ids='[2]'`, `credentials='{}'`, `credentials=json_remove(credentials,'$.linear_team_id')`, `credentials='broken'`, `kind='jira'`} {
 		t.Run(mutation, func(t *testing.T) {
 			raw, _ := json.Marshal(credentials)
 			if _, err := s.DB.Exec(`UPDATE platform_integrations SET enabled=1,project_ids='[1]',kind='linear',credentials=? WHERE id=?`, string(raw), integration.ID); err != nil {
@@ -73,6 +73,9 @@ func TestFindingTicketChannelsScopeReadinessAndSecrets(t *testing.T) {
 				t.Fatal(err)
 			}
 			items, err := s.FindingTicketChannels(ctx, run, 1, "f")
+			if _, created, err := s.ReserveFindingTicket(ctx, run, 1, integration.ID, integration.Revision, "f", strings.Repeat("b", 40)); (!errors.Is(err, ErrConflict) && !errors.Is(err, ErrProjectPermission)) || created {
+				t.Fatal("unusable reservation accepted", created, err)
+			}
 			if err != nil || len(items) != 0 {
 				t.Fatal("unusable channel offered", items, err)
 			}
