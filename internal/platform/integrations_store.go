@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/mail"
 	"net/url"
 	"sort"
@@ -29,16 +30,17 @@ type Integration struct {
 	UpdatedAt       string   `json:"updated_at"`
 }
 type IntegrationCredentials struct {
-	Endpoint   string   `json:"endpoint"`
-	Secret     string   `json:"secret"`
-	Token      string   `json:"token"`
-	SMTPHost   string   `json:"smtp_host"`
-	SMTPPort   int      `json:"smtp_port"`
-	SMTPMode   string   `json:"smtp_mode"`
-	Username   string   `json:"username"`
-	Password   string   `json:"password"`
-	From       string   `json:"from"`
-	Recipients []string `json:"recipients"`
+	AllowedNetworks []string `json:"allowed_networks,omitempty"`
+	Endpoint        string   `json:"endpoint"`
+	Secret          string   `json:"secret"`
+	Token           string   `json:"token"`
+	SMTPHost        string   `json:"smtp_host"`
+	SMTPPort        int      `json:"smtp_port"`
+	SMTPMode        string   `json:"smtp_mode"`
+	Username        string   `json:"username"`
+	Password        string   `json:"password"`
+	From            string   `json:"from"`
+	Recipients      []string `json:"recipients"`
 }
 type IntegrationInput struct {
 	Integration
@@ -117,6 +119,19 @@ func validateIntegration(v IntegrationInput) error {
 	return nil
 }
 func validateIntegrationCredentials(kind string, c IntegrationCredentials, enabled bool) error {
+	if len(c.AllowedNetworks) > 10 {
+		return ErrIntegrationInput
+	}
+	for _, value := range c.AllowedNetworks {
+		ip, block, err := net.ParseCIDR(value)
+		if err != nil || !ip.IsPrivate() {
+			return ErrIntegrationInput
+		}
+		ones, _ := block.Mask.Size()
+		if ones < 8 {
+			return ErrIntegrationInput
+		}
+	}
 	if len(c.Endpoint) > 4096 || len(c.Secret) > 4096 || len(c.Token) > 4096 || len(c.Password) > 4096 || len(c.Username) > 256 {
 		return ErrIntegrationInput
 	}

@@ -75,6 +75,8 @@ func (r *Runner) Start(parent context.Context) error {
 	r.mu.Unlock()
 	r.wg.Add(1)
 	go func() { defer r.wg.Done(); r.leaseLoop(ctx) }()
+	r.wg.Add(1)
+	go func() { defer r.wg.Done(); r.notificationLoop(ctx) }()
 	for i := 0; i < r.Workers; i++ {
 		r.wg.Add(1)
 		go func() { defer r.wg.Done(); r.loop(ctx) }()

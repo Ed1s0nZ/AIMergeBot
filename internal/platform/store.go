@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,6 +31,13 @@ func OpenStore(path string) (*Store, error) {
 	if err = s.migrate(); err != nil {
 		db.Close()
 		return nil, err
+	}
+	// Integration endpoints and SMTP credentials share the audit database.
+	for _, file := range []string{path, path + "-wal", path + "-shm"} {
+		if err = os.Chmod(file, 0600); err != nil && !os.IsNotExist(err) {
+			db.Close()
+			return nil, err
+		}
 	}
 	return s, nil
 }

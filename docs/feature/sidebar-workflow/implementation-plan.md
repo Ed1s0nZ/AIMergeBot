@@ -56,3 +56,11 @@ S1 补充：HTTP 分类与非法项目/筛选负例测试通过；具体发现�
 未实现：实际 HTTP/SMTP sender、自动事件采集、定时汇总、投递记录页面/主动测试/重试接口、工单和机器人交互、真实平台验证。仍需继续完整范围，不以配置菜单作为交付完成证据。
 
 本切片最终验证：集成/队列/协议/工作台定向 race 11.038s 通过；frontend typecheck+Vite build 通过；补充 HTTP 未登录与普通成员拒绝集成读写测试通过。实际 UI 验证与完整回归尚未完成。
+
+### S4 发送器与投递页面切片
+
+新增 HTTPS sender（禁用 proxy/重定向、TLS≥1.2、超时及 64 KiB 响应上限、解析平台业务状态）、SMTP TLS/STARTTLS sender（固定头、收件人校验、超时/取消）。默认拒绝 loopback/link-local/未显式授权的私网，管理员写入完整凭据时可添加私网 CIDR；TLS 证书仍正常验证。SQLite 数据库及 WAL/SHM 在 OpenStore 后设置 0600。发送前重查配置版本及原审计发起者固定快照权限；配置变更不等于撤回已到达外部的请求，结果记录可为 unknown。
+
+新增管理员 GET /deliveries、POST /deliveries/:id/retry、POST /integrations/:id/test，测试仅将固定摘要排入已保存并启用渠道。Runner 单独有界通知 loop，随生命周期停止，默认空队列不发请求。管理页面提供私网允许列表、主动测试与分页投递记录；unknown 重试必须明确 acknowledge_duplicate，已接受/送达不可重试，attempt≥5 不再重发。
+
+验证：受控 TLS server 请求与业务码测试、地址限制、租约/去重/修改配置、持久配置/脱敏和显式未知重试的 targeted race 6.960s；前端 typecheck/build 通过。未发送真实外部消息，SMTP 尚需受控协议交互验证，实际 UI QA 未完成；自动审计事件、每日/周汇总、工单/Git平台/绑定机器人/生命周期其余范围仍未完成。
