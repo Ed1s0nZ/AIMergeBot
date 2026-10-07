@@ -226,7 +226,7 @@ func (s *Store) ExpireDispositions(ctx context.Context, at time.Time) error {
 		if err = writeDisposition(ctx, tx, d); err != nil {
 			return err
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_notification_events(run_id,kind,event_key,severity,created_at) VALUES(?,'risk.expired',?,COALESCE((SELECT CASE severity WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END FROM platform_finding_index WHERE run_id=? AND finding_id=? LIMIT 1),0),?)`, d.RunID, fmt.Sprintf("expiry:%d:%s:%d", d.RunID, d.FindingID, d.Revision), d.RunID, d.FindingID, d.UpdatedAt); err != nil {
+		if err = recordDispositionNotificationEvent(ctx, tx, d, "risk.expired", fmt.Sprintf("expiry:%d:%s:%d", d.RunID, d.FindingID, d.Revision)); err != nil {
 			return err
 		}
 	}

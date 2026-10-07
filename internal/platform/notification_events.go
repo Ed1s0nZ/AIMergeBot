@@ -9,24 +9,6 @@ import (
 	"time"
 )
 
-func migrateNotificationEvents(tx *sql.Tx) error {
-	for _, q := range []string{
-		`CREATE TABLE IF NOT EXISTS platform_notification_events(id INTEGER PRIMARY KEY,run_id INTEGER NOT NULL REFERENCES platform_runs(id),kind TEXT NOT NULL,event_key TEXT NOT NULL UNIQUE,severity INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL)`,
-		`CREATE TABLE IF NOT EXISTS platform_notification_delivery_runs(delivery_id INTEGER NOT NULL REFERENCES platform_notification_deliveries(id),run_id INTEGER NOT NULL REFERENCES platform_runs(id),PRIMARY KEY(delivery_id,run_id))`,
-		`CREATE INDEX IF NOT EXISTS platform_notification_event_window ON platform_notification_events(created_at,id)`,
-		`CREATE TABLE IF NOT EXISTS platform_notification_collector(id INTEGER PRIMARY KEY CHECK(id=1),last_integration INTEGER NOT NULL DEFAULT 0)`,
-		`INSERT OR IGNORE INTO platform_notification_collector(id) VALUES(1)`,
-		`CREATE TABLE IF NOT EXISTS platform_notification_event_routes(integration_id INTEGER NOT NULL,revision INTEGER NOT NULL,event_id INTEGER NOT NULL,PRIMARY KEY(integration_id,revision,event_id))`,
-		`CREATE TRIGGER IF NOT EXISTS platform_notification_run_event AFTER UPDATE OF status ON platform_runs WHEN NEW.status!=OLD.status AND NEW.status IN ('succeeded','incomplete','failed') BEGIN INSERT OR IGNORE INTO platform_notification_events(run_id,kind,event_key,severity,created_at) VALUES(NEW.id,CASE WHEN NEW.status='failed' THEN 'run.failed' ELSE 'run.completed' END,'run:'||NEW.id||':'||NEW.status,COALESCE((SELECT MAX(CASE json_extract(value,'$.severity') WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END) FROM json_each(NEW.result_json,'$.findings')),0),COALESCE(NEW.finished_at,strftime('%Y-%m-%dT%H:%M:%fZ','now'))); END`,
-		`CREATE TRIGGER IF NOT EXISTS platform_notification_review_insert AFTER INSERT ON platform_reviews BEGIN INSERT OR IGNORE INTO platform_notification_events(run_id,kind,event_key,severity,created_at) VALUES(NEW.run_id,'finding.reviewed','review:'||NEW.run_id||':'||NEW.finding_id||':'||NEW.revision,COALESCE((SELECT CASE severity WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END FROM platform_finding_index WHERE run_id=NEW.run_id AND finding_id=NEW.finding_id LIMIT 1),0),NEW.updated_at); END`,
-		`CREATE TRIGGER IF NOT EXISTS platform_notification_review_update AFTER UPDATE OF revision ON platform_reviews WHEN NEW.revision!=OLD.revision BEGIN INSERT OR IGNORE INTO platform_notification_events(run_id,kind,event_key,severity,created_at) VALUES(NEW.run_id,'finding.reviewed','review:'||NEW.run_id||':'||NEW.finding_id||':'||NEW.revision,COALESCE((SELECT CASE severity WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END FROM platform_finding_index WHERE run_id=NEW.run_id AND finding_id=NEW.finding_id LIMIT 1),0),NEW.updated_at); END`,
-	} {
-		if _, err := tx.Exec(q); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 func notificationSeverity(v string) int {
 	switch v {
 	case "critical":
