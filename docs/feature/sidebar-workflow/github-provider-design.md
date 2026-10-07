@@ -90,3 +90,7 @@ G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Githu
 [官方compare文档](https://docs.github.com/en/rest/commits/commits#compare-two-commits)说明：不指定分页时最多返回250个commits且末项为整个比较的最新commit；分页时末项不一定是整个比较末项，文件仅第一页提供且最多300个。提交分页不能补全文件列表；不能把空commits或缺files解释为没有差异，也不能把分页末项一律当HEAD验证。现有固定对象读取器尚未解决这些compare语义。
 
 进入实施之前需明确并记录以下证据：固定SHA与fork限定语法在所选API版本的支持；HEAD/merge-base的身份与关系验证，包括相同提交、behind/diverged、超250提交及缺字段；独立固定树比较如何证明文件覆盖并保留mode/gitlink/rename与patch缺失真值；来源绑定/ACL完成前零来源内容访问，以及入队前权限和绑定版本复查。仅有概览或fixture按自行假定字段返回不构成协议证明。未闭合前不添加PR/compare生产实现、不开放bound执行；完整G3–G6目标保留。
+
+版本证据补齐：后续找到官方独立2022-11-28描述，并用[固定上游提交734bc9c的版本文件](https://github.com/github/rest-api-description/blob/734bc9c1030b774eb3fc909cce477aceea21cf77/descriptions/api.github.com/api.github.com.2022-11-28.json)重新读取核对，文件SHA256=b92c29b7f50cb047089aaa27ca6086ea1d0c9edd25cc22079e7ccdaf743bb582，与首次版本文件读取一致。该版本compare操作说明明确允许同仓库或同network的跨仓库commit SHA；其200响应同样无head_commit且files非required。由此关闭“2022-11-28是否支持commit SHA比较”的文档疑问，但不关闭fork限定路由、同一网络关系、来源权限与远端实例兼容性验证。
+
+候选身份校验方法仍须设计完整：无分页比较可按契约核对非空commits末项SHA，但behind/identical时不能要求必有HEAD项；空集合需通过固定对象与关系另行验证，分页末项不适合作统一身份依据。merge_base_commit/base_commit各有commit对象，并不自动证明本系统解析的目标/来源ACL身份正确。完整文件差异候选为固定两树的mode/objectID/path比较；尚需确认比较预算、rename语义与生成patch的取舍，不以300文件API列表或2000文件普通源码枚举证明全仓覆盖。此为研究结果与候选方案，未进入F2/F3实施许可。
