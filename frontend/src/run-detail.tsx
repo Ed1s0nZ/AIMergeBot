@@ -6,6 +6,7 @@ import { FindingWorkbench } from "./finding-workbench";
 import { FrozenContextRepositories } from "./context-repositories";
 import { SARIFDownload } from "./sarif-download";
 import { PRInvestigationPanel } from "./pr-investigation";
+import { FindingDispositionPanel } from "./finding-disposition";
 import { RunComparisonPanel } from "./run-comparison";
 import { FindingAssociationsPanel } from "./finding-associations";
 import { RetryUsagePanel } from "./retry-usage";
@@ -184,6 +185,7 @@ export function FindingCard({
           上次由用户 #{review.actor} 于 {date(review.updated_at)} 更新
         </small>
       )}
+      <FindingDispositionPanel runId={runId} findingId={finding.id} />
       <ErrorBox error={error} />
     </article>
   );

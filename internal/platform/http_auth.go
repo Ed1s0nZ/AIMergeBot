@@ -207,6 +207,8 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.PUT("/runs/:id/associations/:association_id", h.decideFindingAssociation)
 	api.POST("/runs/:id/followup", h.followupRun)
 	api.POST("/runs/:id/cancel", h.cancelRun)
+	api.GET("/runs/:id/findings/:finding_id/disposition", h.disposition)
+	api.PUT("/runs/:id/findings/:finding_id/disposition", h.saveDisposition)
 	api.PUT("/runs/:id/findings/:finding_id/review", h.review)
 	api.GET("/events", admin, h.events)
 	r.POST("/webhook", h.webhook)

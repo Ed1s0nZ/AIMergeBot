@@ -234,6 +234,9 @@ func (r *Runner) notificationLoop(ctx context.Context) {
 			if r.Settings != nil {
 				publicURL = r.Settings.Snapshot().PublicURL
 			}
+			if err := r.Store.ExpireDispositions(ctx, time.Now()); err != nil {
+				continue
+			}
 			if err := r.Store.CollectNotifications(ctx, publicURL, time.Now()); err == nil {
 				_, _ = r.Store.DispatchNotification(ctx)
 			}

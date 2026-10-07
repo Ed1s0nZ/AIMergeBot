@@ -129,6 +129,9 @@ func (s *Store) migrate() error {
 	if err = migrateContextRepositories(tx); err != nil {
 		return err
 	}
+	if err = migrateDispositions(tx); err != nil {
+		return err
+	}
 	if err = migrateNotificationEvents(tx); err != nil {
 		return err
 	}
