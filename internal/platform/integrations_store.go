@@ -32,20 +32,22 @@ type Integration struct {
 	UpdatedAt       string   `json:"updated_at"`
 }
 type IntegrationCredentials struct {
-	JiraProjectID   string   `json:"jira_project_id,omitempty"`
-	JiraIssueTypeID string   `json:"jira_issue_type_id,omitempty"`
-	LinearTeamID    string   `json:"linear_team_id,omitempty"`
-	AllowedNetworks []string `json:"allowed_networks,omitempty"`
-	Endpoint        string   `json:"endpoint"`
-	Secret          string   `json:"secret"`
-	Token           string   `json:"token"`
-	SMTPHost        string   `json:"smtp_host"`
-	SMTPPort        int      `json:"smtp_port"`
-	SMTPMode        string   `json:"smtp_mode"`
-	Username        string   `json:"username"`
-	Password        string   `json:"password"`
-	From            string   `json:"from"`
-	Recipients      []string `json:"recipients"`
+	SlackAppID       string   `json:"slack_app_id,omitempty"`
+	SlackWorkspaceID string   `json:"slack_workspace_id,omitempty"`
+	JiraProjectID    string   `json:"jira_project_id,omitempty"`
+	JiraIssueTypeID  string   `json:"jira_issue_type_id,omitempty"`
+	LinearTeamID     string   `json:"linear_team_id,omitempty"`
+	AllowedNetworks  []string `json:"allowed_networks,omitempty"`
+	Endpoint         string   `json:"endpoint"`
+	Secret           string   `json:"secret"`
+	Token            string   `json:"token"`
+	SMTPHost         string   `json:"smtp_host"`
+	SMTPPort         int      `json:"smtp_port"`
+	SMTPMode         string   `json:"smtp_mode"`
+	Username         string   `json:"username"`
+	Password         string   `json:"password"`
+	From             string   `json:"from"`
+	Recipients       []string `json:"recipients"`
 }
 type IntegrationInput struct {
 	Integration
@@ -124,6 +126,9 @@ func validateIntegration(v IntegrationInput) error {
 	return nil
 }
 func validateIntegrationCredentials(kind string, c IntegrationCredentials, enabled bool) error {
+	if c.SlackAppID != "" && !slackAppID.MatchString(c.SlackAppID) || c.SlackWorkspaceID != "" && !slackWorkspaceID.MatchString(c.SlackWorkspaceID) {
+		return ErrIntegrationInput
+	}
 	if c.JiraProjectID != "" && !jiraNumericID.MatchString(c.JiraProjectID) || c.JiraIssueTypeID != "" && !jiraNumericID.MatchString(c.JiraIssueTypeID) {
 		return ErrIntegrationInput
 	}

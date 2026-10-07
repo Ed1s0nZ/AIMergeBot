@@ -31,7 +31,7 @@ func TestSlackBindingCompletionConsumesChallengeAndRejectsReplay(t *testing.T) {
 	}
 	secret := "fixture-signing-secret"
 	zero := int64(0)
-	channel, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Slack", Kind: "slack", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://hooks.slack.com/fixture", Secret: secret}})
+	channel, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Slack", Kind: "slack", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://hooks.slack.com/fixture", Secret: secret, SlackAppID: "A1", SlackWorkspaceID: "T1"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestSlackBindingCompletionConsumesChallengeAndRejectsReplay(t *testing.T) {
 		m.Write(body)
 		return "v0=" + hex.EncodeToString(m.Sum(nil))
 	}
-	body := []byte("team_id=T1&user_id=U1&text=bind+" + challenge.Token)
+	body := []byte("api_app_id=A1&team_id=T1&user_id=U1&text=bind+" + challenge.Token)
 	if _, err := s.completeSlackBinding(ctx, channel.ID, channel.Revision, stamp, "v0="+string(make([]byte, 64)), body, at); err == nil {
 		t.Fatal("forged binding accepted")
 	}
@@ -67,7 +67,7 @@ func TestSlackBindingCompletionConsumesChallengeAndRejectsReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	other := []byte("team_id=T1&user_id=U2&text=bind+" + replacement.Token)
+	other := []byte("api_app_id=A1&team_id=T1&user_id=U2&text=bind+" + replacement.Token)
 	if _, err := s.completeSlackBinding(ctx, channel.ID, channel.Revision, stamp, sign(other), other, at); err == nil {
 		t.Fatal("existing identity overwritten")
 	}
@@ -78,7 +78,7 @@ func TestSlackBindingCompletionConsumesChallengeAndRejectsReplay(t *testing.T) {
 	if _, err := s.DB.Exec(`UPDATE platform_users SET disabled=1 WHERE id=1`); err != nil {
 		t.Fatal(err)
 	}
-	other = []byte("team_id=T2&user_id=U1&text=bind+" + replacement.Token)
+	other = []byte("api_app_id=A1&team_id=T2&user_id=U1&text=bind+" + replacement.Token)
 	if _, err := s.completeSlackBinding(ctx, channel.ID, channel.Revision, stamp, sign(other), other, at); err == nil {
 		t.Fatal("disabled account bound")
 	}

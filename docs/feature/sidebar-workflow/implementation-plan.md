@@ -422,3 +422,9 @@ P8/F4，迁移增加按渠道/平台用户唯一的绑定挑战，只保存 SHA2
 P8/F4，回调 gate 提取同事务 helper，使签名/持久 replay、挑战校验、绑定记录写入、挑战删除同一事务完成。外部身份为 integration/workspace T-ID/user U/W-ID；只接受单值 team_id/user_id/text 与 bind <48hex token>，不使用昵称，拒绝重复关键字段。挑战必须当前 revision、未过期、平台账号启用。绑定表约束同工作区外部身份和平台账号均唯一，INSERT 不覆盖已有身份。不添加项目权限，不执行复审，不公开 HTTP。
 
 Slack 全部定向 race 3.217s、vet/diff 通过，验证有效绑定返回正确平台账号、挑战被消费、回调重放拒绝、伪造签名不污染合法绑定、新挑战不能覆盖既有外部身份、停用账号不能在其他工作区绑定。迁移与新完成流程完整验证仍待执行；前一全量 20208 同进程运行中。还需配置 Slack app/workspace 域、撤销绑定、用户认证发行 HTTP/UI、回调授权复审与错误恢复证据，AC-013 仍未完成。
+
+### S7 Slack 应用/工作区身份域（开发验证中）
+
+P8/F4，依据官方 https://docs.slack.dev/interactivity/implementing-slash-commands/ 的 api_app_id/team_id/user_id 契约，服务端凭据增加可选 slack_app_id/slack_workspace_id。旧出站通知配置仍可读，只有完整合法 A-ID/T-ID 与 signing secret 的渠道可发行绑定挑战。签名通过后再解析原始 form，要求 api_app_id/team_id 单值并精确匹配当前配置；来源正确也不能跨工作区/应用消费 nonce。此模块当前处理 form slash-command 回调，不声称支持 JSON Events API 或所有 provider。
+
+Slack 定向 race 3.293s、vet/diff 通过，新增同秘密有效签名但不同 app、不同 workspace、重复 team_id 均拒绝，合法请求仍原子消费一次。绑定/挑战样本更新为明确域配置。前一完成绑定版本完整 Go 39176 仍运行，当前域校验版本全量验证待其终态后启动。绑定发行/撤销 UI、HTTP callback 和完整 snapshot 授权复审仍待完成，尚未发布回调入口。

@@ -35,19 +35,27 @@ func TestSlackCallbackPersistentAtomicReplayGate(t *testing.T) {
 	}
 	secret := "fixture-signing-secret"
 	zero := int64(0)
-	channel, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Slack", Kind: "slack", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://hooks.slack.com/fixture", Secret: secret}})
+	channel, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Slack", Kind: "slack", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://hooks.slack.com/fixture", Secret: secret, SlackAppID: "A1", SlackWorkspaceID: "T1"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	at := time.Unix(1800000000, 0)
 	stamp := strconv.FormatInt(at.Unix(), 10)
-	body := []byte("user_id=U1&text=run+1")
+	body := []byte("api_app_id=A1&team_id=T1&user_id=U1&text=run+1")
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte("v0:" + stamp + ":"))
 	mac.Write(body)
 	signature := "v0=" + hex.EncodeToString(mac.Sum(nil))
 	if err := s.consumeSlackCallback(ctx, channel.ID, channel.Revision, stamp, signature, []byte("user_id=U2"), at); !errors.Is(err, ErrConflict) {
 		t.Fatal("forged body accepted", err)
+	}
+	for _, foreign := range []string{strings.Replace(string(body), "api_app_id=A1", "api_app_id=A2", 1), strings.Replace(string(body), "team_id=T1", "team_id=T2", 1), string(body) + "&team_id=T1"} {
+		m := hmac.New(sha256.New, []byte(secret))
+		m.Write([]byte("v0:" + stamp + ":" + foreign))
+		signed := "v0=" + hex.EncodeToString(m.Sum(nil))
+		if err := s.consumeSlackCallback(ctx, channel.ID, channel.Revision, stamp, signed, []byte(foreign), at); !errors.Is(err, ErrConflict) {
+			t.Fatal("foreign or duplicate domain accepted", err)
+		}
 	}
 	var accepted atomic.Int32
 	var wg sync.WaitGroup

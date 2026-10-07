@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+var slackAppID = regexp.MustCompile(`^A[A-Z0-9]{1,63}$`)
 var slackWorkspaceID = regexp.MustCompile(`^T[A-Z0-9]{1,63}$`)
 var slackUserID = regexp.MustCompile(`^[UW][A-Z0-9]{1,63}$`)
 var bindingToken = regexp.MustCompile(`^[0-9a-f]{48}$`)

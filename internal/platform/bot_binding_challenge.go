@@ -47,7 +47,7 @@ func (s *Store) issueSlackBindingChallenge(ctx context.Context, actor, integrati
 		return botBindingChallenge{}, err
 	}
 	var credentials IntegrationCredentials
-	if json.Unmarshal([]byte(raw), &credentials) != nil || credentials.Secret == "" || len(credentials.Secret) > 4096 {
+	if json.Unmarshal([]byte(raw), &credentials) != nil || credentials.Secret == "" || len(credentials.Secret) > 4096 || !slackAppID.MatchString(credentials.SlackAppID) || !slackWorkspaceID.MatchString(credentials.SlackWorkspaceID) {
 		return botBindingChallenge{}, ErrConflict
 	}
 	seed := make([]byte, 24)

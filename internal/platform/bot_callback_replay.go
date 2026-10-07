@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -41,6 +42,10 @@ func consumeSlackCallbackTx(ctx context.Context, tx *sql.Tx, integrationID, revi
 	}
 	var c IntegrationCredentials
 	if json.Unmarshal([]byte(raw), &c) != nil || !verifySlackCallback(c.Secret, timestamp, signature, body, at) {
+		return ErrConflict
+	}
+	fields, err := url.ParseQuery(string(body))
+	if err != nil || !slackAppID.MatchString(c.SlackAppID) || !slackWorkspaceID.MatchString(c.SlackWorkspaceID) || len(fields["api_app_id"]) != 1 || len(fields["team_id"]) != 1 || fields.Get("api_app_id") != c.SlackAppID || fields.Get("team_id") != c.SlackWorkspaceID {
 		return ErrConflict
 	}
 	stamp, _ := strconv.ParseInt(timestamp, 10, 64)
