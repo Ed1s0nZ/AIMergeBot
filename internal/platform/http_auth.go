@@ -192,6 +192,8 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.GET("/projects", h.projects)
 	api.POST("/projects", admin, h.saveProject)
 	api.PATCH("/projects/:id", admin, h.saveProject)
+	api.GET("/projects/:id/repository-binding", h.repositoryBinding)
+	api.PATCH("/projects/:id/repository-binding", admin, h.saveRepositoryBinding)
 	api.GET("/projects/:id/workflow-policy", admin, h.workflowPolicy)
 	api.PUT("/projects/:id/workflow-policy", admin, h.saveWorkflowPolicy)
 	api.GET("/projects/:id/owner-routing", h.ownerRouting)
