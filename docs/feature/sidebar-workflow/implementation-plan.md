@@ -342,3 +342,9 @@ P9/F5，使用独立文件 SQLite，实际 Close/OpenStore（执行迁移），�
 P8/F4，参考官方 https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/ 与 v3 概览，新增纯协议模块。项目/问题类型使用明确数字 ID，summary JSON 编码且有界，description 构造 ADF doc/paragraph/text；不拼接用户 JSON。仅接受 HTTP 201、有界合法 JSON、合法 id/key、无 errors/errorMessages，self 必须精确属于配置 HTTPS 根地址的 /rest/api/3/issue/<id>，展示链接由受信 endpoint 与校验 key 生成。其余结果 unknown，无原始远端错误输出。Jira 尚未接入凭据映射、消费者、持久回执验证和 UI，现有可用渠道继续不提供 Jira。
 
 协议定向 race 1.679s 通过，覆盖字段映射/引号、安全 ID、伪造站点/key、错误响应、超限与非 201。官方大页直接 open 因内容过大失败，搜索官方源及概要核对，不以第三方替代官方协议依据。前一 9a80965 的 CI 37602358756 当前 in_progress，未追加推送。
+
+### S6 Jira 受控发送器（开发验证中）
+
+P8/F4，官方认证依据 https://developer.atlassian.com/cloud/jira/platform/basic-auth-for-rest-apis/，显式 Username（账户邮箱）+Token（API token），不使用 Password 字段。发送器仅接收 HTTPS 根地址、无 user/query/fragment、有效凭据与固定项目/类型，POST /rest/api/3/issue，15 秒上下文、64 KiB 回执限制。生产默认复用禁止代理/重定向、DNS/IP 限制的 HTTP 客户端；必须传授权回调，POST 前/有效回执后复核，撤权后保留回执但 unknown。不自动重试、原始传输和权限错误不输出。
+
+纯协议/发送器定向 race 1.668s 通过，受控 transport 覆盖 Basic header、目标 URL、deadline、前置撤权零 POST、有效回执、后置撤权保留身份、伪造来源、配置错误、传输未知。尚未调用真实 Jira，未接入 Store/Runner/UI，Jira 仍不提供创建选项。后续需项目/问题类型持久映射、渠道版本与可靠回执存储、用户详情入口、必填自定义字段处理和认证范围说明。
