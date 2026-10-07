@@ -358,3 +358,9 @@ Jira 发送层前一完整 Go 测试通过（platform 101.501s）。
 ### S6 Jira 发送绑定配置映射（开发验证中）
 
 P8/F4，jiraTicketReady 统一要求完整项目/问题类型 ID、HTTPS 根端点和合法账户/API token。发送器移除单独项目/类型参数，从服务端 IntegrationCredentials 获取映射，减少未来消费者覆写项目的入口。受控 transport 解码实际 POST，验证项目和类型来自配置。新增缺项目/类型、空认证、冒号用户名、换行 token、HTTP/路径/query 端点拒绝样本。Jira 全部定向 race 2.381s、vet/diff 通过。尚未接入工单预留/持久回执/详情入口；完整 Jira 能力仍未完成。
+
+### S6 工单回执固定站点（开发验证中）
+
+P8/F4，工单表迁移增加内部 endpoint_origin（默认空兼容旧记录），预留时保存凭据中的端点但不回传 API。领取包含固定端点；Finish 租约完整身份新增端点匹配。Jira created/带回执 unknown 必须数字远端 ID 与该固定 HTTPS 根站点的合法 /browse/<key>，Linear 沿用独立身份规则；failed 仍不接受回执。Jira 暂未开放预留，因此测试在独立数据库显式构造 Jira 记录验证持久层，不视作产品端到端能力。
+
+协议/迁移/重开/HTTP 定向 race 8.068s，固定站点/租约拒绝定向 race 3.482s、vet/diff 通过。覆盖合法 Jira 回执持久化、外站链接拒绝、伪造 endpoint 即使配套伪造链接也因 SQL 身份不符拒绝；已有 Linear 租约测试补充端点伪造。前一映射绑定完整 Go 65571 仍运行，待同一进程终态；本版本全量验证尚待执行。

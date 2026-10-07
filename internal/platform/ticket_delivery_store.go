@@ -48,12 +48,17 @@ func (s *Store) FinishFindingTicket(ctx context.Context, claim TicketClaim, rece
 	if receipt.State != "created" && receipt.State != "unknown" && receipt.State != "failed" {
 		return ErrConflict
 	}
-	if receipt.RemoteID != "" || receipt.URL != "" {
-		if receipt.State == "failed" || claim.Provider != "linear" || !validLinearTicketIdentity(receipt.RemoteID, receipt.URL) {
-			return ErrConflict
-		}
+	validIdentity := false
+	switch claim.Provider {
+	case "linear":
+		validIdentity = validLinearTicketIdentity(receipt.RemoteID, receipt.URL)
+	case "jira":
+		validIdentity = validJiraTicketIdentity(receipt.RemoteID, receipt.URL, claim.EndpointOrigin)
 	}
-	if receipt.State == "created" && (claim.Provider != "linear" || !validLinearTicketIdentity(receipt.RemoteID, receipt.URL)) {
+	if (receipt.RemoteID != "" || receipt.URL != "") && (receipt.State == "failed" || !validIdentity) {
+		return ErrConflict
+	}
+	if receipt.State == "created" && !validIdentity {
 		return ErrConflict
 	}
 	switch receipt.Code {
@@ -61,7 +66,7 @@ func (s *Store) FinishFindingTicket(ctx context.Context, claim TicketClaim, rece
 	default:
 		return ErrConflict
 	}
-	result, err := s.DB.ExecContext(ctx, `UPDATE platform_ticket_links SET state=?,remote_id=?,url=?,error_code=?,lease='',lease_until='',updated_at=? WHERE id=? AND run_id=? AND finding_id=? AND integration_id=? AND integration_revision=? AND provider=? AND actor=? AND head_sha=? AND idempotency_key=? AND state='sending' AND lease=? AND lease!='' AND julianday(lease_until)>julianday(?)`, receipt.State, receipt.RemoteID, receipt.URL, receipt.Code, now(), claim.ID, claim.RunID, claim.FindingID, claim.IntegrationID, claim.IntegrationRevision, claim.Provider, claim.Actor, claim.HeadSHA, claim.IdempotencyKey, claim.Lease, now())
+	result, err := s.DB.ExecContext(ctx, `UPDATE platform_ticket_links SET state=?,remote_id=?,url=?,error_code=?,lease='',lease_until='',updated_at=? WHERE id=? AND run_id=? AND finding_id=? AND integration_id=? AND integration_revision=? AND provider=? AND actor=? AND head_sha=? AND idempotency_key=? AND endpoint_origin=? AND state='sending' AND lease=? AND lease!='' AND julianday(lease_until)>julianday(?)`, receipt.State, receipt.RemoteID, receipt.URL, receipt.Code, now(), claim.ID, claim.RunID, claim.FindingID, claim.IntegrationID, claim.IntegrationRevision, claim.Provider, claim.Actor, claim.HeadSHA, claim.IdempotencyKey, claim.EndpointOrigin, claim.Lease, now())
 	if err != nil {
 		return err
 	}

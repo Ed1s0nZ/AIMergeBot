@@ -45,3 +45,15 @@ func jiraTicketReceipt(status int, body []byte, endpoint string) TicketReceipt {
 	}
 	return TicketReceipt{State: "created", RemoteID: result.ID, URL: strings.TrimRight(endpoint, "/") + "/browse/" + result.Key}
 }
+
+func validJiraTicketIdentity(id, link, endpoint string) bool {
+	if !jiraNumericID.MatchString(id) {
+		return false
+	}
+	base, err := url.Parse(endpoint)
+	if err != nil || base.Scheme != "https" || base.Host == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || (base.Path != "" && base.Path != "/") || len(endpoint) > 2048 {
+		return false
+	}
+	prefix := strings.TrimRight(endpoint, "/") + "/browse/"
+	return strings.HasPrefix(link, prefix) && jiraIssueKey.MatchString(strings.TrimPrefix(link, prefix))
+}

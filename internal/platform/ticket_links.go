@@ -9,6 +9,7 @@ import (
 )
 
 type TicketLink struct {
+	EndpointOrigin      string `json:"-"`
 	ID                  int64  `json:"id"`
 	RunID               int64  `json:"run_id"`
 	FindingID           string `json:"finding_id"`
@@ -33,11 +34,11 @@ func migrateTicketLinks(tx *sql.Tx) error {
 	return migrateTicketLease(tx)
 }
 
-const ticketLinkColumns = `id,run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,state,remote_id,url,idempotency_key,CASE WHEN error_code IN ('invalid_configuration','permission_changed','creation_unacknowledged','unsupported_provider') THEN error_code ELSE '' END,updated_at`
+const ticketLinkColumns = `id,run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,state,remote_id,url,idempotency_key,CASE WHEN error_code IN ('invalid_configuration','permission_changed','creation_unacknowledged','unsupported_provider') THEN error_code ELSE '' END,updated_at,endpoint_origin`
 
 func scanTicketLink(row interface{ Scan(...any) error }) (TicketLink, error) {
 	var v TicketLink
-	err := row.Scan(&v.ID, &v.RunID, &v.FindingID, &v.IntegrationID, &v.IntegrationRevision, &v.Provider, &v.HeadSHA, &v.Actor, &v.State, &v.RemoteID, &v.URL, &v.IdempotencyKey, &v.ErrorCode, &v.UpdatedAt)
+	err := row.Scan(&v.ID, &v.RunID, &v.FindingID, &v.IntegrationID, &v.IntegrationRevision, &v.Provider, &v.HeadSHA, &v.Actor, &v.State, &v.RemoteID, &v.URL, &v.IdempotencyKey, &v.ErrorCode, &v.UpdatedAt, &v.EndpointOrigin)
 	return v, err
 }
 
@@ -87,7 +88,7 @@ func (s *Store) ReserveFindingTicket(ctx context.Context, runID, actor, integrat
 	if _, err := rand.Read(seed); err != nil {
 		return TicketLink{}, false, err
 	}
-	result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_ticket_links(run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,idempotency_key,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)`, runID, findingID, integrationID, revision, provider, headSHA, actor, hex.EncodeToString(seed), now(), now())
+	result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_ticket_links(run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,idempotency_key,created_at,updated_at,endpoint_origin) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, runID, findingID, integrationID, revision, provider, headSHA, actor, hex.EncodeToString(seed), now(), now(), credentials.Endpoint)
 	if err != nil {
 		return TicketLink{}, false, err
 	}

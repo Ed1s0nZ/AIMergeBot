@@ -23,7 +23,7 @@ func migrateTicketLease(tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
-	for _, column := range []string{"lease", "lease_until", "error_code"} {
+	for _, column := range []string{"lease", "lease_until", "error_code", "endpoint_origin"} {
 		if !columns[column] {
 			if _, err := tx.Exec(`ALTER TABLE platform_ticket_links ADD COLUMN ` + column + ` TEXT NOT NULL DEFAULT ''`); err != nil {
 				return err
