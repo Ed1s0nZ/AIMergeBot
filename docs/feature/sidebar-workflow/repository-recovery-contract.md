@@ -2,6 +2,8 @@
 
 状态：F2 设计补充，尚未实现或批准进入 F3。输入为 Confirmed requirements.md 的 REQ-007/012/021/023、UAR-001，以及用户“没想清楚先不实现”。不缩减 GitHub 原生审计、跨项目和其余完整需求。
 
+以下初稿由末尾“审查修订合同”补全；发生冲突以修订合同为准。technical-review-2026-10-08-repository-recovery.md 的 Fail 结论仍有效，作者补文不等于审查通过。
+
 ## Workflow Gate / 本次结论
 
 P5–P6 / F2。已具备绑定存储、原生项目创建、配置 outbox、GitHub 固定对象客户端及网络实验；缺完整 factory、冻结多仓身份和恢复迁移。允许写设计，不允许据此直接添加解除绑定接口。前一轮完成当前 head 审计和专项证据，属于 progress；本轮进一步确定恢复不能采用删除绑定后的 legacy fallback。
@@ -89,3 +91,91 @@ factory 是唯一 provider 选择入口，覆盖 Submit、执行、retry、follo
 ## 本轮证据
 
 在 ac57185d5a32df0f42d089e1d72fb8dbbaba7597、macOS/Xcode PATH 执行 `go test ./internal/platform -run 'TestProjectIdentityImportAndContextGuard|TestProjectIdentityConfigurationRecovery|TestProjectIdentityConcurrentImportAndBinding|TestProjectIdentityConcurrentBindingAndExport|TestRepositoryBindingPersistsWithoutLegacyBackfill' -count=1`，exit0，platform1.879s。它证明当前内部引用、导入冲突、同步恢复及并发保护行为，未验收本文件拟议恢复机制。仅修改这两份设计文档；git diff --check 通过。审计报告单独保留，不混入设计提交。
+
+## 审查修订合同（2026-10-08，拟议，未实现）
+
+### RRC-001：持久身份与快照只有一个权威来源
+
+新增 `platform_repository_identities`：project_id INTEGER PK/FK；kind TEXT NOT NULL CHECK legacy/internal；revision INTEGER NOT NULL CHECK>0；health TEXT NOT NULL CHECK valid/repair_required；created_at/updated_at TEXT NOT NULL。没有默认 kind，不能靠缺行推断 legacy。revision 是项目身份登记的代次，所有修改者使用同一事务 CAS；保留绑定表和历史表，binding revision 表示配置版本。没有自动删除/过期，项目停用也保留登记。原稿 legacy_origin/legacy_remote_id 不作为登记字段：origin 属于具体运行的固定描述，迁移不能制造不存在的旧 origin 证据。
+
+迁移在启动设置导入之前的单一事务完成：绑定当前行、绑定历史行、原生创建 receipt 任一存在则登记 internal（不解析坏 JSON 来决定 kind）；无这些 DB 证据的已有项目登记 legacy。绑定 current/history 的结构、版本或 receipt 互相矛盾时 health=repair_required；原生 receipt 存在但绑定缺行同样 repair_required。配置 InternalProject 只能验证 DB 登记，不能新建/降级 DB 身份；仅配置声称 internal 而 DB 无证据时导入明确冲突。历史 legacy 任务不用于改变 kind。迁移不修改任务 JSON、ACL或配置文件；outbox 在该事务标 dirty，配置导出根据登记 kind生成 InternalProject，不根据有无绑定生成。
+
+新建 legacy 项目同事务登记 legacy/revision1；原生创建同事务登记 internal/revision1，且保存绑定与 receipt；首次显式绑定将 legacy 转 internal 并递增登记 revision。之后 kind 只允许 internal，不存在 internal→legacy。配置/修复更新递增登记 revision 与绑定 revision；MAX_INT64、负数、登记缺失/损坏不能通过普通路径复位，返回 offline_repair_required。保留所有旧 history，修复新增 revision 必须大于登记、当前绑定列和全部历史 revision 的最大有效正数；无有效界限或溢出拒绝在线修复。history 中损坏记录保留并记录修复 event，不成为新版本授权依据。
+
+`AuditPolicy.repository_scope` 使用以下精确结构；所有字段必填，标注可选的例外除外。producer 构造后统一规范化校验，consumer 不容忍缺失、未知 version、重复 JSON key 或不一致字段。scope JSON上限16KiB；context最多4个，与当前 normalizeContextRepositories 一致。
+
+| 对象 / 字段 | 类型、校验、默认与所有者 |
+| --- | --- |
+| scope.version | integer，恰为1；无默认，Store校验 |
+| scope.target / source | RepositoryReference，各一个；无默认，factory构造 |
+| scope.context | ContextReference数组，必须存在，可空；按 project_id 严格升序且唯一，最多4项，不含target |
+| scope.observation | provider、number、base_tip_sha、merge_base_sha、head_sha；number正且等于Snapshot.MRIID；SHA小写完整合法ID，GitHub只接受40hex；provider等于target/source，origin同平台边界 |
+| RepositoryReference | project_id正且等于Snapshot对应ID；identity_revision正；provider github/gitlab；api_origin规范HTTPS；remote_id正int64；full_name复用binding校验；binding_revision见下；credential见下；不存URL/token |
+| ContextReference | repository:RepositoryReference，sha:完整小写SHA；可与source同内部项目，元组必须完全一致；允许context跨平台/跨origin，不把target平台限制套到context |
+| credential.kind=integration | integration_id/revision正int64且必填；对应binding_revision正；kind、origin、scope、启用都核对 |
+| credential.kind=legacy_gitlab | legacy_repository_revision正uint64且必填；不得同时出现integration字段；仅gitlab且登记legacy；binding_revision=0，remote_id等于该legacy项目ID并通过本次远端读取核实，不用于证明旧任务 |
+
+同仓PR的target/source引用必须完全相同，不含角色特定SHA；提交用途只放在 observation，避免一个reference.commit_sha同时代表base-tip、merge-base、HEAD。Snapshot.BaseSHA等于merge_base_sha，HeadSHA等于head_sha；GitLab原DiffVersionID继续由固定版本读取器验证，GitHub不伪造GitLab版本号。target/source不能跨provider/origin，但context可以。full_name用于路由，远端ID核对保持权威；改名不会自动修改历史reference。
+
+混合legacy与显式仓库使用逐仓credential联合类型，不共享token。新增Settings.LegacyRepositoryRevision（持久uint64，默认旧配置首次升级为1），仅当GitLab origin/token及其网络授权配置改变时递增，模型/项目名称/配置outbox同步不递增；比较秘密仅在服务端内存，不输出hash/token。缺失、回退、溢出拒绝新运行；Settings更新CAS与写文件成功之后才换内存快照。新scope legacy描述只与当前这一generation匹配；旧无scope任务继续现有冻结RepositoryURL兼容路径，不伪造generation，旧policy=null或legacy导入缺SHA只可查看历史结果。此新代次需要settings_revision测试证明重启、凭据变更、非凭据保存和并发，不能复用全局Revision冒充专用代次。
+
+旧 AuditPolicy.ContextRepositories 保留，必须恰好等于scope.context的(project_id,sha)投影；空数组规范为[]。入队在一个事务内校验Scope与Snapshot、全部ACL/关联/配置代次，保存policyJSON/digest/run/context索引，索引仍使用原表。同一run加载/发布/读取必须核对scope.context、旧policy.context和索引三者一致；不一致拒绝远端操作，历史结果展示注明不完整。retry复制父JSON及原索引并验证一致；followup深拷贝scope，仅改变FollowupOf/SelectedFiles，不能共享可变slice/map或重新抓当前PR。snapshotForRun须读取base/head/mr/diffVersion用于完整校验，不能把当前残缺Snapshot作为校验输入。最新PR复审重新准入并创建新scope。
+
+### RRC-002：诊断、修复与响应丢失恢复
+
+新增admin专属 `GET /projects/:id/repository-recovery`，在同一读事务授权并返回 `{state, identity_revision, binding_revision?, evidence_etag?, current?:validBinding, can_recover, reason?}`。state有限为 valid/repair_required/offline_repair_required；current只在原binding完整合法时提供。坏JSON/原始列/provider响应/凭据不返回。evidence_etag为规范类型带长度的当前登记/绑定列与原始bindingJSON/历史高水位摘要的SHA256；读、CAS都在事务内重新计算，不能只比较JSON内revision。单个损坏bindingJSON超过64KiB或登记/历史revision无法建立安全上界时can_recover=false、offline_repair_required，转离线维护，不假称所有物理损坏可在线修复。
+
+新增admin专属 `POST /projects/:id/repository-recovery`，body最多8KiB：request_id(UUID)、expected_identity_revision(正)、evidence_etag(64hex)、expected_integration_revision(正)、provider/api_origin/remote_id/full_name/integration_id（同binding验证）、reason(UTF8、1–1000bytes，人工说明)。严格拒绝未知/重复key、空值与尾随JSON。只能输出显式integration新绑定，不能用本接口切回legacy或使用全局token。停用项目也可修复配置，但保持项目停用；不恢复运行、不创建ACL。账号必须全局admin且未停用，CSRF/origin同现有写路由。
+
+流程：本地规范化→短事务查已存回执→未存则诊断CAS预查、集成scope与revision/网络授权→事务外readonly远端repository验证（target identity、15秒总deadline，无compare/PR内容、重定向或任意payloadURL）→短事务再次admin/项目/登记/etag/集成/唯一remote身份验证→保存新绑定/登记revision/历史/取消/event/回执/outbox→commit→尽力通知取消并同步配置。只有验证完成且factory支持的provider可以提交；factory不可用503，零验证请求、零DB变化。修复不是先存unavailable再补验证。
+
+新增 `platform_repository_recovery_receipts`：actor/request_id联合PK；project_id FK；digest TEXT64hex；receipt_json TEXT（<=16KiB）；created_at必填；不自动删除。digest包含规范请求所有字段，不含token；actor不来自body。相同actor/key/digest重放在当前admin、项目存在校验后返回原回执，不再次远端验证/写revision/取消；不同请求同key409。同事务回执不被后续配置变更覆盖，UI必须区分“原请求回执”和“当前配置”；显示当前state须另GET。重放可尽力SyncProjectConfig，不能发通知或新审计。
+
+响应：首次201、重放200，body `{project_id,request_id,repository,identity_revision,replayed,sync_pending}`。DB已提交但配置同步失败仍返回上述回执、sync_pending=true；不把成功提交伪装失败。网络断开没有收到回执：客户端保持完整请求/key冻结并重放；不能换key自动提交。状态400 invalid_input；401/403既有权限；404项目不存在；409 recovery_conflict/request_conflict/identity_conflict；422 remote_identity_mismatch；503 provider_unavailable/verification_unavailable/offline_repair_required。只输出有限code，429受控限流包含合法Retry-After，不暴露上游body；失败且无回执不改配置/历史/outbox/运行。重放处理优先于expected当前revision，避免响应丢失后被自己的提交冲突锁死。
+
+```mermaid
+sequenceDiagram
+ participant A as 管理员
+ participant H as Recovery服务
+ participant D as SQLite
+ participant R as 受限远端读取
+ A->>H: 固定request_id和完整CAS请求
+ H->>D: 当前授权与相同请求回执?
+ alt 已有匹配回执
+ D-->>H: 历史回执
+ H-->>A: 200 原请求结果
+ else 首次请求
+ H->>D: 登记/etag/集成预查
+ H->>R: 有界repository identity验证
+ R-->>H: 身份匹配或拒绝
+ H->>D: 二次CAS/保存/取消/历史/回执/outbox同事务
+ D-->>H: commit
+ H-->>A: 201 回执和sync_pending
+ end
+```
+
+### RRC-003：并发与取消的可验证边界
+
+替代原稿“绑定变化即零后续内容读取”的笼统承诺。一个已派发的远端请求可能在撤权提交后完成，不能撤回已发送请求或已读字节。保证是：每个操作派发前短事务复查当前run lease/status、scope配置代次与全仓ACL；操作完成后、进入工具结果/模型输入/审计checkpoint/发布前再复查。任一观察到失配即丢弃结果并终止操作，不派发下一请求。多请求树/搜索/fetch阶段逐次检查，不仅整个审计前查一次；缓存命中也复查授权，缓存不是旁路。
+
+恢复提交事务取消所有pending/running且target/source/context索引含该项目的run，并记录repository_identity_changed；pending不会生成重试，正在运行的结果写入仍由status/lease fence拒绝。revision变更即取消，即使remote tuple没变。配置写成功后调用Runner的批量进程cancel，不把取消调用放在DB事务里；另一连接/实例通过现有5秒heartbeat观察取消，这是观察周期而非硬实时终止承诺。HTTP调用继承run context，Git子进程继承同context并验证cancel后退出和临时目录清理；请求/命令deadline为最终资源上限。
+
+source/context撤权使用同样前后检查；没有持久run的准入阶段检查全部冻结描述和角色。已发出的identity验证可完成，但CAS失配不能保存/入队，其结果不得用来继续compare/fetch。测试断言已发请求次数、结果未消费、下一请求数为0，不把已发请求算成不存在。阻断/工单/通知各自保留已发生外部动作的unknown/readback规则，不能用后置ACL失败声称外部动作没发生。
+
+### RRC-004：升级与降级屏障
+
+选定DB schema2作为持久格式屏障，PolicyVersion独立升级为后续版本（F3确定唯一常量名，不复用v50）。新Store启动在任何迁移/导入/worker启动之前读取schema版本，支持1→2迁移和已为2；其他版本拒绝。首次新建直接2；1→2单事务完成登记/回执schema、完整性检查、dirty outbox、最后schema version=2，失败全回滚。现有旧Store只接受1且在commit前拒绝其他版本，故schema2不能被它成功OpenStore；必须用238ef1d真实旧二进制验证，不能仅构造新版decoder。
+
+发布顺序：停止全部旧worker/HTTP admission，取得SQLite一致备份及配置备份并核实无旧进程/租约活动，再运行升级；schema2提交后才启用新worker，factory未完成仍禁止native操作。不可滚动混用同DB：已打开的旧连接不会因version行变化自动停止，修改version不能替代停机。设置新增专用凭据代次随同新程序管理，旧程序也不得并发写配置。
+
+新policy运行新建/重试/发布都校验支持scope version；schema屏障覆盖打开、导入与配置同步，policy屏障覆盖任务执行。旧无scope结果可读；符合原身份证据的legacy固定读取只能走显式compat reader；旧pending/running在升级前停止并保留失败/中断证据，不能自动把旧任务改为新policy或scope，授权用户重新提交。独立CLI若不使用平台DB/项目不受schema版本影响，但不得共享升级服务配置写入。
+
+升级后的程序回滚只用支持schema2的版本。降回旧版必须停止新程序并恢复升级前配套DB+配置备份，明确会放弃备份后的新记录；禁止改version=1或删scope/identity表来强行打开。此离线回滚需运维明确选择，不是产品自动恢复；未验证备份恢复前禁止发布升级。
+
+### 后续交接与验证要求
+
+该修订替代初稿的含糊字段、无恢复接口和即时取消承诺。它不批准实现；RRC-001–004需重新审查。F3必须按登记/schema屏障、scope/索引对账、逐仓factory、恢复服务/回执/取消、现有编辑页集成拆文件，并列出完整Git/API模式的依赖，不先上线半条链路。新增字段的producer→JSON→旧/新consumer→文档→实际测试全链路校验必需。
+
+必须新增的区分性证据：各字段缺失/重复/跨字段矛盾、SHA用途、4个context/超限与跨平台、mixed legacy/integration逐token隔离、无关设置不改变专用代次、坏JSON诊断不回显与修复、revision最大值/历史冲突/64KiB上限、请求响应丢失/同key不同body/修复后改绑再重放、验证中撤权零后续请求、结果返回后失权不进模型、同/跨连接run取消、schema1迁移原子失败、真实旧版拒绝schema2、旧版已经打开时升级被运维前置阻止、备份恢复证明。现有专项通过不代替这些新验证。
+
+修订验证：在8ce97b4454986f9bcf604f71f5fe599250f7b927的实际v50 platform.Store代码编译隔离探针，创建临时SQLite、将platform_schema设为2、加入sentinel；再次OpenStore固定拒绝unsupported platform schema 2。拒绝前后sqlite_master结构完整一致，version仍2、sentinel保留，exit0。238ef1d→该HEAD只有审查文档，Store代码未变；这证明现有Store拒绝事务不提交，不声称完整旧服务进程/新迁移/已打开连接并发被验收。初次含rm清理的命令被工具拒绝、未执行，随后改用Python TemporaryDirectory管理自身临时目录并成功；探针/DB全部清理，生产源码无变更。运行显示现有sonic对当前Go/架构fallback到encoding/json警告，探针仍正常通过；没有为消除警告更改依赖。git diff --check通过。
