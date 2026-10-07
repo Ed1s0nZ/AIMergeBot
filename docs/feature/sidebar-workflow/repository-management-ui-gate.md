@@ -47,3 +47,5 @@ Maintainability Gate：projects.tsx多责任medium/high，只组合独立reposit
 修正profile提示时一次机械替换误加参数被tsc拒绝，立即删除误加实参后typecheck64056成功；最终焦点/反馈补强后typecheck和临时Vite54548成功。正式npm run build85336成功，JS index-DOrFma53.js与CSS index-RiSjjNhI.css的SHA256与实际浏览器验收的临时产物逐字一致。全Go47118 success（Go生产代码之后未变），最终正式embed Go build ./...及go vet ./...50469 success，git diff --check通过。当前切片可提交推送并由独立精确HEAD CI全量验证，不用旧CI替代。
 
 仍未覆盖所有浏览器组合（存储禁止/损坏、切账号、写请求途中卸载、凭据选项在请求期间变更）；这些分支采取阻止新建或保留原请求、后台权限/CAS为最终边界。没有真实GitHub/GitLab凭据连通测试/外部发送/模型调用。真实GitHub provider审计与自动闭环、邮件/bots完整联调、原REQ整体验收及F6完整release审计继续未完成。此次是仓库管理配置页面切片，不声称原生GitHub审计已可用，未合并main/发布。
+
+提交/推送：c73a1ddeadcbc2b2c9b836172c8165e888c58060已推codex/sidebar-workflow，工作树干净。精确CI37637933151已启动/in_progress：https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37637933151 。不把启动等同通过，不覆盖取消该run。本地验收tab17已关闭，临时fixture77215已停止，默认视口已恢复；生产环境/真实通知未操作。下一阶段G3实际provider及原完整REQ继续推进。
