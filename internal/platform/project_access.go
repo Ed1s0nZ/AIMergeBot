@@ -22,8 +22,10 @@ func roleRank(role string) int {
 		return 1
 	case "reviewer":
 		return 2
-	case "operator", "admin":
+	case "operator":
 		return 3
+	case "admin":
+		return 4
 	}
 	return 0
 }

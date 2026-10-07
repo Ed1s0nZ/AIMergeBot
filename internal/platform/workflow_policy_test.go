@@ -23,6 +23,9 @@ func TestWorkflowPolicyRevisionAndValidation(t *testing.T) {
 	if err != nil || initial.Revision != 0 || len(initial.Focus) != 0 {
 		t.Fatal(initial, err)
 	}
+	if _, err = s.DB.Exec(`INSERT INTO platform_project_members(project_id,user_id,role) VALUES(1,?,'operator')`, u.ID); err != nil {
+		t.Fatal(err)
+	}
 	p := WorkflowPolicy{Focus: []string{"authorization", "ssrf"}, ExcludedExtensions: []string{".svg"}}
 	if _, err = s.SaveWorkflowPolicy(ctx, 1, u.ID, 0, p); err == nil {
 		t.Fatal("member changed policy")
