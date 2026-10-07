@@ -27,6 +27,14 @@ const priorities: Record<string, string> = {
   dependencies: "依赖风险",
   business_logic: "业务逻辑",
 };
+const defaultChecks: NonNullable<Policy["checks"]> = {
+  enabled: false,
+  mode: "advisory",
+  minimum_severity: "high",
+  block_on_failure: true,
+  block_on_incomplete: true,
+  publisher: 0,
+};
 function PolicyEditor({ project }: { project: Project }) {
   const resource = useResource<Policy>(
     `/projects/${project.id}/workflow-policy`,
@@ -78,6 +86,10 @@ function PolicyEditor({ project }: { project: Project }) {
       setBusy(false);
     }
   };
+  const checks = draft?.checks ?? defaultChecks;
+  const changeChecks = (patch: Partial<NonNullable<Policy["checks"]>>) => {
+    if (draft) setDraft({ ...draft, checks: { ...checks, ...patch } });
+  };
   return (
     <section className="panel">
       <h2>{project.name} 的审计策略</h2>
@@ -88,7 +100,7 @@ function PolicyEditor({ project }: { project: Project }) {
         <>
           <p>
             版本 {draft.revision} ·
-            关注项调整审计优先级，不限制其他有证据支持的风险。当前配置不自动阻断合并。
+            关注项调整审计优先级，不限制其他有证据支持的风险。
           </p>
           <label>
             <input
@@ -120,6 +132,72 @@ function PolicyEditor({ project }: { project: Project }) {
                 {label}
               </label>
             ))}
+          </fieldset>
+          <fieldset disabled={busy}>
+            <legend>提交检查发布规则</legend>
+            <p>
+              当前仅保存规则，自动发布尚未接入；保存后不会立即向代码平台发送检查。
+            </p>
+            <label>
+              <input
+                type="checkbox"
+                checked={checks.enabled}
+                onChange={(e) => changeChecks({ enabled: e.target.checked })}
+              />
+              授权后续新任务发布检查
+            </label>
+            <label>
+              模式
+              <select
+                value={checks.mode}
+                disabled={!checks.enabled}
+                onChange={(e) => changeChecks({ mode: e.target.value })}
+              >
+                <option value="advisory">提示</option>
+                <option value="blocking">阻断</option>
+              </select>
+            </label>
+            <label>
+              最低风险等级
+              <select
+                value={checks.minimum_severity}
+                disabled={!checks.enabled}
+                onChange={(e) =>
+                  changeChecks({ minimum_severity: e.target.value })
+                }
+              >
+                <option value="critical">严重</option>
+                <option value="high">高</option>
+                <option value="medium">中</option>
+                <option value="low">低</option>
+                <option value="info">信息</option>
+              </select>
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={checks.block_on_failure}
+                disabled={!checks.enabled || checks.mode !== "blocking"}
+                onChange={(e) =>
+                  changeChecks({ block_on_failure: e.target.checked })
+                }
+              />
+              审计失败时阻断
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={checks.block_on_incomplete}
+                disabled={!checks.enabled || checks.mode !== "blocking"}
+                onChange={(e) =>
+                  changeChecks({ block_on_incomplete: e.target.checked })
+                }
+              />
+              覆盖不完整时阻断
+            </label>
+            <p>
+              默认关闭。实际合并限制由代码平台规则决定；失败或覆盖不完整不表示审计安全。修改或禁用规则会撤销旧配置的待发布任务，历史运行保留原策略。
+            </p>
           </fieldset>
           <label>
             额外排除的扩展名（每行一个，如 .svg）
