@@ -390,3 +390,5 @@ P9/F5，将已有真实 Start/Stop/Restart 测试改为 Linear/Jira 共享场景
 P9/F5，受控 localhost 页面加载真实编译产物，已有 Jira 默认不展开凭据；选择替换后邮箱/项目 ID/类型 ID 均为空，写入受控值保存。fixture 严格检查实际 PATCH JSON 的 username/token/jira_project_id/jira_issue_type_id，成功后版本 1→2、凭据输入清空、替换复选框关闭、映射存在标志保留，未发起真实外部请求。临时 tab 与 fixture server 已清理。
 
 验收发现工单类型仍显示通知事件/频率/阈值，容易暗示自动建单。UI 对 Jira/Linear 改为展示“仅由发现详情明确创建”的说明，隐藏无效通知编辑项，保留既有存储字段以兼容配置验证。类型检查/diff 通过，新 UI 分支尚待产物重建与浏览器复验。完整 Go 12649 已实际进程核实仍 live，不因耗时重启。
+
+工单配置与生命周期版本完整 Go 测试通过（platform 110.847s）。明确触发提示前端 build 与嵌入应用 go build 通过。实际受控浏览器复验 Jira 已有配置移除通知事件/频率/风险阈值，显示仅发现详情明确创建；新建 Linear 同样显示提示与团队输入；新建普通 Webhook 的原通知编辑项仍存在。临时 tab/server 已清理。提示改动只涉及 UI，不重复无关后端全量测试；后端最终全量及两种 provider 生命周期/race 已有证据，当前产物以应用 build 验证。待推送所有本地 Jira 提交并跟踪精确 HEAD CI，尚未完成完整需求审计/发布。
