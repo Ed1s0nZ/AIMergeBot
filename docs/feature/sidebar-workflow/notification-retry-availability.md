@@ -39,3 +39,9 @@ sequenceDiagram
 ```
 
 验收：同配置failed可请求；unknown无重复确认不能POST成功；修改配置或停用后记录不给出虚假可操作按钮；上限/非法attempt/非重试状态准确；旧响应缺字段关闭操作；投影无凭据与额外副作用；新旧字段序列化及count/分页/权限保持。回滚可移除新投影和界面读取，新旧服务端均不得误把旧payload发往新目的地。修复不等于完整跨配置失败恢复，也不等于整体优化完成。
+
+## F3 实施计划
+
+F2 3d564dc已推。修改notification_records.go：局部记录DTO、列表单查询LEFT JOIN、当前状态投影；保持原RetryNotification与发送队列逻辑。新增notification_retry_availability_test.go，真实临时SQLite验证修改集成name/凭据后revision变化、同配置failed/unknown、disabled、missing配置、attempt边界/终态、列表无副作用、JSON无payload/lease、admin拒绝及分页，保留既有unknown确认/版本冲突测试。修改notification-records.tsx：类型与有限原因解释、仅明确can_retry提供操作、unknown确认、409刷新，保留原loading/empty/error与分页；必要时局部拆可用状态展示组件，便于实际组件渲染验收，不改整个集成页。
+
+先完成专项Go/race及通知事件/owner/access扩大回归，再全Go/vet；frontend typecheck/build与受控组件/浏览器证明同版本、变更配置/停用/上限/unknown确认、缺字段和409刷新。不调用外部渠道、不读取真实凭据；正式前端资源构建与Go嵌入构建串行执行。文档及CHANGELOG随生产提交记录已完成与未完成状态。前版生产HEAD71e4eec精确CI37644666501当前in_progress，新生产push等待该run终态，避免取消其独立验收；不等待虚构进程或以初次列表空为失败。回滚只撤销新观察投影/界面字段消费，保持重试权限与冻结版本边界。
