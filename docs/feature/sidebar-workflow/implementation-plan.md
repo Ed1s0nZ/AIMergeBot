@@ -524,3 +524,11 @@ P8/F4，已授权 status 响应从 Settings.PublicURL 构造固定 /#/runs/<id> 
 测试增加URL拒绝矩阵及实际 SettingsService+HTTP.Register 合法状态回调链接验证。初始fixture错误使用带路径public_url，被真实配置校验拒绝；改为符合现有契约的HTTPS origin，不弱化配置规则，race重跑51710待终态。前一27ab672全量31572已success，platform121.234s。当前新增链接生产代码需自身全量与精确远端CI，仍未推送。该导航不替代复审交互或其他providers，AC-013未完成。
 
 51710终态success，race22.951s，包含实际配置origin回调输出正确证据链接、关闭unfurl以及所有HTTP授权拒绝矩阵。上一vet已通过，diff通过；新增链接版本全量继续执行。
+
+### S7 机器人绑定操作审计记录
+
+P8/F4，挑战发行、有效绑定完成、实际撤销分别在同事务写入 platform_events，actor 为已认证/挑战所属平台用户，target 仅渠道 ID，action 为 bot.binding.challenge_issued/created/revoked。不保存外部用户、token、签名、secret 或 body。重复撤销无变更不新增历史；绑定 replay/伪造/冲突事务拒绝不新增成功记录。日志写入失败回滚绑定/挑战操作，避免状态已变却缺历史。
+
+真实 SQLite 专项 race10.545s通过：发行两次/绑定一次/撤销一次的 actor+target 历史计数准确，重复撤销不增加，令牌不出现在target。受控 SQLite BEFORE INSERT trigger 强制审计写失败后撤销返回失败、挑战仍存在，验证同事务回滚。此前无故障注入版本专项15.206s也通过；vet/diff通过。新操作审计版本需全量，前版证据链接全量62154仍同进程运行，未假定已成功。
+
+该历史补齐不替代机器人复审动作、其他providers、跨平台GitHub等完整需求；AC-013和整体目标仍未完成。后续推送依据本地全量与精确远端CI结果。

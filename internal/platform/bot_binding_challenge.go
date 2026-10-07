@@ -63,6 +63,9 @@ func (s *Store) issueSlackBindingChallenge(ctx context.Context, actor, integrati
 	if _, err := tx.ExecContext(ctx, `INSERT INTO platform_bot_binding_challenges(integration_id,user_id,integration_revision,token_hash,expires_at) VALUES(?,?,?,?,?) ON CONFLICT(integration_id,user_id) DO UPDATE SET integration_revision=excluded.integration_revision,token_hash=excluded.token_hash,expires_at=excluded.expires_at`, integrationID, actor, revision, hex.EncodeToString(digest[:]), expires.Unix()); err != nil {
 		return botBindingChallenge{}, err
 	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'bot.binding.challenge_issued',?,?)`, actor, integrationID, now()); err != nil {
+		return botBindingChallenge{}, err
+	}
 	if err := tx.Commit(); err != nil {
 		return botBindingChallenge{}, err
 	}

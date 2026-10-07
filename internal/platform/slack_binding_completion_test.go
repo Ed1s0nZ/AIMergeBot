@@ -109,6 +109,29 @@ func TestSlackBindingCompletionConsumesChallengeAndRejectsReplay(t *testing.T) {
 	if removed, err := s.revokeSlackBinding(ctx, 1, channel.ID); err != nil || removed {
 		t.Fatal("revocation not idempotent", removed, err)
 	}
+	for action, expected := range map[string]int{"bot.binding.challenge_issued": 2, "bot.binding.created": 1, "bot.binding.revoked": 1} {
+		if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_events WHERE action=? AND actor=1 AND target=?`, action, channel.ID).Scan(&count); err != nil || count != expected {
+			t.Fatal("binding audit history mismatch", action, count, err)
+		}
+	}
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_events WHERE target IN (?,?)`, challenge.Token, replacement.Token).Scan(&count); err != nil || count != 0 {
+		t.Fatal("challenge leaked into audit history", count, err)
+	}
+	if _, err := s.DB.Exec(`UPDATE platform_integrations SET enabled=1 WHERE id=?`, channel.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.issueSlackBindingChallenge(ctx, 1, channel.ID, channel.Revision, at); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.Exec(`CREATE TRIGGER fixture_reject_binding_history BEFORE INSERT ON platform_events WHEN NEW.action='bot.binding.revoked' BEGIN SELECT RAISE(ABORT,'fixture history failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := s.revokeSlackBinding(ctx, 1, channel.ID); err == nil || changed {
+		t.Fatal("history failure accepted", changed, err)
+	}
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_bot_binding_challenges WHERE user_id=1`).Scan(&count); err != nil || count != 1 {
+		t.Fatal("revocation committed without history", count, err)
+	}
 
 }
 

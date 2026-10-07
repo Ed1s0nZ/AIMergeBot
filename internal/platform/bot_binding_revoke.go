@@ -36,5 +36,10 @@ func (s *Store) revokeSlackBinding(ctx context.Context, actor, integrationID int
 	if err != nil {
 		return false, err
 	}
+	if n+m > 0 {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'bot.binding.revoked',?,?)`, actor, integrationID, now()); err != nil {
+			return false, err
+		}
+	}
 	return n+m > 0, tx.Commit()
 }

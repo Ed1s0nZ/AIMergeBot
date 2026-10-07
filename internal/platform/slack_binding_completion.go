@@ -59,5 +59,8 @@ func (s *Store) completeSlackBinding(ctx context.Context, integrationID, revisio
 	if _, err := tx.ExecContext(ctx, `DELETE FROM platform_bot_binding_challenges WHERE integration_id=? AND user_id=? AND token_hash=?`, integrationID, actor, hash); err != nil {
 		return 0, err
 	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'bot.binding.created',?,?)`, actor, integrationID, now()); err != nil {
+		return 0, err
+	}
 	return actor, tx.Commit()
 }
