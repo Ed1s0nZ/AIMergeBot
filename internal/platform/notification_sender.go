@@ -230,7 +230,13 @@ func (r *Runner) notificationLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			_, _ = r.Store.DispatchNotification(ctx)
+			publicURL := ""
+			if r.Settings != nil {
+				publicURL = r.Settings.Snapshot().PublicURL
+			}
+			if err := r.Store.CollectNotifications(ctx, publicURL, time.Now()); err == nil {
+				_, _ = r.Store.DispatchNotification(ctx)
+			}
 		}
 	}
 }
