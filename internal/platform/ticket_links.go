@@ -20,6 +20,8 @@ type TicketLink struct {
 	State               string `json:"state"`
 	RemoteID            string `json:"remote_id,omitempty"`
 	URL                 string `json:"url,omitempty"`
+	ErrorCode           string `json:"error_code,omitempty"`
+	UpdatedAt           string `json:"updated_at"`
 	IdempotencyKey      string `json:"-"`
 }
 
@@ -31,11 +33,11 @@ func migrateTicketLinks(tx *sql.Tx) error {
 	return migrateTicketLease(tx)
 }
 
-const ticketLinkColumns = `id,run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,state,remote_id,url,idempotency_key`
+const ticketLinkColumns = `id,run_id,finding_id,integration_id,integration_revision,provider,head_sha,actor,state,remote_id,url,idempotency_key,CASE WHEN error_code IN ('invalid_configuration','permission_changed','creation_unacknowledged','unsupported_provider') THEN error_code ELSE '' END,updated_at`
 
 func scanTicketLink(row interface{ Scan(...any) error }) (TicketLink, error) {
 	var v TicketLink
-	err := row.Scan(&v.ID, &v.RunID, &v.FindingID, &v.IntegrationID, &v.IntegrationRevision, &v.Provider, &v.HeadSHA, &v.Actor, &v.State, &v.RemoteID, &v.URL, &v.IdempotencyKey)
+	err := row.Scan(&v.ID, &v.RunID, &v.FindingID, &v.IntegrationID, &v.IntegrationRevision, &v.Provider, &v.HeadSHA, &v.Actor, &v.State, &v.RemoteID, &v.URL, &v.IdempotencyKey, &v.ErrorCode, &v.UpdatedAt)
 	return v, err
 }
 

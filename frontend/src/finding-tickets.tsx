@@ -7,6 +7,7 @@ type Ticket = {
   provider: string;
   state: string;
   url?: string;
+  error_code?: string;
 };
 const states: Record<string, string> = {
   pending: "等待创建",
@@ -14,6 +15,12 @@ const states: Record<string, string> = {
   created: "已创建",
   failed: "创建失败",
   unknown: "结果待核对",
+};
+const errors: Record<string,string> = {
+ invalid_configuration: "渠道配置不完整，请联系管理员检查。",
+ permission_changed: "项目权限或渠道配置已变更，请联系管理员核对。",
+ creation_unacknowledged: "远端未返回可验证的创建结果，请先核对远端。",
+ unsupported_provider: "此工单渠道暂未支持。",
 };
 function safeLink(value?: string) {
   try {
@@ -116,6 +123,7 @@ export function FindingTicketsPanel({
                       </a>
                     </>
                   )}
+                  {t.error_code && errors[t.error_code] && <p>{errors[t.error_code]}</p>}
                   {t.state === "unknown" && (
                     <p>请核对远端是否已创建；系统不会自动重发。</p>
                   )}

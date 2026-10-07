@@ -105,7 +105,7 @@ func TestTicketHTTPAuthenticatedReservationAndReadPermissions(t *testing.T) {
 	if strings.Contains(first.Body.String(), "idempotency_key") || strings.Contains(first.Body.String(), "private-fixture") {
 		t.Fatal("internal values exposed")
 	}
-	if _, err := s.DB.Exec(`UPDATE platform_ticket_links SET state='unknown' WHERE id=?`, reply.Ticket.ID); err != nil {
+	if _, err := s.DB.Exec(`UPDATE platform_ticket_links SET state='unknown',error_code='PRIVATE_UPSTREAM_ERROR' WHERE id=?`, reply.Ticket.ID); err != nil {
 		t.Fatal(err)
 	}
 	repeated := request("POST", path, adminToken, body, "")
@@ -122,7 +122,7 @@ func TestTicketHTTPAuthenticatedReservationAndReadPermissions(t *testing.T) {
 	if res := request("GET", channelsPath, viewerToken, "", ""); res.Code != 403 {
 		t.Fatal("viewer channel list", res.Code)
 	}
-	if res := request("GET", path, viewerToken, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), "unknown") || strings.Contains(res.Body.String(), "idempotency_key") {
+	if res := request("GET", path, viewerToken, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), "unknown") || (strings.Contains(res.Body.String(), "idempotency_key") || strings.Contains(res.Body.String(), "PRIVATE_UPSTREAM_ERROR")) {
 		t.Fatal("viewer ticket list", res.Code, res.Body.String())
 	}
 	readPath := fmt.Sprintf("%s/%d", path, integration.ID)

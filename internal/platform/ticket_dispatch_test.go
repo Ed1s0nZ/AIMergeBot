@@ -88,6 +88,10 @@ func TestTicketDispatcherPersistsReceiptWithoutReplay(t *testing.T) {
 			if err != nil || link.State != want {
 				t.Fatal(link, err, want)
 			}
+			wantCode := map[string]string{"ack": "", "revoked": "permission_changed", "post_changed": "permission_changed", "missing_team": "invalid_configuration", "transport_unknown": "creation_unacknowledged"}[mode]
+			if link.ErrorCode != wantCode || link.UpdatedAt == "" {
+				t.Fatal("missing safe diagnosis", link)
+			}
 			if want == "failed" && posts != 0 || want != "failed" && posts != 1 {
 				t.Fatal("wrong POST count", posts)
 			}
