@@ -476,3 +476,9 @@ typecheck 与临时独立目录 Vite build 成功。真实编译前端+受控本
 ff33a4f 的真实编译前端在本地可切换受控 fixture 完成浏览器回归：POST challenge 返回 409 后渠道选择/生成/凭据区消失，只保留错误和可用刷新；显式刷新恢复空选择；随后签发四秒凭据，在到期前可见 bind 参数，到期后令牌区消失且显示重新生成提示。360x800 screenshot 检查标题、错误/到期提示、渠道 select 与生成按钮均在页面内，凭据未残留。结束恢复默认视口、关闭测试标签和 fixture，不操作真实 Slack 或生产身份。
 
 本次验证未改动产品代码，只增加当前 UI 证据；尚未验证慢请求、所有键盘状态和实际 Slack 配置/回调联调。后端全量 32125 同一进程仍 live（go/platform.test 均在，未因观察超时重启）；精确 e21a8a2 CI 37606369057 仍 in_progress（Go tests and race checks）。暂不更新 embedded assets 或推送覆盖该 CI。完整需求保持未完成。
+
+### S7 绑定完成时复查项目访问权限
+
+P8/F4，Slack 完成绑定事务在 challenge 所属当前启用用户上复用 botChannelAccess，校验当前仍有任一启用 scope 项目权限。不能仅依赖发行时授权：用户成员权限被撤销或项目停用后，原签名/未过期挑战不能写入绑定。签名/replay、权限查询、绑定写入与挑战消费在同一事务；拒绝回滚全部副作用。不因此授权其他项目或审计操作。
+
+全部 Slack 与真实认证 HTTP 专项 race 7.018s 通过，新测试覆盖发行后撤销成员权限拒绝且无绑定、恢复成员但停用项目仍拒绝、全部授权恢复后同一请求可完成（此前失败没有错误消费 nonce）。vet/diff 通过。前版 e5f88b3 全量 32125 completed/success，platform 202.977s；本回调新版本需独立全量。ff33a4f 创建页面的正式 npm run build 已成功更新 embedded assets index-CK-qagnj.js。远端精确 e21a8a2 CI 37606369057 仍 in_progress，本地后续提交尚未推送，不以该旧 CI证明本改动。AC-013 尚缺管理员域配置和机器人审计操作完整 ACL。

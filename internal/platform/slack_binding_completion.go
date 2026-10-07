@@ -41,7 +41,7 @@ func (s *Store) completeSlackBinding(ctx context.Context, integrationID, revisio
 	digest := sha256.Sum256([]byte(token))
 	hash := hex.EncodeToString(digest[:])
 	var actor int64
-	if err := tx.QueryRowContext(ctx, `SELECT c.user_id FROM platform_bot_binding_challenges c JOIN platform_users u ON u.id=c.user_id AND u.disabled=0 WHERE c.integration_id=? AND c.integration_revision=? AND c.token_hash=? AND c.expires_at>?`, integrationID, revision, hash, at.Unix()).Scan(&actor); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT c.user_id FROM platform_bot_binding_challenges c JOIN platform_users u ON u.id=c.user_id AND u.disabled=0 JOIN platform_integrations i ON i.id=c.integration_id WHERE c.integration_id=? AND c.integration_revision=? AND c.token_hash=? AND c.expires_at>? AND `+botChannelAccess, integrationID, revision, hash, at.Unix()).Scan(&actor); err != nil {
 		return 0, err
 	}
 	// Never overwrite another external identity or platform account binding.
