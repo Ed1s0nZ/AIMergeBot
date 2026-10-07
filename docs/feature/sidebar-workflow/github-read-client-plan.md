@@ -33,3 +33,9 @@ API版本明确固定2022-11-28（当前官方仍支持、与旧GHES兼容），
 参考：[API版本](https://docs.github.com/en/rest/about-the-rest-api/api-versions)、[trees](https://docs.github.com/en/rest/git/trees)、[blobs](https://docs.github.com/en/rest/git/blobs)、[compare](https://docs.github.com/en/rest/commits/commits#compare-two-commits)。trees即使recursive=false也会启用递归，非递归必须完全省略query；compare仅首page最多300文件，不能分页声称完整。后续读取模块必须把这些边界落实为覆盖真值；本client本身不代表完整固定取证。
 
 回滚/兼容：仅增加内部读取模块，未接Runner/HTTP也不改变execution_available；没有新schema/外部自动操作。原nil GitLab运行兼容保持。临时TLS fixture可注入test transport，只在测试构造，生产构造始终使用安全transport。
+
+## F3 实施与验证计划
+
+新增github_read_client.go：构造/clone绑定与allowlist，固定header/version、repo suffix校验、安全GET、有界JSON decode、并发request/byte预算、固定错误与RetryInfo分类、远端repoID/name验证。累计字节并发时先预留每请求limit+1，结束退还未读取字节；无法完整预留时不发HTTP，不能并发超过全局上限。新增github_read_client_test.go真实httptest TLS与内部test client替换（不开放生产注入）：正确header/Enterprise API前缀；多种invalid配置和路径零HTTP；redirect第二目标零命中；401/403/404/410/422/body含secret无泄漏、429/5xx/403限流RetryInfo；长Content-Length/未知长度/累计/并发request预算/无效JSON/数组null尾随/Unicode；context取消；repoID/name漂移；生产transport禁止loopback/proxy及复制allowlist。
+
+运行定向race、相关安全transport/retry专项race、全Go、vet/build/diff；记录真正覆盖及未覆盖项。前版c73a1dd CI37637933151终态后才推生产，避免取消；文档先提交推送不触发CI。此client尚未读取固定commit/tree/blob/compare、没有factory/运行policy/ACL接入，G3其余内容继续完整实施，不能把client单测当GitHub原生审计完成。无前端变动或真实凭据/外部模型/通知。
