@@ -10,10 +10,11 @@ import (
 var ErrWorkflowPolicy = errors.New("invalid workflow policy")
 
 type WorkflowPolicy struct {
-	FormatNoiseHints   bool     `json:"format_noise_hints"`
-	Revision           int64    `json:"revision"`
-	Focus              []string `json:"focus"`
-	ExcludedExtensions []string `json:"excluded_extensions"`
+	Checks             *CheckRules `json:"checks,omitempty"`
+	FormatNoiseHints   bool        `json:"format_noise_hints"`
+	Revision           int64       `json:"revision"`
+	Focus              []string    `json:"focus"`
+	ExcludedExtensions []string    `json:"excluded_extensions"`
 }
 
 func migrateWorkflowPolicy(tx *sql.Tx) error {
@@ -38,6 +39,12 @@ func readWorkflowPolicy(ctx context.Context, q queryRower, project int) (Workflo
 }
 
 func validateWorkflowPolicy(p WorkflowPolicy) error {
+	if p.Checks != nil {
+		copy := *p.Checks
+		if err := normalizeCheckRules(&copy); err != nil {
+			return err
+		}
+	}
 	allowed := map[string]bool{"authorization": true, "injection": true, "secrets": true, "path_traversal": true, "ssrf": true, "deserialization": true, "dependencies": true, "business_logic": true}
 	if len(p.Focus) > len(allowed) || len(p.ExcludedExtensions) > 50 {
 		return ErrWorkflowPolicy
@@ -68,6 +75,11 @@ func (s *Store) SaveWorkflowPolicy(ctx context.Context, project int, actor int64
 	if project <= 0 || expected < 0 || validateWorkflowPolicy(p) != nil {
 		return p, ErrWorkflowPolicy
 	}
+	if p.Checks != nil {
+		copy := *p.Checks
+		_ = normalizeCheckRules(&copy)
+		p.Checks = &copy
+	}
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return p, err
@@ -87,6 +99,12 @@ func (s *Store) SaveWorkflowPolicy(ctx context.Context, project int, actor int64
 	if current.Revision != expected {
 		return current, ErrConflict
 	}
+	if p.Checks != nil {
+		p.Checks.Publisher = 0
+		if p.Checks.Enabled {
+			p.Checks.Publisher = actor
+		}
+	}
 	p.Revision = expected + 1
 	if p.Focus == nil {
 		p.Focus = []string{}
@@ -100,6 +118,9 @@ func (s *Store) SaveWorkflowPolicy(ctx context.Context, project int, actor int64
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO platform_workflow_policies(project_id,revision,policy_json,updated_at) VALUES(?,?,?,?) ON CONFLICT(project_id) DO UPDATE SET revision=excluded.revision,policy_json=excluded.policy_json,updated_at=excluded.updated_at`, project, p.Revision, string(raw), now())
 	if err != nil {
+		return p, err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE platform_check_deliveries SET state=CASE WHEN state='sending' THEN 'unknown' ELSE 'cancelled' END,code='configuration_changed',lease='',lease_until='',updated_at=? WHERE state IN ('pending','sending') AND run_id IN (SELECT id FROM platform_runs WHERE project_id=?)`, now(), project); err != nil {
 		return p, err
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'workflow_policy.saved',?,?)`, actor, project, now())

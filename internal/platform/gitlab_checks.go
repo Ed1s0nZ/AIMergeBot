@@ -13,26 +13,6 @@ type CheckPublication struct {
 	RemoteID int    `json:"remote_id,omitempty"`
 }
 
-func gitLabCheckState(a CheckAssessment, blocking bool) string {
-	switch a.State {
-	case "pending":
-		return "pending"
-	case "running":
-		return "running"
-	case "completed":
-		return "success"
-	case "cancelled":
-		return "canceled"
-	case "skipped":
-		return "skipped"
-	default:
-		if blocking {
-			return "failed"
-		}
-		return "skipped"
-	}
-}
-
 // Publication is opt-in at the caller. A transport error is never a receipt.
 func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL string, blocking bool, authorize func(context.Context) error) CheckPublication {
 	if authorize == nil {
@@ -50,6 +30,10 @@ func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL
 			return CheckPublication{State: "failed", Code: "invalid_target_url"}
 		}
 	}
+	rules := effectiveCheckRules(r)
+	if normalizeCheckRules(&rules) != nil {
+		return CheckPublication{State: "failed", Code: "invalid_check_policy"}
+	}
 	current, _, err := g.Client.MergeRequests.GetMergeRequest(r.ProjectID, r.MRIID, &gitlab.GetMergeRequestsOptions{}, gitlab.WithContext(ctx))
 	if err != nil || current == nil {
 		return CheckPublication{State: "failed", Code: "preflight_unavailable"}
@@ -65,13 +49,17 @@ func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL
 		return checkPreflightFailure(err)
 	}
 	a := assessRunCheck(r)
-	state := gitLabCheckState(a, blocking)
+	rules.Mode = "advisory"
+	if blocking {
+		rules.Mode = "blocking"
+	}
+	state, thresholdCount := checkStateForRules(r, rules)
 	name := fmt.Sprintf("aimangebot/run/%d", r.ID)
 	mode := "advisory"
 	if blocking {
 		mode = "blocking"
 	}
-	description := fmt.Sprintf("AIMergeBot run #%d: %s; high risks=%d; mode=%s", r.ID, a.State, a.HighRiskFindings, mode)
+	description := fmt.Sprintf("AIMergeBot run #%d: %s; risks>=%s: %d; mode=%s", r.ID, a.State, rules.MinimumSeverity, thresholdCount, mode)
 	options := &gitlab.SetCommitStatusOptions{State: gitlab.BuildStateValue(state), Name: &name, Description: &description}
 	if targetURL != "" {
 		options.TargetURL = &targetURL

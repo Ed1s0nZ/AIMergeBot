@@ -122,7 +122,7 @@ func (s *Store) FinishRunCheck(ctx context.Context, d CheckDelivery, result Chec
 		return ErrConflict
 	}
 	switch result.Code {
-	case "", "invalid_identity", "invalid_target_url", "preflight_unavailable", "snapshot_changed", "publication_unacknowledged", "receipt_mismatch", "permission_changed":
+	case "", "invalid_check_policy", "invalid_identity", "invalid_target_url", "preflight_unavailable", "snapshot_changed", "publication_unacknowledged", "receipt_mismatch", "permission_changed":
 	default:
 		return ErrConflict
 	}

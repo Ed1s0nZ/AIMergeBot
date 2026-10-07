@@ -154,3 +154,13 @@ CheckPublicationRun 用单个读快照复查正确租约、最新运行、固定
 管理员权限修正 9c07eb4 的远端 CI 37588299319 completed/success。
 
 消费链路完整 Go platform 77.493s 通过，随后错误分类/详情发布状态展示新增定向覆盖。最终 check/protocol/preflight/dispatcher/assessment race 8.043s 和前端 typecheck/build 通过。详情从持久记录展示 disabled/pending/sending/published/failed/stale/unknown；仅正确 HEAD、有效回执 ID 的 published 标为已确认，unknown 不假称未发送或成功。预检区分身份过期、权限变更与不可用错误，不混同所有失败。新增详情状态读取后的远端完整 CI 待推送验证。
+
+### S5 可配置检查条件（开发验证中）
+
+WorkflowPolicy 增加可选 checks：enabled（默认关闭）、advisory/blocking、最低风险等级、失败是否阻断、覆盖不完整是否阻断。仅管理员能保存，publisher 从实际保存者赋值，忽略客户端伪造身份；禁用清除 publisher。规范化在副本进行，不变异调用方或已有快照。项目策略 UI 保存关注项时保留读取到的 checks，避免默默清除其他配置。
+
+发布适配器使用运行快照的等级/失败/覆盖条件，队列里显式授权的 blocking 模式决定输出模式；风险达阈值或未知等级不能伪造 success。失败/不完整在未选择阻断时用 skipped，并保留具体状态描述。删除被替代的旧映射，测试实际使用的映射路径。规则/发布者身份/不可变输入/策略回归 race 4.922s，以及检查链路 race 8.232s 通过；去重映射与前端保存保留改动另有定向验证。启用控件、自动收集/消费、配置撤销取消仍待接入，不把 API 数据字段当作已完成自动发布。
+
+检查链路 ab56acb 的远端 CI 37589275964 completed/success。当前规则切片首次完整 Go 与前端 build 被错误地并行启动，Vite emptyOutDir 与 main CLI 构建读取 go:embed 静态目录发生竞争：main_audit_test 无可嵌入文件失败，platform 测试 87.110s 通过。这不是完整验证成功，也不归因于产品功能；前端 build 完成后顺序重跑完整 Go。后续所有涉及嵌入资源的 Go 测试/构建必须在前端输出重建完成后执行，不并行这两类操作。损坏历史检查规则追加拒发验证，不回退成假成功；最终定向 race 待收尾。
+
+规则顺序验证关闭：完整 Go platform 93.968s 通过，前端静态目录构建竞争不再复现。最终规则/检查链路定向 race 8.960s 通过。追加策略变更撤销：与策略保存同事务取消项目 pending 检查、将 sending 标为 unknown 并清租约，旧授权/旧回执被 fence 拒绝；撤销回归 race 2.661s 通过。UI 显示 cancelled，记录未知的发送不伪装成取消前未送达。第一次撤销回归暴露代码插入未落入保存路径，修正并复跑；不隐藏首轮失败。本切片尚未接入自动采集/消费者和启用控件，远端精确提交 CI 待推送验证。

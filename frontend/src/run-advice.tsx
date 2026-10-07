@@ -44,6 +44,7 @@ export function RunCheckAdvice({ value }: { value: CheckAssessment }) {
                 sending: "正在发布，尚未确认远端结果。",
                 unknown: "远端结果未知，不能视为未发送或成功。",
                 failed: "检查发布失败。",
+                cancelled: "发布配置已变更，未发送的检查已取消。",
                 stale: "检查快照已过期，未发布为当前结果。",
               } as Record<string, string>
             )[value.publication_state || "disabled"] || "发布状态待确认。"}

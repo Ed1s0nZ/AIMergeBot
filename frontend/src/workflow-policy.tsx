@@ -4,6 +4,14 @@ import { Empty, ErrorBox } from "./components";
 import { Heading, useResource } from "./page-utils";
 
 type Policy = {
+  checks?: {
+    enabled: boolean;
+    mode: string;
+    minimum_severity: string;
+    block_on_failure: boolean;
+    block_on_incomplete: boolean;
+    publisher: number;
+  };
   format_noise_hints: boolean;
   revision: number;
   focus: string[];
@@ -56,6 +64,7 @@ function PolicyEditor({ project }: { project: Project }) {
         write("PUT", {
           expected_revision: draft.revision,
           focus: draft.focus,
+          checks: draft.checks,
           format_noise_hints: draft.format_noise_hints,
           excluded_extensions: extensions.split(/\s+/).filter(Boolean),
         }),

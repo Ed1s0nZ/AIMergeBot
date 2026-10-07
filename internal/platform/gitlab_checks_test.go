@@ -77,6 +77,11 @@ func TestGitLabCheckPublicationPinsForkAndAcknowledgement(t *testing.T) {
 			if want != "stale" && posts != 1 {
 				t.Fatal("wrong post count", posts)
 			}
+			invalid := run
+			invalid.AuditPolicy = &AuditPolicy{Workflow: &WorkflowPolicy{Checks: &CheckRules{Mode: "invalid"}}}
+			if outcome := repo.PublishRunCheck(context.Background(), invalid, "", false, func(context.Context) error { return nil }); outcome.Code != "invalid_check_policy" {
+				t.Fatal("invalid historical policy published", outcome)
+			}
 			before := posts
 			if repo.PublishRunCheck(context.Background(), run, "https://user:password@example.test", false, func(context.Context) error { return nil }).State != "failed" || posts != before {
 				t.Fatal("unsafe URL published")
@@ -86,14 +91,25 @@ func TestGitLabCheckPublicationPinsForkAndAcknowledgement(t *testing.T) {
 }
 
 func TestGitLabCheckAdviceAndBlockingMapping(t *testing.T) {
-	for _, state := range []string{"failed", "incomplete", "high_risk", "unknown"} {
-		if gitLabCheckState(CheckAssessment{State: state}, false) != "skipped" || gitLabCheckState(CheckAssessment{State: state}, true) != "failed" {
+	rules := CheckRules{Mode: "advisory", MinimumSeverity: "high", BlockOnFailure: true, BlockOnIncomplete: true}
+	for _, status := range []string{"failed", "incomplete", "unexpected"} {
+		run := Run{ID: 7, Snapshot: Snapshot{HeadSHA: strings.Repeat("a", 40)}, Status: status}
+		rules.Mode = "advisory"
+		state, _ := checkStateForRules(run, rules)
+		if state != "skipped" {
+			t.Fatal(state)
+		}
+		rules.Mode = "blocking"
+		state, _ = checkStateForRules(run, rules)
+		if state != "failed" {
 			t.Fatal(state)
 		}
 	}
-	for state, want := range map[string]string{"completed": "success", "pending": "pending", "running": "running", "cancelled": "canceled", "skipped": "skipped"} {
-		if gitLabCheckState(CheckAssessment{State: state}, false) != want {
-			t.Fatal(state)
+	for status, want := range map[string]string{"succeeded": "success", "pending": "pending", "running": "running", "cancelled": "canceled", "skipped": "skipped"} {
+		run := Run{ID: 7, Snapshot: Snapshot{HeadSHA: strings.Repeat("a", 40)}, Status: status}
+		state, _ := checkStateForRules(run, rules)
+		if state != want {
+			t.Fatal(status, state)
 		}
 	}
 }
