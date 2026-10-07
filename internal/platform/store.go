@@ -144,6 +144,9 @@ func (s *Store) migrate() error {
 	if err = migrateRepositoryBindings(tx); err != nil {
 		return err
 	}
+	if err = migrateRepositoryProjectReceipts(tx); err != nil {
+		return err
+	}
 	if err = migrateOwnerRouting(tx); err != nil {
 		return err
 	}

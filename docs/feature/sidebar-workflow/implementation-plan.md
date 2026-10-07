@@ -726,3 +726,7 @@ SaveRepositoryBinding原CAS事务同时markProjectSync。projectConfiguration同
 a7e914d精确CI37629722882尚待终态；本阶段本地提交可完成，生产push等待该run，避免取消正在进行的CI。bound新内部项目创建、credential bootstrap/集成scope同事务生命周期、绑定页面、统一factory/GitHub固定提交读取及原完整REQ继续实施。此阶段不宣称GitHub原生审计已可用或整体完成，无main合并/发布。
 
 远端更新：a7e914d精确CI37629722882已completed/success，随后640f3f889b01a0c1662eb3cdd868e4f830c6ea0b生产同步保护已推送codex/sidebar-workflow。新精确CI37631183808为in_progress，等待独立完整验收；以上等待push为当时状态。工作树已清理，仅docs补充状态，不取消新run。
+
+### G2 原生项目创建与空scope凭据初始化
+
+见repository-project-create-design.md（a2f4eaf/094f77d先推）。新增独立Store/HTTP创建协议，显式admin选择集成及expected revision，同事务内部ID、scope、binding与durable request receipt，重放可恢复配置同步且不重复创建；仅GitHub/GitLab允许凭据先于项目配置，无自动ACL/run/通知。旧Integration/Binding通过事务委托复用原安全与CAS语义。最终race65427平台13.586s，扩大回归57874平台58.806s；最终全Go87899平台131.123s及vet/build6063/diff通过。前版640f3f8精确CI37631183808已成功，新的生产HEAD独立CI继续验收。详细故障/并发/重启/HTTP证据与完整剩余scope在该设计F4/F5；下一阶段前端接入及G3实际provider，整体目标仍未完成。

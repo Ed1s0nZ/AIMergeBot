@@ -86,7 +86,7 @@ func requireIntegrationAdmin(ctx context.Context, q queryRower, actor int64) err
 	return nil
 }
 func validateIntegration(v IntegrationInput) error {
-	if v.ExpectedRevision == nil || *v.ExpectedRevision < 0 || strings.TrimSpace(v.Name) == "" || len(v.Name) > 100 || len(v.ProjectIDs) == 0 || len(v.ProjectIDs) > 100 || len(v.Events) > 10 {
+	if v.ExpectedRevision == nil || *v.ExpectedRevision < 0 || strings.TrimSpace(v.Name) == "" || len(v.Name) > 100 || len(v.ProjectIDs) == 0 && v.Kind != "github" && v.Kind != "gitlab" || len(v.ProjectIDs) > 100 || len(v.Events) > 10 {
 		return ErrIntegrationInput
 	}
 	switch v.Kind {
@@ -257,6 +257,21 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 		return Integration{}, err
 	}
 	defer tx.Rollback()
+	out, err := saveIntegrationTx(ctx, tx, id, actor, input)
+	if err != nil {
+		return Integration{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return Integration{}, err
+	}
+	return out, nil
+}
+
+func saveIntegrationTx(ctx context.Context, tx *sql.Tx, id, actor int64, input IntegrationInput) (Integration, error) {
+	if err := validateIntegration(input); err != nil {
+		return Integration{}, err
+	}
+	var err error
 	if err = requireIntegrationAdmin(ctx, tx, actor); err != nil {
 		return Integration{}, err
 	}
@@ -305,6 +320,10 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 			return Integration{}, err
 		}
 	}
+	input.ProjectIDs = append([]int{}, input.ProjectIDs...)
+	if input.Kind == "github" || input.Kind == "gitlab" {
+		input.Events = append([]string{}, input.Events...)
+	}
 	sort.Ints(input.ProjectIDs)
 	projects, _ := json.Marshal(input.ProjectIDs)
 	events, _ := json.Marshal(input.Events)
@@ -336,9 +355,6 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 		return Integration{}, err
 	}
 	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'integration.saved',?,?)`, actor, id, updated); err != nil {
-		return Integration{}, err
-	}
-	if err = tx.Commit(); err != nil {
 		return Integration{}, err
 	}
 	v := input.Integration

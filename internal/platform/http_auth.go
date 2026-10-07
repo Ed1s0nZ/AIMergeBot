@@ -191,6 +191,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.PUT("/settings", admin, h.saveSettings)
 	api.GET("/projects", h.projects)
 	api.POST("/projects", admin, h.saveProject)
+	api.POST("/repository-projects", admin, h.createRepositoryProject)
 	api.PATCH("/projects/:id", admin, h.saveProject)
 	api.GET("/projects/:id/repository-binding", h.repositoryBinding)
 	api.PATCH("/projects/:id/repository-binding", admin, h.saveRepositoryBinding)

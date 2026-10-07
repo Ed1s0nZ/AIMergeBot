@@ -21,3 +21,11 @@ Maintainability Gate：integrations_store.go约365行但credential/security/stor
 先提取两个现有事务helpers，原wrapper负责Begin/Commit；helpers保持validate/admin/CAS/凭据保留/notification取消/审计事件/绑定history及project_sync dirty同事务。仅两种repo integration放宽空项目scope。新Store创建编排及独立receipt迁移，HTTP独立strict decoder并注册admin POST。receipt仅表示创建历史，不按当前binding改写历史；重复请求可重试配置同步，meta不得包含凭据。
 
 新增Store测试从零项目/空scope初始化、两provider同remoteID、已有scope保留、内部ID独立、同key重放/参数变化409、8并发同key只建一次及不同key相同integration版本仅一个成功、重复身份/未知或disabled/权限/endpoint/token/scope满/overflow拒绝、event ABORT整体回滚、实际SQLite重开receipt、无ACL/run。真实Register/Login HTTP初始无项目到创建、角色/Origin/8KiB/未知字段/尾随/缺版本、请求重放以及配置写失败可安全恢复，全部脱敏零真实远端/消息/模型调用。原Integration/Binding/Project/通知lease回归race，最后全Go/vet/build/diff。前端未改无需重构建。阶段说明/证据随代码commit，640f3f8精确CI37631183808终态后再push生产代码，保留其run；本阶段精确HEAD CI独立跟踪。回滚禁用新创建路由、保留identity/receipts/history/guard，不删除binding恢复legacy。
+
+## F4/F5 实现与验证
+
+事务helpers已提取，旧Store wrapper保留输入校验与commit；GitHub/GitLab允许空scope并规范返回project_ids/events空数组。创建API以actor+标准UUID持久去重，固定digest及有限脱敏创建receipt；Store同事务分配MAX+1内部ID、追加原集成scope/revision（保持凭据及原配置）、保存binding/history/dirty及receipt。回执重放先重新检查enabled admin，坏回执或不同payload409，不能重建项目。HTTP严格8KiB JSON、原session/admin/origin，201创建/200重放；同步失败500明确项目已创建，重复同request_id可恢复同步。无自动ACL、run、通知或远端访问。
+
+Store专项14591 race5.040s通过；真实Register/Login零项目凭据初始化→创建/重放/500同步失败恢复及原Integration/Binding联合race94512平台32.305s通过；扩展Store/HTTP/Integration/Binding/ProjectIdentity/NotificationOwner/NotificationDelivery race57874 completed/success平台58.806s。覆盖两provider同remote ID、内部ID独立、保留既有scope、同key8并发只创建一次/7次重放、不同key同集成revision8并发仅1成功、actor key隔离、停用actor拒绝重放、scope100上限及ID溢出、stale/重复identity/无token/错误endpoint/disabled拒绝、event ABORT项目/集成revision/scope/binding/history/receipt/dirty整体回滚、实际SQLite重开回执持久、坏回执fail closed、其他9种集成空scope仍拒绝、零ACL/run/通知、旧GitLab POST409及绑定审计503零legacy reader、HTTP未授权/跨源/缺版本/超限/未知字段/尾随JSON拒绝与脱敏。初版全Go13562平台117.531s及vet/build69149通过。最后核对repo profile省略events改为空数组，最终专项65427 race13.586s、最终全Go87899平台131.123s、vet/build6063及diff检查全部通过；不把初版结果冒充最后版本。
+
+640f3f8精确CI37631183808已completed/success，本阶段生产push随后进行；新HEAD独立CI待跟踪。前端尚未接入空scope凭据及原生创建表单，项目列表provider显示/绑定编辑/403/409/slow/narrow/keyboard验收继续；G3统一factory与真实GitHub固定提交审计、G4–G6及原完整REQ仍保留。此阶段只证明backend配置/创建协议，不能宣称原生GitHub审计已可用，无main合并/发布。

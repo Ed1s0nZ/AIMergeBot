@@ -131,8 +131,7 @@ func (s *Store) SaveRepositoryBinding(ctx context.Context, project int, actor, e
 	if project <= 0 || expected < 0 || expected == 1<<63-1 {
 		return RepositoryBinding{}, ErrConflict
 	}
-	p, err := validateRepositoryBinding(p)
-	if err != nil {
+	if _, err := validateRepositoryBinding(p); err != nil {
 		return RepositoryBinding{}, err
 	}
 	tx, err := s.DB.BeginTx(ctx, nil)
@@ -140,6 +139,24 @@ func (s *Store) SaveRepositoryBinding(ctx context.Context, project int, actor, e
 		return RepositoryBinding{}, err
 	}
 	defer tx.Rollback()
+	out, err := saveRepositoryBindingTx(ctx, tx, project, actor, expected, p)
+	if err != nil {
+		return RepositoryBinding{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return RepositoryBinding{}, err
+	}
+	return out, nil
+}
+
+func saveRepositoryBindingTx(ctx context.Context, tx *sql.Tx, project int, actor, expected int64, p RepositoryBinding) (RepositoryBinding, error) {
+	if project <= 0 || expected < 0 || expected == 1<<63-1 {
+		return RepositoryBinding{}, ErrConflict
+	}
+	p, err := validateRepositoryBinding(p)
+	if err != nil {
+		return RepositoryBinding{}, err
+	}
 	if _, err = requireProjectRole(ctx, tx, project, actor, "admin"); err != nil {
 		return RepositoryBinding{}, err
 	}
@@ -197,5 +214,5 @@ func (s *Store) SaveRepositoryBinding(ctx context.Context, project int, actor, e
 	if err = markProjectSync(tx); err != nil {
 		return RepositoryBinding{}, err
 	}
-	return p, tx.Commit()
+	return p, nil
 }
