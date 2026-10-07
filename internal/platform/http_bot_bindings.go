@@ -7,6 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *HTTP) ownBotBindings(c *gin.Context) {
+	out, err := h.Store.OwnBotBindings(c.Request.Context(), currentUser(c).ID)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(200, gin.H{"items": out})
+}
+
 func (h *HTTP) issueBotBinding(c *gin.Context) {
 	id, ok := idParam(c)
 	if !ok {

@@ -139,4 +139,23 @@ func TestBotBindingHTTPAuthenticatedOwnerAndOrigin(t *testing.T) {
 	if err := s.DB.QueryRow(`SELECT user_id FROM platform_bot_bindings`).Scan(&actor); err != nil || actor != 1 {
 		t.Fatal(actor, err)
 	}
+	if res := request("GET", "/api/v1/bot-bindings", "", "", ""); res.Code != 401 {
+		t.Fatal(res.Code)
+	}
+	if res := request("GET", "/api/v1/bot-bindings", otherToken, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), `"items":[]`) {
+		t.Fatal("other account disclosure", res.Code, res.Body.String())
+	}
+	if _, err := s.DB.Exec(`UPDATE platform_integrations SET enabled=0 WHERE id=?`, channel.ID); err != nil {
+		t.Fatal(err)
+	}
+	res = request("GET", "/api/v1/bot-bindings", token, "", "")
+	if res.Code != 200 || !strings.Contains(res.Body.String(), `"external_user_id":"U1"`) || !strings.Contains(res.Body.String(), `"enabled":false`) || strings.Contains(res.Body.String(), "private-secret") {
+		t.Fatal("own disabled binding unavailable", res.Code, res.Body.String())
+	}
+	if res := request("DELETE", path, token, "", ""); res.Code != 200 {
+		t.Fatal(res.Code)
+	}
+	if res := request("GET", "/api/v1/bot-bindings", token, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), `"items":[]`) {
+		t.Fatal("revoked identity remains", res.Code, res.Body.String())
+	}
 }

@@ -168,6 +168,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api := r.Group("/api/v1", h.guard)
 	api.GET("/auth/me", func(c *gin.Context) { c.JSON(200, currentUser(c)) })
 	api.POST("/bot-bindings/:id/challenge", h.issueBotBinding)
+	api.GET("/bot-bindings", h.ownBotBindings)
 	api.DELETE("/bot-bindings/:id", h.revokeBotBinding)
 	api.POST("/auth/logout", func(c *gin.Context) {
 		token, _ := c.Cookie(sessionCookie)

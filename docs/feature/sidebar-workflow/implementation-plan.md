@@ -446,3 +446,9 @@ P8/F4，认证路由新增 POST /api/v1/bot-bindings/:id/challenge 与 DELETE /a
 P8/F4，公开 POST /api/v1/bot-callbacks/slack/:id/:revision/bind，仅处理 application/x-www-form-urlencoded 与最多 64KiB 原始字节。绕开浏览器 session guard，使用 Slack timestamp/signature 和当前配置 app/workspace、revision、一用挑战及持久 replay 完成同事务绑定。认证失败统一 403，不公开账号、挑战或渠道是否存在；成功只返回 ephemeral 静态身份绑定提示，无审计内容、秘密或平台身份 ID。不增加项目权限、不执行复审或合并操作。渠道配置/rotation 后 callback URL 的 revision 必须同步更新；尚缺配置界面及操作回调完整权限检视。
 
 真实 Register/SQLite/Login 的专项 race 与全部 Slack 测试 7.478s 通过：无需浏览器 session 的有效签名绑定成功、伪造签名 403、错误 media type/超大 body 400、持久重放 403、绑定对应 challenge 所属平台账号、成功 no-store/ephemeral。vet/diff 通过。认证接口前版完整测试 73886 仍运行，本回调新增版本需后续独立全量与远端 CI 证据；不据此前版测试声称本回调已全量验证。AC-013 仍未完成。
+
+### S7 自身机器人绑定状态查询（开发验证中）
+
+P8/F4，新增 GET /api/v1/bot-bindings 与 OwnBotBindings，只读事务内校验当前启用账号，按 session 用户筛选绑定，返回渠道 ID/name/enabled 与该用户自己的稳定外部身份/创建时间。停用渠道仍显示，以便撤销；不返回其他用户身份、渠道凭据、challenge token。最多 500 条，超过明确冲突而非静默截断；空结果 items=[]。
+
+真实 HTTP/SQLite 专项 race 加全部 Slack 测试 7.677s 通过，覆盖匿名 401、其他账号空列表、停用渠道仍返回自己的绑定、无 secret 泄露、撤销后列表清空。vet/diff 通过。认证接口前版 14e7f9b 完整测试 73886 已 completed/success，platform 112.209s；当前回调加状态查询版本全量进程 27127 正在运行。本切片未推送，不声称远端验证完成，绑定状态 UI 和机器人操作权限仍待接入。
