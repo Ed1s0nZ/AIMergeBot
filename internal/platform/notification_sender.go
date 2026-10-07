@@ -200,19 +200,10 @@ func (s *Store) DispatchNotification(ctx context.Context) (bool, error) {
 	if !integration.Enabled || integration.Revision != d.IntegrationRevision {
 		return true, s.FinishNotification(ctx, d, "cancelled", "configuration_changed")
 	}
-	if d.RunID > 0 {
-		snap, err := snapshotForRun(ctx, s.DB, d.RunID)
-		if err != nil {
-			return true, s.FinishNotification(ctx, d, "cancelled", "permission_changed")
-		}
-		var actor int64
-		if err = s.DB.QueryRowContext(ctx, `SELECT requested_by FROM platform_runs WHERE id=?`, d.RunID).Scan(&actor); err != nil {
-			return true, s.FinishNotification(ctx, d, "cancelled", "permission_changed")
-		}
-		if _, err = requireSnapshotRole(ctx, s.DB, snap, actor, "viewer"); err != nil {
-			return true, s.FinishNotification(ctx, d, "cancelled", "permission_changed")
-		}
+	if err = s.requireNotificationAccess(ctx, d); err != nil {
+		return true, s.FinishNotification(ctx, d, "cancelled", "permission_changed")
 	}
+
 	state, code := "failed", "unsupported_channel"
 	if integration.Kind == "email" {
 		state, code = sendEmailNotification(ctx, c, d.Payload)

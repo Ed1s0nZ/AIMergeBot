@@ -12,6 +12,7 @@ import (
 func migrateNotificationEvents(tx *sql.Tx) error {
 	for _, q := range []string{
 		`CREATE TABLE IF NOT EXISTS platform_notification_events(id INTEGER PRIMARY KEY,run_id INTEGER NOT NULL REFERENCES platform_runs(id),kind TEXT NOT NULL,event_key TEXT NOT NULL UNIQUE,severity INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS platform_notification_delivery_runs(delivery_id INTEGER NOT NULL REFERENCES platform_notification_deliveries(id),run_id INTEGER NOT NULL REFERENCES platform_runs(id),PRIMARY KEY(delivery_id,run_id))`,
 		`CREATE INDEX IF NOT EXISTS platform_notification_event_window ON platform_notification_events(created_at,id)`,
 		`CREATE TABLE IF NOT EXISTS platform_notification_collector(id INTEGER PRIMARY KEY CHECK(id=1),last_integration INTEGER NOT NULL DEFAULT 0)`,
 		`INSERT OR IGNORE INTO platform_notification_collector(id) VALUES(1)`,
@@ -167,7 +168,7 @@ func (s *Store) CollectNotifications(ctx context.Context, publicURL string, at t
 						if publicURL == "" {
 							summary.URL = ""
 						}
-						if err = appendDigestOutbox(ctx, tx, v, summary, at); err != nil {
+						if err = appendDigestOutbox(ctx, tx, v, summary, at, e.run); err != nil {
 							return err
 						}
 					}
@@ -197,20 +198,35 @@ func insertNotificationOutbox(ctx context.Context, tx *sql.Tx, v Integration, su
 	_, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_notification_deliveries(integration_id,integration_revision,project_id,run_id,event_key,next_attempt,payload,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`, v.ID, v.Revision, summary.ProjectID, summary.RunID, summary.EventID, stamp, string(data), stamp, stamp)
 	return err
 }
-func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary NotificationSummary, at time.Time) error {
+func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary NotificationSummary, at time.Time, sourceRun int64) error {
 	var id int64
 	var payload, status string
 	err := tx.QueryRowContext(ctx, `SELECT id,payload,status FROM platform_notification_deliveries WHERE integration_id=? AND event_key=?`, v.ID, summary.EventID).Scan(&id, &payload, &status)
 	if err == sql.ErrNoRows {
-		return insertNotificationOutbox(ctx, tx, v, summary, at)
+		if err = insertNotificationOutbox(ctx, tx, v, summary, at); err != nil {
+			return err
+		}
+		return recordDigestRun(ctx, tx, v.ID, summary.EventID, sourceRun)
 	}
 	if err != nil {
 		return err
 	}
+	if status == "pending" {
+		var references int
+		if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM platform_notification_delivery_runs WHERE delivery_id=?`, id).Scan(&references); err != nil {
+			return err
+		}
+		if references == 0 {
+			if _, err = tx.ExecContext(ctx, `UPDATE platform_notification_deliveries SET status='cancelled',error_code='permission_changed',updated_at=? WHERE id=? AND status='pending'`, at.UTC().Format(time.RFC3339Nano), id); err != nil {
+				return err
+			}
+			status = "cancelled"
+		}
+	}
 	if status != "pending" {
 		summary.EventID += fmt.Sprintf(":part:%d", at.UnixNano())
 		summary.Text = "补充汇总 · " + summary.Text
-		return appendDigestOutbox(ctx, tx, v, summary, at)
+		return appendDigestOutbox(ctx, tx, v, summary, at, sourceRun)
 	}
 	var previous NotificationSummary
 	if err = json.Unmarshal([]byte(payload), &previous); err != nil {
@@ -224,5 +240,13 @@ func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary 
 	}
 	data, _ := json.Marshal(previous)
 	_, err = tx.ExecContext(ctx, `UPDATE platform_notification_deliveries SET payload=?,updated_at=? WHERE id=? AND status='pending'`, string(data), at.UTC().Format(time.RFC3339Nano), id)
+	if err != nil {
+		return err
+	}
+	return recordDigestRun(ctx, tx, v.ID, summary.EventID, sourceRun)
+}
+
+func recordDigestRun(ctx context.Context, tx *sql.Tx, integrationID int64, eventKey string, runID int64) error {
+	_, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_notification_delivery_runs(delivery_id,run_id) SELECT id,? FROM platform_notification_deliveries WHERE integration_id=? AND event_key=?`, runID, integrationID, eventKey)
 	return err
 }
