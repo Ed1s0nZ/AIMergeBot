@@ -92,5 +92,13 @@ func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL
 	if receipt == nil || receipt.ID <= 0 || receipt.SHA != r.HeadSHA || receipt.Name != name || receipt.Status != state {
 		return CheckPublication{State: "unknown", Code: "receipt_mismatch"}
 	}
+	if err := authorize(ctx); err != nil {
+		outcome := checkPreflightFailure(err)
+		// The POST has already happened. Losing authorization or latest-run
+		// identity now cannot prove that no remote status was written.
+		outcome.State = "unknown"
+		outcome.RemoteID = receipt.ID
+		return outcome
+	}
 	return CheckPublication{State: "published", RemoteID: receipt.ID}
 }

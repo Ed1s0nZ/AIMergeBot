@@ -192,3 +192,9 @@ P8/F4：现有确认需求 REQ-021 要求新结果对应当前提交、旧结果
 追加 MR head_pipeline 显式绑定：存在时要求 ID 正数、项目匹配源项目、SHA 匹配审计 HEAD，POST 带 pipeline_id；合并结果 SHA 或目标项目 pipeline 不冒充源提交 pipeline，拒绝写入。没有 head_pipeline 时保留 GitLab 默认选取行为，尚不能保证重复 pipeline 场景唯一性。实际 POST 参数、不同 SHA/项目零写入、稳定名称与发布预检定向 race 5.591s 通过；完整 Go/vet 待完成。没有执行旧 run 名检查清理，未启用生产发布。
 
 本切片完整 Go 测试通过（platform 80.621s），go vet ./... 退出 0。上一笔 df043f1 的远端 CI 37592704787 仍 in_progress，等待终态后才推送下一笔，避免工作流并发取消已启动验证。检查适配器仍无生产自动消费，不把受控协议测试当作真实 GitLab 合并规则验证。
+
+### S5 回执前本地身份复核（开发验证中）
+
+P8/F4，沿用 REQ-021 与既有授权契约：POST 已发生后，保存 published 前再次验证租约、权限和最新运行。失效时记 unknown 而非未发送/成功，因为远端可能已接受；不自动重发。受控测试覆盖 POST handler 内权限撤销、新运行替代与正常回执。该复核限制本地成功声明，不是远端原子比较交换，发送期间的远端竞态与后续收敛仍需完善。
+
+安装隔离 df043f1 的远端 CI 37592704787 completed/success。回执后复核定向 race 7.686s、完整 Go（platform 80.998s）、go vet ./... 与 diff 检查通过。远端有回执但本地权限/身份失效时持久保留 remote_id 与 unknown，详情不标 published；再次消费没有第二次 POST。与待推送稳定 MR 名称提交 99c2856 一起推送后，继续跟踪新精确 HEAD 的完整 CI。
