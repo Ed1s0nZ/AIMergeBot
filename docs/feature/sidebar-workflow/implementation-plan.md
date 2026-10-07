@@ -568,3 +568,11 @@ P8/F4，统一 /command 入口加入 reaudit <runID> <fullHEAD>，使用当前�
 9949207的实际HTTP首次入队/worker执行测试进一步使用明确路径SQLite：执行/撤权取消后Stop worker，Close Store、Open同一数据库、重接HTTP与Runner、Start worker，原有效签名仍403，run保持parent+child两条，绑定与消费receipt各一条。race5.635s、vet/diff通过。实际数据库生命周期与Runner生命周期均覆盖，不把内存复用当持久化证明。
 
 新增slack-bot-operations.md说明管理员domain/secret/revision配置、绑定与status/reaudit、固定HEAD和当前策略、权限、撤销与任务取消区别、400/403/429/503处理、持久重放与日志，以及受控测试不替代真实Slack联调的验证范围。当前完整Go51354仍同进程运行；新切片仅测试/文档，不变更生产行为。全量终态后将推送并跟踪精确CI，不标记整体目标完成。
+
+### S8 责任人配置持久化基础
+
+P8/F4，补充owner-routing-design.md纠正GitLab section逐段最后匹配与GitHub全局最后匹配的差异，保留项目默认责任人与固定HEAD CODEOWNERS全部范围。新增迁移platform_owner_routing/history、OwnerRouting（revision/default_owner/aliases）与Store保存/读取。显式alias映射最多100个、每组20个唯一正用户ID、64KiB配置；不按用户名自动映射。保存须admin，被映射账号当前启用且已有目标项目viewer以上权限，读取须viewer。expected_revision防覆盖，更新/追加历史/平台事件同事务；清空配置形成新revision与历史，不修改成员权限。默认owner0/无alias表示未配置。
+
+Store权限/版本/8并发writer专项race6.534s通过：未授权owner拒绝、viewer不能修改、target授权后可保存、跨项目不可读取、stale拒绝、owner撤权后旧映射不能重新保存、清空revision/history正确、并发仅一writer成功、无ACL新增。输入/空alias/重复ID/无效ID及revision溢出专项另测。vet/diff通过。配置HTTP/UI、snapshot推荐过滤、固定HEAD来源、provider各自语义解析及通知消费尚未接入，REQ-019/AC-017未完成。
+
+当前e840375精确CI37610294851仍in_progress，新的owner切片未推送，不覆盖该检查。迁移新版本全量单独执行。
