@@ -556,3 +556,9 @@ P8/F4，统一 /command 入口加入 reaudit <runID> <fullHEAD>，使用当前�
 真实 Register/SQLite HTTP复审矩阵race44.331s通过，覆盖已绑定operator与active同快照任务复用、HTTP重放、伪造签名、missing/cancelled Runner、viewer/target/source/context撤权、binding撤销、scope修改、legacy policy、HEAD不匹配、active parent、账号/项目停用、quota429及强制审计历史失败。Missing/stopped/forged请求后同一合法签名仍可复用任务，证明拒绝未错误消费nonce。vet/typecheck/diff通过。
 
 此HTTP成功案例复用内部已创建pending任务，不能替代HTTP首次创建+真实Runner处理结果的完整链证据，后续继续验证；命令说明正式embedded build等待当前全量17452终态后顺序执行。未推送，AC-013与整体需求仍未完成。
+
+### S7 机器人 HTTP 首次复审与实际 worker 执行链
+
+06f778c 后补充真实 Store/HTTP.Register/Runner.Start-Stop fixture，不调用内部reaudit函数预先建任务，实际有效签名HTTP首次返回queued并创建新任务。受控Repository拒绝fresh Snapshot且Changes严格匹配原base/head/diffVersion，capture Auditor记录实际审计快照；验证frozen-model及固定commit执行并最终succeeded。第二场景HTTP合法入队后降operator至viewer，实际worker取消且Auditor不被调用。两场景Stop+Start后同原始签名仍403，platform_runs保持parent+child两条，无重放创建任务。
+
+整链race7.947s通过。仅受控Repository/Auditor，无外部模型调用、真实Slack消息或Git写入；Runner重启不等同数据库Close/Open或真实Slack自动重试。正式npm run build通过，embedded asset更新index-CaybCmRi.js；vet/diff通过。前版内部复审512086b全量17452已success，platform196.267s，不代替本HTTP版本全量。当前HTTP命令完整Go将单独验证后推送并追踪精确CI，AC-013其他providers/实际协议联调等剩余仍未完成。
