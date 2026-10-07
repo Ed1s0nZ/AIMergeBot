@@ -115,6 +115,16 @@ func TestTicketHTTPAuthenticatedReservationAndReadPermissions(t *testing.T) {
 	if err := json.Unmarshal(repeated.Body.Bytes(), &reply); err != nil || reply.Reserved || reply.Ticket.State != "unknown" {
 		t.Fatal("unknown replay reset", reply, err)
 	}
+	channelsPath := strings.TrimSuffix(path, "/tickets") + "/ticket-channels"
+	if res := request("GET", channelsPath, adminToken, "", ""); res.Code != 200 || strings.Contains(res.Body.String(), "private-fixture") {
+		t.Fatal("channel list", res.Code, res.Body.String())
+	}
+	if res := request("GET", channelsPath, viewerToken, "", ""); res.Code != 403 {
+		t.Fatal("viewer channel list", res.Code)
+	}
+	if res := request("GET", path, viewerToken, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), "unknown") || strings.Contains(res.Body.String(), "idempotency_key") {
+		t.Fatal("viewer ticket list", res.Code, res.Body.String())
+	}
 	readPath := fmt.Sprintf("%s/%d", path, integration.ID)
 	if res := request("GET", readPath, viewerToken, "", ""); res.Code != 200 {
 		t.Fatal("viewer read denied", res.Code)
@@ -124,6 +134,9 @@ func TestTicketHTTPAuthenticatedReservationAndReadPermissions(t *testing.T) {
 	}
 	if res := request("GET", readPath, viewerToken, "", ""); res.Code != 404 {
 		t.Fatal("revoked viewer read", res.Code)
+	}
+	if res := request("GET", path, viewerToken, "", ""); res.Code != 404 {
+		t.Fatal("revoked list", res.Code)
 	}
 	var count int
 	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_ticket_links`).Scan(&count); err != nil || count != 1 {
