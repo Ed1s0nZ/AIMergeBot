@@ -258,3 +258,9 @@ P8/F4，确认 REQ-013：创建前按 run/finding/integration 唯一预留，随
 P8/F4，沿用持久幂等契约：旧表增列 lease/lease_until/error_code，领取随机 token、60 秒期限；过期 sending 转 unknown，禁止自动重发。确认回执必须匹配 ID/HEAD/幂等身份/渠道版本/actor 和有效租约。created 必须有效 Linear 回执，Jira 暂无适配器时不得伪造 created。验证旧租约、过期确认、重复确认、迁移重复执行和 unknown 不再领取；尚未接入实际发送消费。
 
 审核中修正空队列分支：过期 sending 的恢复与查询同事务，查询无 pending 时必须先提交恢复，再返回 sql.ErrNoRows，不能 defer rollback 丢失 unknown 状态。无效期限也转 unknown。租约/迁移/预留/Linear 协议定向 race 3.281s、完整 Go（platform 87.084s）、vet 与 diff 检查通过。unknown 可保留经过校验的远端回执；failed 不接受远端身份，任何状态的链接均拒绝仿冒域名/凭据 URL。前一 a5bf5a9 的 CI 37597019196 尚 in_progress，等待终态后推送。
+
+### S6 工单发送授权快照（开发验证中）
+
+P8/F4，沿用 run/finding 明确身份操作，不要求历史发现必须属于最新 MR 运行。在同一个读事务内重查 actor 的完整 snapshot operator 权限、发现存在、HEAD、目标/源/关联项目启用、发送租约完整身份、当前渠道版本/类型/启用/项目范围；凭据仅在所有预检通过后返回内部消费者，不向 API 暴露。限制凭据读取大小，不接受损坏 JSON。测试覆盖 fork/配置/角色/租约变化，尚未接入外部写入。
+
+预检/领取/预留/协议定向 race 12.757s、完整 Go（platform 88.675s）、vet、diff 检查通过。独立受控样本验证 fork 源仓库撤权/禁用、渠道 revision/启用/项目范围变化、损坏凭据、旧租约、伪造 actor/HEAD 全部拒绝且返回空凭据和空 snapshot。a5bf5a9 的远端 CI 37597019196 completed/success；待推送 993b156 与本预检一起推送后跟踪精确 HEAD。实际消费者、团队映射、API/UI 与 Jira 仍未完成。
