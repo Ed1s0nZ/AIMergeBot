@@ -179,3 +179,46 @@ source/context撤权使用同样前后检查；没有持久run的准入阶段检
 必须新增的区分性证据：各字段缺失/重复/跨字段矛盾、SHA用途、4个context/超限与跨平台、mixed legacy/integration逐token隔离、无关设置不改变专用代次、坏JSON诊断不回显与修复、revision最大值/历史冲突/64KiB上限、请求响应丢失/同key不同body/修复后改绑再重放、验证中撤权零后续请求、结果返回后失权不进模型、同/跨连接run取消、schema1迁移原子失败、真实旧版拒绝schema2、旧版已经打开时升级被运维前置阻止、备份恢复证明。现有专项通过不代替这些新验证。
 
 修订验证：在8ce97b4454986f9bcf604f71f5fe599250f7b927的实际v50 platform.Store代码编译隔离探针，创建临时SQLite、将platform_schema设为2、加入sentinel；再次OpenStore固定拒绝unsupported platform schema 2。拒绝前后sqlite_master结构完整一致，version仍2、sentinel保留，exit0。238ef1d→该HEAD只有审查文档，Store代码未变；这证明现有Store拒绝事务不提交，不声称完整旧服务进程/新迁移/已打开连接并发被验收。初次含rm清理的命令被工具拒绝、未执行，随后改用Python TemporaryDirectory管理自身临时目录并成功；探针/DB全部清理，生产源码无变更。运行显示现有sonic对当前Go/架构fallback到encoding/json警告，探针仍正常通过；没有为消除警告更改依赖。git diff --check通过。
+
+## RRC-005/006修订：回执归属与凭据激活（拟议，未实施）
+
+以下替代上文相冲突的规则，仍需正式复审；technical-review-2026-10-08-repository-recovery-2.md的Fail不会因作者补文自动失效。
+
+### 回执摘要绑定路由项目
+
+恢复digest的唯一输入为固定Go struct的规范JSON：`{version:1,actor:当前授权账号ID,project_id:解析后的URL项目ID,request:规范RecoveryRequest}`。struct字段顺序固定，禁止map编码；request_id小写UUID，origin复用规范化，reason保留原UTF8字节、不静默trim。CAS相关整数必须完整解析，禁止浮点转换。请求摘要不是仅body摘要。回执联合PK仍actor/request_id；同key跨project即request_conflict，不能返回其他项目回执。
+
+回执重放前严格校验：当前admin/项目存在；表actor/project_id/request_id/digest与请求一致；receipt.project_id/request_id一致；receipt.repository是合法canonical binding且revision正；receipt.identity_revision正且等于回执保存值；stored replayed=false；拒绝未知字段、重复key、缺字段、尾随JSON或大于16KiB。回执保存新增identity_revision INTEGER NOT NULL CHECK>0，以便独立列/JSON一致性校验。回执内repository允许与项目当前配置不同，但必须与该revision的有效历史绑定完全一致；该历史行缺失/损坏/不同，返回503 recovery_receipt_unavailable，不把异常当无回执重新提交。reason不回显、不进入模型/远端，event仅记录有限操作身份和版本，避免将人工输入误当日志指令。
+
+尚未提交过的失败请求不占成功回执，明确提交后断网必须同body/key重放。UI始终使用整数精确值：新identity revision/CAS字段用十进制字符串传输（无符号、无前导零，范围1..MAX_INT64），response和receipt匹配同格式；旧Binding/Integration number字段保留现有协议，浏览器先Number.isSafeInteger，否则拒绝操作并说明需要精确API客户端。scope在Go/DB内完整整数，UI不得回传已舍入的revision。需要验证超2^53值不会授权错误CAS。
+
+### 凭据代次不来自Settings输入
+
+撤销上文新增Settings.LegacyRepositoryRevision字段的方案。新scope的credential.legacy_repository_revision改为数据库管理的正int64；JSON使用精确十进制字符串，与新CAS规则一致。Settings前端、YAML及HTTP不接受/保存此counter；实际token仍由现有Settings服务管理。更改旧配置文件也不能选择历史代次。
+
+新增 `platform_legacy_repository_state` 单例表：id INTEGER PK CHECK=1；generation INTEGER NOT NULL DEFAULT0 CHECK>=0；hmac_key BLOB NOT NULL CHECK length=32；fingerprint BLOB NULL CHECK length=32；updated_at TEXT NOT NULL。迁移创建crypto/rand32byte key、generation0/fingerprint NULL，在首次有效配置激活前拒绝legacy scope准入。fingerprint非NULL时generation必须正；generation>0但fingerprint缺失、行缺失、多行、非法key/列类型均offline_repair_required，不重新生成key或counter。达到MAX_INT64只允许未变配置，改凭据拒绝。密钥/指纹只由Store私有方法访问，绝不在HTTP/模型/日志/event/policy返回；数据库现有0600权限及配套备份要求继续生效。不新建原token副本。
+
+指纹输入为服务端构造的有版本规范元组：canonical GitLab origin、原token精确bytes、factory实际生效的规范网络授权CIDR列表及transport policy version。CIDR按canonical字符串排序去重；不含模型/项目名称/通知配置。HMAC-SHA256使用持久key；禁止用裸token hash做可公开标识。origin/token/网络/transport策略实际改变都递增generation。单写事务BEGIN IMMEDIATE内读取当前state、比较HMAC、同值保持、异值递增并更新；token相同但counter不回退，A→B→A必须1→2→3。并发同配置只递增一次；不把32byte指纹相同解释成不同项目的ACL等同。
+
+### 激活状态机与跨文件/DB失败
+
+模块责任：SettingsService负责配置文件与有效内存快照；新增RepositoryCredentialActivation负责legacy activation gate和规范指纹；Store负责持久state。激活器在HTTP/admission/worker启动前绑定到Settings服务。Settings.save的仓库配置变更必须经同一hook，项目outbox同步与纯模型修改不旋转generation。锁顺序Settings写锁→activation gate→短Store事务；Store不得持有事务回调Settings，避免反向锁死。HTTP读取不在DB写事务持锁；runtime只能拿已激活不可变descriptor，不能自动登记新generation。
+
+| 触发/阶段 | 持久与内存行为 | 对外行为 |
+| --- | --- | --- |
+| 启动 | 先读校验配置与DBstate，按有效指纹完成激活，再启动worker | 未激活不接受legacy准入；旧无scope兼容reader也经过gate |
+| 仓库配置Save开始 | activation_pending=true，禁止legacy新操作；旧运行进入取消/结果消费fence | 当前已发请求遵守RRC-003，不承诺撤回 |
+| 写配置文件失败 | DBstate/有效内存保持旧值；确认无持久变化后清pending | 原Save失败，旧凭据仍可用；未知持久结果不能直接清pending |
+| 文件成功、DB更新失败 | 保留pending；有效内存不得宣布新凭据active；文件不可假称未保存 | 返回固定credential_activation_pending；原文件/代次状态需恢复，不自动回写旧文件 |
+| DB成功、内存发布前 | DB新state已提交，pending仍true；原legacy描述被generation fence拒绝 | 不允许窗口内创建任务 |
+| 内存发布成功 | 发布immutable config+generation，清pending；取消含旧legacy scope的pending/running run | 新运行可用；旧scope不得继承新generation |
+| 中断/重启 | 从真实文件重算指纹，与已提交DB比较；同值不重复递增，异值生成新代次 | 完成恢复后才启动worker；旧scope继续被拒绝 |
+| 文件恢复旧token | 按新激活递增，即使token过去出现过 | 不返回过去的generation，不复活旧运行 |
+
+Save返回的同步pending不同于仓库activation_pending：项目outbox只影响配置列表同步，凭据activation未完成则核心legacy读取不可用。同进程恢复允许显式重新加载当前已落盘有效配置、重新完成激活；读取/校验失败保持pending。该操作重用同一激活器，不提供“手填generation”或自动覆盖配置的按钮。进程重启路径同样验证，不依赖client重放来恢复DB版本。其HTTP诊断只公开active/pending/unavailable及有限code，不返回HMAC/秘密。config修改过程中也会改变model字段时，整个Settings内存快照在激活完成后一次发布，避免半个配置生效。
+
+runtime每次legacy操作前后核对：activation非pending、当前有效配置HMAC与DBfingerprint匹配、scope generation与DBgeneration匹配、全部ACL/lease/身份仍合法。只比较DBcounter不够；只比较内存token也不够。cache结果也走同一检查。直接编辑YAML在明确reload/启动前不属于当前有效内存配置；reload后当新激活处理，不相信文件自称旧版本。DB与配置同时恢复升级前备份会丢失之后的状态，按RRC-004离线回滚规则处理，不称无损恢复。
+
+### 本轮证据与剩余门禁
+
+credential-generation-evidence.md记录9个合成SQLite场景通过，支持上述持久generation候选；不证明activation gate、Go锁顺序、Settings.save hook或runtime消费者已完成。后续必须通过实际Go双连接/配置故障/中断/模型输入次数/取消及精确序列化测试，再开放恢复或native scope。原G3默认Git/共享预算/API模式/所有消费者前置继续保留。此次是F2作者修订，没有F3或生产实施许可。
