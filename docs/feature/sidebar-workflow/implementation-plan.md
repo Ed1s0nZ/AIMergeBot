@@ -282,3 +282,15 @@ P7/F4，复用已有完整凭据替换/默认保留契约：Linear 提供团队 
 ### S6 工单查询与明确预留 API（开发验证中）
 
 P8/F4，沿用已确认 design.md 的 operator 创建、viewer 查询契约。新增 POST /runs/:id/findings/:finding_id/tickets，要求 integration_id、渠道 expected_revision 和 HEAD；新预留返回 202，已存在返回 200，响应 ticket/state 不等同远端创建。GET 对应渠道记录重新检查完整快照 viewer 权限。沿用认证路由和 Store 授权；8 KiB 请求上限。没有在 HTTP handler 同步发送网络请求，后台调度和详情入口仍待接入。定向 HTTP 测试覆盖缺字段/无效 HEAD/超限体，完整认证/成功交互验证尚待补齐。
+
+### S6 工单 API 真实会话验证（开发验证中）
+
+P9/F5，实际 Store.Login 会话 cookie、HTTP.Register 认证/origin middleware、真实数据库与工单 Store 链路：无会话 401、viewer 写入 403、跨站写入 403、管理员新预留 202、已有 unknown 重复请求 200 且不重置、viewer 查询 200、项目撤权后 404，最终唯一记录数为 1。响应不含内部 idempotency_key 或 token。HTTP 定向 race 3.787s 通过，vet/diff 检查通过；没有绕过认证设置 currentUser。当前完整 Go 验证进行中，前一 c07558a 的 CI 37599173842 仍运行。
+
+S6 真实会话验证的完整 Go 测试最终通过（platform 189.383s）；同一次运行持续观察至终态，没有因观察超时重启。远端 c07558a CI 37599173842 查询连续出现 GitHub API EOF，目前不能确认新终态，不推送新提交覆盖其运行。
+
+### S6 显式工单后台消费生命周期（开发验证中）
+
+P8/F4，Runner 启动独立 2 秒工单循环，单次最多消费 5 条、每条 20 秒超时，使用当前 public_url 和已有授权预检/租约消费者。循环纳入同一取消上下文与 WaitGroup；不收集审计事件自动建单，只处理明确预留记录。结果 unknown 保持终态，不自动重发。增加实际 Start/Stop/Restart 测试，通过受控 transport 验证停止后待处理记录不发送、恢复后发送且已创建记录在再次重启后不重复创建。测试注入为未导出的 Runner 字段，生产默认仍使用受限 HTTP 客户端。
+
+HTTP/消费者/真实 Runner 生命周期定向 race 14.921s、vet 通过；当前新循环版本的完整 Go 测试已启动，等待终态。API/后台链路已接通，但安全可选渠道列表、发现详情操作 UI、Jira 适配器与实际浏览器验证仍未完成，不声明完整工单能力完成。

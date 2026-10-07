@@ -6,27 +6,29 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 type Runner struct {
-	Settings    *SettingsService
-	Store       *Store
-	Repository  Repository
-	Auditor     Auditor
-	Workers     int
-	Timeout     time.Duration
-	Excluded    []string
-	mu          sync.Mutex
-	active      map[int64]context.CancelFunc
-	wg          sync.WaitGroup
-	cancel      context.CancelFunc
-	lifecycleMu sync.Mutex
-	owner       string
-	state       atomic.Pointer[workerRunState]
-	failures    chan error
+	Settings     *SettingsService
+	Store        *Store
+	Repository   Repository
+	Auditor      Auditor
+	Workers      int
+	Timeout      time.Duration
+	Excluded     []string
+	mu           sync.Mutex
+	active       map[int64]context.CancelFunc
+	wg           sync.WaitGroup
+	cancel       context.CancelFunc
+	lifecycleMu  sync.Mutex
+	owner        string
+	state        atomic.Pointer[workerRunState]
+	failures     chan error
+	ticketClient *http.Client
 }
 
 func (r *Runner) Start(parent context.Context) error {
@@ -77,6 +79,8 @@ func (r *Runner) Start(parent context.Context) error {
 	go func() { defer r.wg.Done(); r.leaseLoop(ctx) }()
 	r.wg.Add(1)
 	go func() { defer r.wg.Done(); r.notificationLoop(ctx) }()
+	r.wg.Add(1)
+	go func() { defer r.wg.Done(); r.ticketLoop(ctx) }()
 	for i := 0; i < r.Workers; i++ {
 		r.wg.Add(1)
 		go func() { defer r.wg.Done(); r.loop(ctx) }()
