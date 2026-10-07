@@ -50,3 +50,17 @@ sequenceDiagram
 新增github_read_objects_test.go/github_tree_listing_test.go，用真实TLS fixture与read-client预算：固定SHA/旧对象读取/缓存与Unicode空格；输入零object HTTP；commit/tree drift/缺字段/truncated/重复path/未知mode/nullsize/entry/depth/cache预算拒绝；symlink/submodule/目录不可源码且零blob访问；blob坏base64/缺字段/错SHA/假size/内容hash不符/零字节与256KiB/二进制原字节；404/限流/取消不冒充absence；稳定分页/reused subtrees/cycle/2000+文件/展开预算/失败重试不缓存partial，以及并发gate取消。现有GitHub read客户端、CodeOwners/metadata专项race和全Go/vet/build/diff完成后提交；前版e6a2f35精确CI37640077799终态后再推生产。无frontend改动/真实凭据/远端通知/模型调用。
 
 文档保存实际实现、已验证和未验证的边界；后续PR observation/compare/diff/metadata、RepositoryFactory及完整snapshot ACL执行仍保留，不把对象reader视作完整G3或可运行Github审计。
+
+## F4/F5 当前实现与证据
+
+F2 1327caf与F3 130e163均已先推。新增github_read_objects.go（281行）与github_tree_listing.go（103行），verified repo reader/串行可取消gate、固定commit/tree caches、严格非递归目录/路径/模式/size/完整性、普通blob读取及实际Git SHA1 hash、稳定有界普通文件枚举与不可变副本。binary低层bytes保持，不把它声称普通文本；上层Repository adapter仍待实现。完整列表按root缓存，失败不缓存partial路径，HTTP/tree entry/展开工作/path bytes均有独立上限。
+
+真实本地TLS fixture（fixture token、无外部请求）的对象首轮race34512平台2.094s；加入listing后Github Objects/Listing/ReadClient race80538平台2.155s通过。补充不同历史commit读取后，最终Github Objects/Listing/ReadClient及CodeOwner扩大race80694平台2.592s通过，最终vet/build27979及diff成功。覆盖Unicode/空格/executable普通文件、固定SHA路由（拒绝branch/缩写/64hex/零SHA/uppercase）、commit/tree identity漂移/缺失完整性字段、truncated/null/重复basename/未知mode/size缺失或负值、2001单目录/全cache entry阈值拒绝、symlink/gitlink/directory拒绝源码且零blob访问、已知超256KiB零blob访问、bad base64/encoding/字段/SHA/size/hash拒绝、空blob与恰256KiB及二进制原字节、完整目录才能path_absent、404/429不变absence、waiting gate context取消、旧/新/旧commit读回各自bytes。
+
+Listing覆盖稳定100×分页/超末页空列表/invalid page拒绝、不同目录复用tree不重复HTTP、调用者修改返回值无cache污染、并发cached页保持、真实root祖先cycle失败且无成功部分列表、截断后显式重试重新读取缺失tree、2001普通文件跨目录拒绝、path cache阈值、共享二叉tree DAG展开预算（少量缓存HTTP不造成无限工作）。未证明真实PR force-push/来源fork授权（尚无PR observation/factory）、完整所有深度/字节预算boundary组合、跨actor授权与Run工具接入；这些仍保留下一阶段，不能以单repo对象fixture替代。
+
+当前最终全Go41126仍运行，待终态后写结果；无frontend改动/真实凭据/模型/外部发送。前版e6a2f35精确CI37640077799已completed/success。G3的PR snapshot/compare/diff/metadata与factory、G4–G6及其余完整REQ持续未完成；bound admission保护保持，未合并main或发布。
+
+最终生产代码全Go41126已completed/success（platform117.857s，其余包通过）。其后只补测试独立Git空blob golden SHA，避免fixture与生产hash同时存在相同错误；生产代码保持，golden专项另行验证。F4/F5对象读取切片可在该专项通过后提交推送，并跟踪独立精确CI。
+
+独立空blob golden专项race34150 completed/success平台4.312s；最终diff检查通过。所有生产源码已由全Go41126、扩大race80694、vet/build27979验证，后补golden无生产改动且已专项通过。准备推送对象读取切片，尚需新HEAD精确CI。

@@ -78,3 +78,7 @@ ReadFile不使用任意download_url，不跟随上游URLs；先固定commit解�
 ### G2 开放入口的必要顺序
 
 G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Github保存/新项目Submit：必须先让admission、poll和重审识别显式绑定并在factory未实现时返回明确repository_unavailable，全部远端读取为零；提交前后还需检查绑定版本，防止网络读取期间从legacy改为新provider。该保护与G3统一factory完成后再启用实际执行。原nil项目保持legacy行为，不能因为“有配置”静默向GitLab查询同值ID。此条件是实现约束，不新增用户确认要求。
+
+### 当前实施状态（2026-10-07）
+
+上文“当前事实”是设计创建时的基线：现已实现G1绑定存储与历史、G2 HTTP/配置同步/原生创建/管理页面，G3安全读取client及固定commit/tree/blob/目录列表的内部模块。bound执行仍由guard明确拒绝，repository_execution_available=false；PR observation/compare/diff/metadata、统一factory与G4–G6尚未完成。具体证据见github-read-client-plan.md、github-fixed-objects-plan.md及repository-management-ui-gate.md，不把这些配置与读取模块等同原生GitHub审计可用。
