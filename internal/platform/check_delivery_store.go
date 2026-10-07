@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"time"
 )
 
@@ -123,11 +124,24 @@ func (s *Store) FinishRunCheck(ctx context.Context, d CheckDelivery, result Chec
 		return ErrConflict
 	}
 	switch result.Code {
-	case "", "invalid_check_policy", "invalid_identity", "invalid_target_url", "preflight_unavailable", "snapshot_changed", "publication_unacknowledged", "receipt_mismatch", "permission_changed":
+	case "", "repository_unavailable", "invalid_check_policy", "invalid_identity", "invalid_target_url", "preflight_unavailable", "snapshot_changed", "publication_unacknowledged", "receipt_mismatch", "permission_changed":
 	default:
 		return ErrConflict
 	}
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_check_deliveries SET state=?,remote_id=?,code=?,lease='',lease_until='',updated_at=? WHERE run_id=? AND head_sha=? AND state='sending' AND lease=? AND lease!='' AND julianday(lease_until)>julianday(?)`, result.State, result.RemoteID, result.Code, now(), d.RunID, d.HeadSHA, d.Lease, now())
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if result.State == "published" {
+		if err := requireLegacyRunRepository(ctx, tx, d.RunID); err != nil {
+			if !errors.Is(err, ErrRepositoryUnavailable) {
+				return err
+			}
+			result.State, result.Code = "unknown", "repository_unavailable"
+		}
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE platform_check_deliveries SET state=?,remote_id=?,code=?,lease='',lease_until='',updated_at=? WHERE run_id=? AND head_sha=? AND state='sending' AND lease=? AND lease!='' AND julianday(lease_until)>julianday(?)`, result.State, result.RemoteID, result.Code, now(), d.RunID, d.HeadSHA, d.Lease, now())
 	if err != nil {
 		return err
 	}
@@ -138,7 +152,7 @@ func (s *Store) FinishRunCheck(ctx context.Context, d CheckDelivery, result Chec
 	if count != 1 {
 		return ErrConflict
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) checkDeliveryAssessment(ctx context.Context, a CheckAssessment) (CheckAssessment, error) {

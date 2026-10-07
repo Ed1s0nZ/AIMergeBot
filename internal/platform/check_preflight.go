@@ -48,6 +48,9 @@ func (s *Store) CheckPublicationRun(ctx context.Context, d CheckDelivery) (Run, 
 			return Run{}, ErrProjectPermission
 		}
 	}
+	if err := requireLegacyRepositorySnapshot(ctx, tx, snap); err != nil {
+		return Run{}, err
+	}
 	var valid bool
 	err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_check_deliveries d JOIN platform_runs r ON r.id=d.run_id WHERE d.run_id=? AND d.actor=? AND d.automatic=? AND d.blocking=? AND d.head_sha=? AND r.head_sha=d.head_sha AND d.state='sending' AND d.lease=? AND d.lease!='' AND julianday(d.lease_until)>julianday(?) AND NOT EXISTS(SELECT 1 FROM platform_runs n WHERE n.project_id=r.project_id AND n.mr_iid=r.mr_iid AND n.id>r.id))`, d.RunID, d.Actor, d.Automatic, d.Blocking, d.HeadSHA, d.Lease, now()).Scan(&valid)
 	if err != nil {
@@ -73,6 +76,9 @@ func (s *Store) CheckPublicationRun(ctx context.Context, d CheckDelivery) (Run, 
 }
 
 func checkPreflightFailure(err error) CheckPublication {
+	if errors.Is(err, ErrRepositoryUnavailable) {
+		return CheckPublication{State: "failed", Code: "repository_unavailable"}
+	}
 	if errors.Is(err, ErrConflict) {
 		return CheckPublication{State: "stale", Code: "snapshot_changed"}
 	}

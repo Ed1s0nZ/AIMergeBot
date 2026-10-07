@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -30,6 +31,9 @@ func (r *Runner) commentLoop(ctx context.Context) {
 	}
 }
 func (r *Runner) deliveryPreflight(ctx context.Context, d CommentDelivery, run Run) bool {
+	if requireLegacyRepositorySnapshot(ctx, r.Store.DB, run.Snapshot) != nil {
+		return false
+	}
 	if r.Settings == nil || !r.Settings.Snapshot().EnableMRComment {
 		return false
 	}
@@ -71,6 +75,14 @@ func (r *Runner) deliverComment(ctx context.Context, d CommentDelivery) {
 	run, err := r.Store.Run(ctx, d.RunID)
 	if err != nil {
 		deferState("blocked", "Audit result unavailable")
+		return
+	}
+	if err := requireLegacyRepositorySnapshot(ctx, r.Store.DB, run.Snapshot); err != nil {
+		state := "blocked"
+		if d.State == "unknown" && errors.Is(err, ErrRepositoryUnavailable) {
+			state = "unknown"
+		}
+		deferState(state, "Repository identity unavailable; verify any previous remote publication", err)
 		return
 	}
 	if !r.deliveryPreflight(ctx, d, run) {
@@ -143,6 +155,9 @@ func (r *Runner) deliverComment(ctx context.Context, d CommentDelivery) {
 		return
 	}
 	if err = r.Store.prepareCommentBody(ctx, d, commentHash(body), user.ID); err != nil {
+		if errors.Is(err, ErrRepositoryUnavailable) {
+			deferState("blocked", "Repository identity changed before publication", err)
+		}
 		return
 	}
 	if d.NoteID == 0 {

@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -87,7 +88,15 @@ func (s *Store) prepareCommentBody(ctx context.Context, d CommentDelivery, hash 
 	if len(authors) > 0 {
 		author = authors[0]
 	}
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_comment_delivery SET attempted_hash=?,author_id=CASE WHEN ? > 0 THEN ? ELSE author_id END WHERE run_id=? AND state='sending'`+deliveryFence, hash, author, author, d.RunID, d.ClaimOwner)
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := requireLegacyRunRepository(ctx, tx, d.RunID); err != nil {
+		return err
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE platform_comment_delivery SET attempted_hash=?,author_id=CASE WHEN ? > 0 THEN ? ELSE author_id END WHERE run_id=? AND state='sending'`+deliveryFence, hash, author, author, d.RunID, d.ClaimOwner)
 	if err != nil {
 		return err
 	}
@@ -95,10 +104,25 @@ func (s *Store) prepareCommentBody(ctx context.Context, d CommentDelivery, hash 
 	if err == nil && n != 1 {
 		return ErrConflict
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 func (s *Store) acknowledgeComment(ctx context.Context, d CommentDelivery, discussion string, note, author int, hash string) error {
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_comment_delivery SET discussion_id=?,note_id=?,author_id=?,body_hash=?,sent_generation=?,state=CASE WHEN desired_generation>? THEN 'pending' ELSE 'sent' END,attempts=0,last_error='',claim_owner='',claim_until='',retry_at='',updated_at=? WHERE run_id=? AND state='sending'`+deliveryFence, discussion, note, author, hash, d.ClaimedGeneration, d.ClaimedGeneration, now(), d.RunID, d.ClaimOwner)
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	changed := false
+	if err := requireLegacyRunRepository(ctx, tx, d.RunID); err != nil {
+		if !errors.Is(err, ErrRepositoryUnavailable) {
+			return err
+		}
+		changed = true
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE platform_comment_delivery SET discussion_id=?,note_id=?,author_id=?,body_hash=?,sent_generation=CASE WHEN ? THEN sent_generation ELSE ? END,state=CASE WHEN ? THEN 'unknown' WHEN desired_generation>? THEN 'pending' ELSE 'sent' END,attempts=CASE WHEN ? THEN 5 ELSE 0 END,last_error=CASE WHEN ? THEN 'Repository identity changed after publication; verify remote receipt' ELSE '' END,claim_owner='',claim_until='',retry_at='',updated_at=? WHERE run_id=? AND state='sending'`+deliveryFence, discussion, note, author, hash, changed, d.ClaimedGeneration, changed, d.ClaimedGeneration, changed, changed, now(), d.RunID, d.ClaimOwner)
 	if err != nil {
 		return err
 	}
@@ -106,7 +130,10 @@ func (s *Store) acknowledgeComment(ctx context.Context, d CommentDelivery, discu
 	if err == nil && n != 1 {
 		return ErrConflict
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 func (s *Store) deferComment(ctx context.Context, d CommentDelivery, state, reason string, causes ...error) error {
 	switch state {
@@ -117,6 +144,9 @@ func (s *Store) deferComment(ctx context.Context, d CommentDelivery, state, reas
 	retry := time.Now().UTC().Add(time.Minute).Format(time.RFC3339Nano)
 	stopRetries := false
 	if len(causes) > 0 {
+		if errors.Is(causes[0], ErrRepositoryUnavailable) {
+			stopRetries = true
+		}
 		if info, _ := retryFailure(causes[0]); info != nil {
 			if info.HeaderState == "exceeds_limit" {
 				stopRetries = true
