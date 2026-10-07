@@ -384,3 +384,9 @@ Jira 预留消费版本完整 Go 测试通过（platform 98.838s）。Jira 表�
 ### S6 Jira 实际 Runner 生命周期（开发验证中）
 
 P9/F5，将已有真实 Start/Stop/Restart 测试改为 Linear/Jira 共享场景，复用同一生命周期验证逻辑，分别配置各自映射与受控回执。覆盖真实后台周期创建、Stop 连续调用及时结束、停止超过一个完整周期的新预留保持 pending、重启只处理新记录、再次重启不重复已有工单。两种 provider 定向 race 19.700s 通过，不访问真实远端。表单和 Jira 链接实际浏览器验收仍待执行，当前重建版本完整 Go 验证随后执行；先前 CI 9a80965 已 success，尚未追加推送。
+
+### S6 Jira 配置浏览器与工单触发语义（开发验证中）
+
+P9/F5，受控 localhost 页面加载真实编译产物，已有 Jira 默认不展开凭据；选择替换后邮箱/项目 ID/类型 ID 均为空，写入受控值保存。fixture 严格检查实际 PATCH JSON 的 username/token/jira_project_id/jira_issue_type_id，成功后版本 1→2、凭据输入清空、替换复选框关闭、映射存在标志保留，未发起真实外部请求。临时 tab 与 fixture server 已清理。
+
+验收发现工单类型仍显示通知事件/频率/阈值，容易暗示自动建单。UI 对 Jira/Linear 改为展示“仅由发现详情明确创建”的说明，隐藏无效通知编辑项，保留既有存储字段以兼容配置验证。类型检查/diff 通过，新 UI 分支尚待产物重建与浏览器复验。完整 Go 12649 已实际进程核实仍 live，不因耗时重启。
