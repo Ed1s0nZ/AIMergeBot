@@ -672,3 +672,11 @@ collector新委托notificationOwnerEventAllowed，按事件捕获owner/revision/
 npm typecheck及正式build通过，embedded assets index-DS_jxutd.js/index-SQxcMfgg.css；Go build/vet最终验证中。后端cdd2204精确CI37618965760 completed/success（完整Go/race/vet、工具、漏洞、前端与embedded检查），途中一次TLS handshake timeout重查同一run成功，没有据观察超时重启。此UI版本仍需独立精确CI。自动推荐路由、GitHub全链路、其他完整REQ与整体验收继续保留，不能据本筛选UI完成认定整体目标完成。
 
 最终embedded Go build与go vet ./... completed/success，git diff --check通过。该阶段未修改Go生产源码，前版后端完整Go/race及精确CI已证明后端；新UI编译/实际浏览器与embedded构建提供本阶段证据，新推送仍跟踪独立CI。
+
+### S8 GitHub CODEOWNERS 有界兼容适配
+
+fec020f设计先提交。新增独立GitHub lexer/bare owner校验及RE2 pattern adapter，匹配算法改编自hmarr/codeowners v1.2.1并保留MIT版权许可。UTF8字面路径、转义空格/普通标点、net/mail验证裸邮箱（长TLD及合法apostrophe/plus）保留原alias；@user/@org/team沿用成熟身份格式。根规则/进入明确无匹配regexp，消除旧literal快速路径空字符串越界。公开接口/物理行号/全局最后匹配/空owner覆盖保持，返回owners复制避免调用方修改解析器。GitLab不改。所有原文件/行/规则/模式/owner预算保持，未知syntax整文件unavailable不返回partial，escaped slash/tab也明确不支持，非原生审批资格验证。
+
+专项race2.538s通过Unicode/长TLD/RFC符号、根规则、CRLF、空owner与证据不可变，ASCII共同支持模式×路径与hmarr差分（含Unicode目标路径?）、unsupported/malformed无partial及预算边界。补充***模式负例后最终GitHub专项race1.787s通过。固定HEAD来源/本地Git/provider及OwnerRecommendation Store真实HTTP/完整snapshotACL扩大race35.877s通过。完整Go13242 completed/success，platform136.499s，evaluation13.982s；全项目vet/build及diff检查通过。仅受控规则/测试仓库，无生产凭据、真实外部发送或模型调用。
+
+前版UI c8ef2ea精确CI37621134568 completed/success后才推送本生产改动；本版仍需精确CI独立验收。GitHub真实provider、自动推荐通知、其余完整REQ及整体验收继续保留，不认定整个REQ-019或目标完成。

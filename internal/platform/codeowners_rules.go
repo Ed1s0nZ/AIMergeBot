@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/hmarr/codeowners"
 )
 
 var ErrCodeOwnersInput = errors.New("CODEOWNERS input exceeds limits or has unsupported syntax")
@@ -27,7 +26,7 @@ type CodeOwnerMatches struct {
 }
 type CodeOwnerRules struct {
 	provider string
-	github   codeowners.Ruleset
+	github   []githubCodeOwnerRule
 	rules    []CodeOwnerRule
 }
 
@@ -49,21 +48,9 @@ func ParseCodeOwnerRules(provider, raw string) (*CodeOwnerRules, error) {
 	result := &CodeOwnerRules{provider: provider}
 	switch provider {
 	case "github":
-		rules, err := codeowners.ParseFile(strings.NewReader(raw))
-		if err != nil || len(rules) > 2048 {
-			return nil, ErrCodeOwnersInput
+		if err := result.parseGitHub(lines); err != nil {
+			return nil, err
 		}
-		total := 0
-		for _, r := range rules {
-			if len(r.Owners) > 100 || len(r.RawPattern()) > 1024 {
-				return nil, ErrCodeOwnersInput
-			}
-			total += len(r.Owners)
-		}
-		if total > 8192 {
-			return nil, ErrCodeOwnersInput
-		}
-		result.github = rules
 	case "gitlab":
 		if err := result.parseGitLab(lines); err != nil {
 			return nil, err
@@ -80,16 +67,13 @@ func (r *CodeOwnerRules) Match(file string) (CodeOwnerMatches, error) {
 		return result, ErrCodeOwnersInput
 	}
 	if r.provider == "github" {
-		rule, err := r.github.Match(file)
-		if err != nil {
-			return result, ErrCodeOwnersInput
-		}
-		if rule != nil {
-			owners := []string{}
-			for _, owner := range rule.Owners {
-				owners = append(owners, owner.String())
+		for i := len(r.github) - 1; i >= 0; i-- {
+			if r.github[i].pattern.MatchString(file) {
+				rule := r.github[i].rule
+				rule.Owners = append([]string{}, rule.Owners...)
+				result.Rules = append(result.Rules, rule)
+				break
 			}
-			result.Rules = append(result.Rules, CodeOwnerRule{Line: rule.LineNumber, Pattern: rule.RawPattern(), Owners: owners})
 		}
 		return result, nil
 	}
