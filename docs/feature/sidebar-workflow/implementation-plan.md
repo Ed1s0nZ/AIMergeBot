@@ -488,3 +488,9 @@ P8/F4，Slack 完成绑定事务在 challenge 所属当前启用用户上复用 
 P8/F4，集成编辑增加可选 Slack 应用 A-ID/工作区 T-ID；填写其一要求完整双方与 signing secret，通知-only 旧配置保持可读。完整替换请求包含 slack_app_id/slack_workspace_id，选中保存后清空字段，保持既有凭据不重填也不丢失配置。页面显示保存渠道实际 ID/revision 的回调路径，明确需 HTTPS 站点根地址及版本更新后同步 Slack URL。目前回调仅身份绑定，不声称操作审计可用。
 
 公开 Integration 增加 has_slack_binding 布尔元数据，Save 与列表 Scan 均依据完整合法配置生成，不回显 app/workspace/secret。专项 race 6.977s 加已有全部 Slack/HTTP 测试通过，新真实数据库测试验证元数据保存/读取、普通编辑保留域与secret、JSON 不含 workspace/secret。typecheck、vet/diff 通过。新表单的实际浏览器填表/保存与移动端验证仍待执行，正式构建尚未更新；不得以 typecheck 宣称界面验收完成。c0f1c8a 全量 11229 仍运行；精确 e21a8a2 CI 37606369057 已 completed/success。待当前本地验证完再推送新版本并检查其独立 CI。
+
+### S7 Slack 管理员配置浏览器验收证据
+
+ad9252e 正式 npm run build 成功，embedded asset 更新 index-D8QUL9Ut.js。真实编译前端+本地受控配置 HTTP fixture 浏览器验证：管理员选择已存 Slack 默认保留凭据；显式完整替换后实际填写 HTTPS、fixture signing secret、A123/T123，PATCH 服务端断言具体 JSON 成功。保存后 revision 1→2，回调路径 /api/v1/bot-callbacks/slack/1/2/bind 可见，替换开关复位；重新打开替换区域 HTTPS/secret/app/workspace 均空，只有已配置布尔元数据。不发送通知，不访问真实 Slack，无生产 secret。
+
+上一版 c0f1c8a 全量 11229 已 completed/success，platform 110.763s。当前含 Slack 配置元数据的全量将单独执行；旧 e21a8a2 CI 37606369057 success 不替代本地后续代码远端验证。尚待当前 full/race/CI、配置移动/错误恢复、实际签名绑定联调与审计操作权限，AC-013 不宣称完成。
