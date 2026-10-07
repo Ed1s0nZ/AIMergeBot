@@ -10,6 +10,7 @@ import (
 var ErrWorkflowPolicy = errors.New("invalid workflow policy")
 
 type WorkflowPolicy struct {
+	FormatNoiseHints   bool     `json:"format_noise_hints"`
 	Revision           int64    `json:"revision"`
 	Focus              []string `json:"focus"`
 	ExcludedExtensions []string `json:"excluded_extensions"`

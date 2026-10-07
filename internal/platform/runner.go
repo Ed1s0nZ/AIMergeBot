@@ -386,6 +386,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	} else {
 		result, trace, err = auditor.Audit(ctx, run.Snapshot, scope)
 	}
+	if run.AuditPolicy != nil && run.AuditPolicy.Workflow != nil && run.AuditPolicy.Workflow.FormatNoiseHints {
+		result.FormatHints = formattingHints(changes, scope.Included)
+	}
 	status, message := "succeeded", ""
 	if err != nil {
 		status, message = "failed", err.Error()

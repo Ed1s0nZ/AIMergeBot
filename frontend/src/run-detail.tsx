@@ -1,3 +1,4 @@
+import { RunCheckAdvice, FormatHints, type CheckAssessment } from "./run-advice";
 import { AuditGroupProgress } from "./audit-group-progress";
 import { ClaimVerificationPanel } from "./claim-verification";
 import { InvestigationPlan } from "./investigation-plan";
@@ -192,6 +193,7 @@ export function FindingCard({
 }
 export function RunDetail({ id }: { id: number }) {
   const resource = useResource<{
+      check_assessment?: CheckAssessment;
       detail_version?: string;
       run: Run;
       usage?: ModelUsage;
@@ -409,6 +411,7 @@ export function RunDetail({ id }: { id: number }) {
         </section>
       )}
 
+      {resource.data?.check_assessment && <RunCheckAdvice value={resource.data.check_assessment}/>}
       {r.error && <ErrorBox error={r.error} />}
       <section className="panel summary">
         <h2>审计摘要</h2>
@@ -427,6 +430,7 @@ export function RunDetail({ id }: { id: number }) {
             </ul>
           </details>
         )}
+        <FormatHints items={r.result.format_hints}/>
         {r.result.coverage_notes.length > 0 && (
           <div className="coverage">
             <strong>覆盖与限制</strong>

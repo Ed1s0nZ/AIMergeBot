@@ -112,3 +112,19 @@ CI 修复关闭证据：b4c8a447ae19a9f4eceeb4e407a0c5b68aaa2cac 的 [GitHub CI 
 定向测试覆盖角色拒写、非法配置、版本冲突、缺失项目、保存/读取、新旧运行快照与策略去重身份；最终定向 race 6.582s（含实际 worker 应用排除规则）通过，前端 typecheck/build、Go vet 通过。HTTP 缺失版本/冲突/请求预算验证通过；全量 Go platform 88.199s 通过，后续 worker 快照排除调整另有定向覆盖，远端精确提交 CI 待验证。实际 UI QA 待完成。合并检查 advisory/block 条件和可选格式噪声识别仍未实现，不宣称 REQ-006 已全部完成。
 
 关联入口 01904a2 的远端 CI 37585926395 completed/success。通知权限修正 10414e2 已推送，CI 37586372762 已启动并跟踪。
+
+### S3 可选空白变更提示（开发验证中）
+
+项目策略新增默认关闭 format_noise_hints。任务完成后，按实际 included 文件查找新增/删除行顺序匹配、仅首尾空白不同的候选，最多 200 文件，不处理排除、删除/重命名/元数据或超读取预算变更。结果保存独立 format_hints，详情明确仅为词法提示：Python 缩进、字符串/模板空白仍可能改变行为，不能用于语义等价、安全或已修复结论。diff 与调查完全保留，不减少审计、不生成自动复核或改变运行状态。无匹配不意味着没有格式变更。
+
+单元测试覆盖 Python 缩进、字符串内容行、token 变化、仅新增/相同/上下文、排除及不支持变更；断言完整 diff 未被删改。前端 typecheck/build 与相关策略/提示定向 race 4.750s 通过；实际 worker 可选开关/记录保存回归和全量 Go 正在执行，真实 UI QA 待完成。
+
+通知权限修正 10414e2 的 CI 37586372762 completed/success。项目策略 7b03f13 已推送，CI 37586897943 正在运行。合并检查条件及其他完整要求仍未完成。
+
+### S5 运行检查摘要基础（开发验证中）
+
+任务详情增加本地 check_assessment，绑定 run ID 与 HEAD，区分 pending/running/failed/cancelled/skipped/incomplete/high_risk/completed/unknown。成功但有错误或覆盖缺口不降为完成；未知严重程度或缺失有效提交身份不视为正常完成。高风险计数保留，失败/不完整优先显示实际运行限制。始终 published=false/blocking=false，UI 明确当前未发布为 Git 平台合并检查；完成不等于安全或当前 PR 最新提交。展示模块独立于详情主文件，格式提示也复用该模块。
+
+状态/身份/优先级定向测试通过，前端 typecheck/build 通过。本地完整 Go（platform 79.568s）覆盖空白提示切片，随后检查摘要新增逻辑另有定向测试覆盖；实际 worker 可选空白提示 race 3.688s 通过。提供者 API、持久发布队列、远端 HEAD 防旧结果覆盖、可配置阻断仍未实现，此基础不等于 REQ-021 完成。
+
+项目策略 7b03f13 的远端 CI 37586897943 completed/success。

@@ -54,6 +54,7 @@ type Investigation struct {
 	NextSteps             []string                `json:"next_steps"`
 }
 type AuditResult struct {
+	FormatHints     []FormatHint         `json:"format_hints,omitempty"`
 	AuditGroups     []AuditGroupProgress `json:"audit_groups,omitempty"`
 	MetadataChanges []GitChangeMetadata  `json:"metadata_changes,omitempty"`
 	ExcludedFiles   []string             `json:"excluded_files,omitempty"`

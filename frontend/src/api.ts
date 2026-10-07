@@ -204,6 +204,7 @@ export type Run = {
     summary: string;
     coverage_notes: string[];
     excluded_files?: string[];
+    format_hints?: {file:string;changed_pairs:number}[];
     investigations?: {
       claim_verification?: ClaimVerification;
       plan?: InvestigationTask[];

@@ -4,6 +4,7 @@ import { Empty, ErrorBox } from "./components";
 import { Heading, useResource } from "./page-utils";
 
 type Policy = {
+  format_noise_hints: boolean;
   revision: number;
   focus: string[];
   excluded_extensions: string[];
@@ -55,6 +56,7 @@ function PolicyEditor({ project }: { project: Project }) {
         write("PUT", {
           expected_revision: draft.revision,
           focus: draft.focus,
+          format_noise_hints: draft.format_noise_hints,
           excluded_extensions: extensions.split(/\s+/).filter(Boolean),
         }),
       );
@@ -79,6 +81,17 @@ function PolicyEditor({ project }: { project: Project }) {
             版本 {draft.revision} ·
             关注项调整审计优先级，不限制其他有证据支持的风险。当前配置不自动阻断合并。
           </p>
+          <label>
+            <input
+              type="checkbox"
+              disabled={busy}
+              checked={draft.format_noise_hints || false}
+              onChange={(e) =>
+                setDraft({ ...draft, format_noise_hints: e.target.checked })
+              }
+            />
+            显示空白变更提示（辅助人工审查，保留完整变更审计）
+          </label>
           <fieldset disabled={busy}>
             <legend>重点关注</legend>
             {Object.entries(priorities).map(([key, label]) => (
