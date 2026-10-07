@@ -74,3 +74,7 @@ ReadFile不使用任意download_url，不跟随上游URLs；先固定commit解�
 初始G1不新增外部请求或自动操作；具体HTTP字段在G2前另写API/UX gate。运行factory不得在G3后保留任何Github→GitLab fallback。审计策略/自动owner通知/邮件及其他机器人仍按原需求继续，G1完成不等于GitHub可使用。最终需正式用户场景证明而非构造Repository通过单元测试。
 
 来源（2026-10-07）：[PR API](https://docs.github.com/en/rest/pulls/pulls)、[compare commits](https://docs.github.com/en/rest/commits/commits#compare-two-commits)、[Git trees](https://docs.github.com/en/rest/git/trees)、[contents](https://docs.github.com/en/rest/repos/contents)、[check runs](https://docs.github.com/en/rest/checks/runs)、[Webhook签名](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)。实现时再验证具体API版本、权限和compare限制，不以此概览替代契约测试。
+
+### G2 开放入口的必要顺序
+
+G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Github保存/新项目Submit：必须先让admission、poll和重审识别显式绑定并在factory未实现时返回明确repository_unavailable，全部远端读取为零；提交前后还需检查绑定版本，防止网络读取期间从legacy改为新provider。该保护与G3统一factory完成后再启用实际执行。原nil项目保持legacy行为，不能因为“有配置”静默向GitLab查询同值ID。此条件是实现约束，不新增用户确认要求。
