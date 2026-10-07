@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 func TestJiraSenderAuthorizationAndSafeOutcomes(t *testing.T) {
 	for _, mode := range []string{"ack", "before", "after", "transport", "forged", "configuration"} {
 		t.Run(mode, func(t *testing.T) {
-			c := IntegrationCredentials{Endpoint: "https://fixture.atlassian.net", Username: "fixture@example.com", Token: "PRIVATE_TOKEN"}
+			c := IntegrationCredentials{Endpoint: "https://fixture.atlassian.net", Username: "fixture@example.com", Token: "PRIVATE_TOKEN", JiraProjectID: "10001", JiraIssueTypeID: "10002"}
 			if mode == "configuration" {
 				c.Endpoint += "?token=private"
 			}
@@ -30,6 +31,15 @@ func TestJiraSenderAuthorizationAndSafeOutcomes(t *testing.T) {
 				if !ok || user != c.Username || token != c.Token || req.URL.String() != c.Endpoint+"/rest/api/3/issue" || req.Method != "POST" {
 					t.Fatal("wrong request identity")
 				}
+				var payload struct {
+					Fields struct {
+						Project   map[string]string
+						Issuetype map[string]string
+					}
+				}
+				if err := json.NewDecoder(req.Body).Decode(&payload); err != nil || payload.Fields.Project["id"] != c.JiraProjectID || payload.Fields.Issuetype["id"] != c.JiraIssueTypeID {
+					t.Fatal("wrong configured mapping", err)
+				}
 				if _, ok := req.Context().Deadline(); !ok {
 					t.Error("missing deadline")
 				}
@@ -42,7 +52,7 @@ func TestJiraSenderAuthorizationAndSafeOutcomes(t *testing.T) {
 				}
 				return &http.Response{StatusCode: 201, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(reply))}, nil
 			})}
-			got := sendJiraTicket(context.Background(), c, "10001", "10002", "Finding", "Fixed evidence", authorize, client)
+			got := sendJiraTicket(context.Background(), c, "Finding", "Fixed evidence", authorize, client)
 			want := map[string]string{"ack": "created", "before": "failed", "after": "unknown", "transport": "unknown", "forged": "unknown", "configuration": "failed"}[mode]
 			if got.State != want {
 				t.Fatal(got, want)

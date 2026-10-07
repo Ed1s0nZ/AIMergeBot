@@ -352,3 +352,9 @@ P8/F4，官方认证依据 https://developer.atlassian.com/cloud/jira/platform/b
 ### S6 Jira 固定项目/类型映射（开发验证中）
 
 P8/F4，IntegrationCredentials 增加可选 jira_project_id / jira_issue_type_id，配置校验拒绝非正数/超限/路径/换行 ID，旧无映射配置保持可读。公开 Integration 仅增加 has_jira_mapping 布尔，scan 与 Save 返回路径一致，不返回项目/类型 ID、邮箱或 token。真实 Store 测试验证新建、仅重命名保留凭据、列表存在标志、数据库持久映射与敏感值不出响应。Jira/Linear 相关定向 race 2.888s、vet/diff 通过；增加非法 ID 与旧配置专项后重新执行定向验证。Jira 仍未进入候选渠道/消费者/UI，不把持久配置当作完整创建能力。前一 Jira 发送层完整测试 13084 仍运行，等待同一进程终态后验证本版本；9a80965 CI 37602358756 仍 in_progress。
+
+Jira 发送层前一完整 Go 测试通过（platform 101.501s）。
+
+### S6 Jira 发送绑定配置映射（开发验证中）
+
+P8/F4，jiraTicketReady 统一要求完整项目/问题类型 ID、HTTPS 根端点和合法账户/API token。发送器移除单独项目/类型参数，从服务端 IntegrationCredentials 获取映射，减少未来消费者覆写项目的入口。受控 transport 解码实际 POST，验证项目和类型来自配置。新增缺项目/类型、空认证、冒号用户名、换行 token、HTTP/路径/query 端点拒绝样本。Jira 全部定向 race 2.381s、vet/diff 通过。尚未接入工单预留/持久回执/详情入口；完整 Jira 能力仍未完成。

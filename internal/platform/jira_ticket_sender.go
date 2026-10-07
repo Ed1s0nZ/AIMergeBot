@@ -5,18 +5,16 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
 
-func sendJiraTicket(ctx context.Context, c IntegrationCredentials, projectID, typeID, title, description string, authorize func(context.Context) error, client *http.Client) TicketReceipt {
+func sendJiraTicket(ctx context.Context, c IntegrationCredentials, title, description string, authorize func(context.Context) error, client *http.Client) TicketReceipt {
 	failed := TicketReceipt{State: "failed", Code: "invalid_configuration"}
-	u, err := url.Parse(c.Endpoint)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || len(c.Endpoint) > 2048 || c.Username == "" || strings.ContainsAny(c.Username, ":\r\n") || c.Username != strings.TrimSpace(c.Username) || c.Token == "" || strings.ContainsAny(c.Token, "\r\n") || c.Token != strings.TrimSpace(c.Token) || validateIntegrationCredentials("jira", c, true) != nil {
+	if !jiraTicketReady(c) {
 		return failed
 	}
-	body, err := buildJiraTicket(projectID, typeID, title, description)
+	body, err := buildJiraTicket(c.JiraProjectID, c.JiraIssueTypeID, title, description)
 	if err != nil {
 		return failed
 	}
