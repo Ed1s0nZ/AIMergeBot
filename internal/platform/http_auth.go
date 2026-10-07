@@ -220,6 +220,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.POST("/runs/:id/followup", h.followupRun)
 	api.POST("/runs/:id/cancel", h.cancelRun)
 	api.GET("/runs/:id/findings/:finding_id/disposition", h.disposition)
+	api.GET("/runs/:id/findings/:finding_id/owners", h.findingOwners)
 	api.PUT("/runs/:id/findings/:finding_id/disposition", h.saveDisposition)
 	api.POST("/runs/:id/findings/:finding_id/tickets", h.reserveFindingTicket)
 	api.GET("/runs/:id/findings/:finding_id/tickets", h.findingTickets)

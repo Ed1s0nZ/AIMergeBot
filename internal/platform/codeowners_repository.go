@@ -93,3 +93,25 @@ func (g *GitRepository) CodeOwnerDirectory(ctx context.Context, s Snapshot, dir 
 	}
 	return out, nil
 }
+
+func (g *GitLabRepository) validateCodeOwnerSnapshot(s Snapshot) error {
+	origin := strings.TrimSuffix(strings.TrimRight(g.Client.BaseURL().String(), "/"), "/api/v4")
+	if s.AuditPolicy == nil || s.AuditPolicy.RepositoryURL == "" || strings.TrimRight(s.AuditPolicy.RepositoryURL, "/") != origin {
+		return ErrCodeOwnersSource
+	}
+	return nil
+}
+func (g *GitRepository) validateCodeOwnerSnapshot(s Snapshot) error {
+	if validator, ok := g.Metadata.(interface{ validateCodeOwnerSnapshot(Snapshot) error }); ok {
+		return validator.validateCodeOwnerSnapshot(s)
+	}
+	return nil
+}
+
+func (d *DynamicRepository) validateCodeOwnerSnapshot(s Snapshot) error {
+	r, err := d.repo()
+	if err != nil {
+		return err
+	}
+	return r.validateCodeOwnerSnapshot(s)
+}

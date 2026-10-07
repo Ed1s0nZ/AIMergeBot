@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 )
 
 var ErrCodeOwnersSource = errors.New("CODEOWNERS source unavailable or lookup budget exceeded")
@@ -26,6 +27,8 @@ type CodeOwnerDocument struct {
 }
 
 func LoadCodeOwnerDocument(ctx context.Context, repo Repository, snap Snapshot) (CodeOwnerDocument, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	if dynamic, ok := repo.(*DynamicRepository); ok {
 		frozen, err := dynamic.repo()
 		if err != nil {
@@ -37,6 +40,11 @@ func LoadCodeOwnerDocument(ctx context.Context, repo Repository, snap Snapshot) 
 	source, ok := repo.(CodeOwnerDirectoryReader)
 	if !ok || snap.SourceProjectID <= 0 || !validCodeOwnerSHA(snap.HeadSHA) {
 		return doc, ErrCodeOwnersSource
+	}
+	if validator, ok := repo.(interface{ validateCodeOwnerSnapshot(Snapshot) error }); ok {
+		if err := validator.validateCodeOwnerSnapshot(snap); err != nil {
+			return doc, err
+		}
 	}
 	doc.Provider = source.CodeOwnersProvider()
 	var locations []string

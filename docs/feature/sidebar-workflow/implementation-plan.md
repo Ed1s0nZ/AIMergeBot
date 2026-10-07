@@ -612,3 +612,15 @@ typecheck及临时独立Vite构建成功，受控真实浏览器8800从编译产
 首轮编译暴露误用不存在的validHeadSHA，改为独立validCodeOwnerSHA，拒绝无效/全零提交。专项race2.298s覆盖provider顺序/固定fork HEAD/absent与unavailable区别/空文件/symlink/读取404/解析失败/超大内容、真实GitLabHTTP固定source7/HEAD请求、403及20页未证完成拒绝。追加真实Git仓库：提交CODEOWNERS后更新工作区并再次提交，加载旧SHA仍@pinned；新SHA根symlink不读取目标、不fallback docs；无provider不猜测。最终全部来源专项race2.456s、vet/diff通过，无生产仓库/真实平台/模型调用。
 
 源模块尚未接入Store完整snapshot授权/详情推荐/通知，GitHub真实provider仍待实现，REQ-019/AC-017未完成。本来源版本需独立完整Go并后续精确CI，当前不覆盖正在执行的parser CI。
+
+来源读取4f763d5完整Go61249 completed/success，platform166.109s。当前匹配模块e3c6193远端CI37613999458仍in_progress，未推送覆盖该检查。
+
+### S8 责任人推荐 Store 与登录查询接口
+
+新增owner_recommendation.go：固定运行/唯一finding/完整viewer与启用项目、1MiB结果及64KiB策略预算；捕获当前责任人配置后释放DB事务读取CODEOWNERS，再新读事务复查全部身份/快照/file/策略版本。配置改变ErrConflict，调用者撤权拒绝，候选账号缺少source/context权限或停用则过滤且不披露ID/name。CODEOWNERS有效匹配优先用显式aliases，未知身份不fallback默认；空owner/排除保留未分配，无匹配/无文件可推荐明确项目默认；source错误标unavailable与不足说明，仍可独立显示已配置project_default。纯查询不写入owner/权限。
+
+响应有界：候选/匹配依据200条，未知身份100条，超限明确truncated，账号权限在同一DB快照按ID缓存；不会对8192条身份声明重复查同一账号。来源Load增加30秒总预算，并校验GitLab捕获origin与客户端地址一致；Dynamic/本地Metadata同样检查，不向错误origin读取历史task。HTTP GET /runs/:id/findings/:finding_id/owners复用真实Register/session，Repository取Runner只读接口，无Runner保持来源unavailable不伪装无文件。
+
+Store首轮race14.653s通过：target/source/context独立权限、候选缺context过滤、授予后显式映射、停用过滤、未映射与排除不fallback、missing/unavailable区别，网络读取期间viewer各scope撤权/配置变更/候选撤权后的二次拒绝或过滤，未授权零repo reads。追加origin mismatch零HTTP、201section候选/证据截断，实际HTTP匿名401/完整viewer200/no-store/字段最小化/missingfinding404/target-source-context撤权404零repo read/账号停用401，合并race17.200s通过。重复finding与停用项目专项正在补充；vet/diff通过。推荐UI、通知消费和GitHub真实provider尚未交付，REQ-019/AC-017仍未完成。
+
+重复finding与停用context项目负例、权限预查补强后的最终推荐/HTTP专项race17.905s通过，均拒绝且零仓库读取。该版生产推荐链独立完整Go继续执行，后续精确CI验证，不以来源前版全量替代。

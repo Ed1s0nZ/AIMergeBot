@@ -128,6 +128,7 @@ func TestGitLabCodeOwnerDirectoryUsesFixedSourceAndRejectsIncompletePages(t *tes
 		http.NotFound(w, r)
 	}))
 	defer server.Close()
+	snap.AuditPolicy = &AuditPolicy{RepositoryURL: server.URL}
 	repo, err := NewGitLabRepository("fixture", server.URL)
 	if err != nil {
 		t.Fatal(err)
@@ -136,6 +137,13 @@ func TestGitLabCodeOwnerDirectoryUsesFixedSourceAndRejectsIncompletePages(t *tes
 	if err != nil || !doc.Present || doc.Path != "CODEOWNERS" || calls != 2 {
 		t.Fatal(doc, calls, err)
 	}
+	originalOrigin := snap.AuditPolicy.RepositoryURL
+	snap.AuditPolicy.RepositoryURL = "https://different.example.test"
+	calls = 0
+	if _, err := LoadCodeOwnerDocument(context.Background(), repo, snap); !errors.Is(err, ErrCodeOwnersSource) || calls != 0 {
+		t.Fatal("origin mismatch accessed repository", calls, err)
+	}
+	snap.AuditPolicy.RepositoryURL = originalOrigin
 	mode = "denied"
 	calls = 0
 	if _, err := LoadCodeOwnerDocument(context.Background(), repo, snap); err == nil || calls != 1 {

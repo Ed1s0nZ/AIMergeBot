@@ -45,3 +45,13 @@ GitLab每个目录最多20页×100项，强制固定source_project_id/HeadSHA且
 当前HEAD推荐用途须标明source仓库与SHA。GitHub和GitLab原生审批都使用目标/base分支CODEOWNERS，不能把此HEAD推荐声称为平台必审人或合并授权。真实GitHub客户端尚未实现，现有GitHub加载仅有受控目录fixture与共享接口，不能声明GitHub完整审计链完成。来源读取尚未接到发现API/通知；后续读取前后都要验证完整snapshot权限。
 
 位置顺序依据：[GitLab CODEOWNERS file](https://docs.gitlab.com/user/project/codeowners/#codeowners-file)、[GitHub CODEOWNERS location](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-file-location)。
+
+## 推荐权限与接口
+
+GET `/api/v1/runs/:id/findings/:finding_id/owners` 要求当前 session 和完整 target/source/context viewer 权限。内部先在读事务验证权限/启用项目、固定运行与唯一 finding，再读取有界1MiB结果与64KiB策略，捕获当前责任人配置。仓库读取不持有数据库事务，随后新读事务复查调用者权限、项目启用、运行/发现文件/策略及配置版本；变化则拒绝旧结果。每个候选还须当前启用且具备完整快照 viewer 权限；不返回被过滤账号的名字或ID，不增加权限。
+
+匹配到CODEOWNERS规则时使用显式alias映射；未映射保持unmapped，不根据同名账号自动绑定，不退回默认责任人掩盖未知身份。空owner覆盖或排除也不退回默认。没有匹配规则/已证明无文件时，显式项目默认责任人才作为project_default候选；来源不可用时可返回该独立默认候选，但source_state保持unavailable且有不足说明。不会写入发现的owner。
+
+响应保留run/finding/config revision、文件、来源仓库/HEAD/path/present、匹配规则/排除、候选来源、未映射身份、过滤/截断标志和说明。候选与匹配依据各最多200条，未映射身份最多100条，超出明确标记truncated；重复候选账号权限按同一读快照缓存，不对每条匹配重复查询。GitLab读取前要求捕获RepositoryURL与当前客户端origin一致，旧任务缺少origin或地址变化时来源不可用；Dynamic/local Metadata同样校验。单次来源读取全链30秒上限。
+
+当前接口已接入HTTP/Store，详情推荐UI与通知消费仍待实现；source_state available不表示原生代码平台审批资格，source_state missing也不表示代码安全。
