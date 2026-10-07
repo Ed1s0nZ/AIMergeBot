@@ -82,3 +82,11 @@ G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Githu
 ### 当前实施状态（2026-10-07）
 
 上文“当前事实”是设计创建时的基线：现已实现G1绑定存储与历史、G2 HTTP/配置同步/原生创建/管理页面，G3安全读取client及固定commit/tree/blob/目录列表的内部模块。bound执行仍由guard明确拒绝，repository_execution_available=false；PR observation/compare/diff/metadata、统一factory与G4–G6尚未完成。具体证据见github-read-client-plan.md、github-fixed-objects-plan.md及repository-management-ui-gate.md，不把这些配置与读取模块等同原生GitHub审计可用。
+
+### G3 研究纠正与待解决契约（2026-10-07）
+
+按用户“只要没想清楚的，都先不实现”的约束，本节记录研究结果，不授予实施许可。上文“验证返回HEAD/merge-base”仅为目标，不能假设compare响应存在head_commit字段。核对[GitHub官方OpenAPI描述](https://github.com/github/rest-api-description/blob/main/descriptions/api.github.com/api.github.com.json)的compare 200 schema（info.version=1.1.4）后，属性包含base_commit、merge_base_commit、commits、total_commits，但无独立head_commit；files也不在required中。此次读取的是main当前描述，不是已固定2022-11-28的版本证明，不将此schema直接当现有客户端版本契约。
+
+[官方compare文档](https://docs.github.com/en/rest/commits/commits#compare-two-commits)说明：不指定分页时最多返回250个commits且末项为整个比较的最新commit；分页时末项不一定是整个比较末项，文件仅第一页提供且最多300个。提交分页不能补全文件列表；不能把空commits或缺files解释为没有差异，也不能把分页末项一律当HEAD验证。现有固定对象读取器尚未解决这些compare语义。
+
+进入实施之前需明确并记录以下证据：固定SHA与fork限定语法在所选API版本的支持；HEAD/merge-base的身份与关系验证，包括相同提交、behind/diverged、超250提交及缺字段；独立固定树比较如何证明文件覆盖并保留mode/gitlink/rename与patch缺失真值；来源绑定/ACL完成前零来源内容访问，以及入队前权限和绑定版本复查。仅有概览或fixture按自行假定字段返回不构成协议证明。未闭合前不添加PR/compare生产实现、不开放bound执行；完整G3–G6目标保留。
