@@ -1,0 +1,11 @@
+# 显式仓库绑定的执行 guard（G2 前置）
+
+P8/F3–F5；Confirmed scope、github-provider-design与G1 Store已存在，允许实现；本阶段仍不开放配置HTTP。现有Runner/runs_store/polling承担多职责，采用独立repository_binding_guard.go与小委托，不扩展平台请求逻辑（maintainability gate：high风险，narrow adapter委托允许）。
+
+当前任何显式binding（包括GitLab绑定或损坏行）都须等待统一factory，暂以ErrRepositoryUnavailable拒绝，不能猜测远端ID等于内部ID。新增project/snapshot/run守卫只查本地binding存在性，不读凭据/远端；包括target/source和context。nil旧项目保持原执行。该临时行为将在factory可读取被冻结绑定时替换，不作为最终GitHub支持。
+
+Runner.Submit在Snapshot前检查target；enqueueTx在原权限校验后、去重/配额/写入前检查全部snapshot，阻止读取期间配置变化与Store/Slack旁路。execute在原请求者权限之后、远端/模型调用前拒绝旧运行绑定变化。pinnedScopeChanges、authorizeContextRead加全部snapshot守卫；责任人推荐读取前/后二次输入检查，来源不支持时不能读取旧GitLab。自动retry与恢复在同事务检查run target/source/持久context，记录repository_unavailable停止状态而不创建child，保留父失败/恢复证据。
+
+poll在每项目/页与Snapshot前检查target，不将拒绝项目标initialized/seen；seen写入改为短事务内再查snapshot binding，禁止网络读取期间新增绑定后写入错误baseline。服务读取GitLab MR target后才知道source，因此source检查保证无source源码读取或enqueue，不承诺事前未知source时target metadata零访问。
+
+测试：显式target手工Submit零repo calls、legacy成功、source/context enqueue拒绝且零新增run/event、Snapshot调用期间创建binding后二次拒绝、执行/Scope/owner推荐零reader、retry无child/父失败保留、poll零HTTP/零seen与baseline写入竞态；原followup/Slack/恢复/poll/推荐回归，race/vet/build/全Go与精确CI。计划先commit/push docs-only；6f54bec CI37625207628终态后再推生产代码。其他完整REQ保持。
