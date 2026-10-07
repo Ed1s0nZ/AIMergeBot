@@ -27,10 +27,13 @@ type Integration struct {
 	MinimumSeverity string   `json:"minimum_severity"`
 	HasEndpoint     bool     `json:"has_endpoint"`
 	HasSecret       bool     `json:"has_secret"`
+	HasJiraMapping  bool     `json:"has_jira_mapping"`
 	HasTeamMapping  bool     `json:"has_team_mapping"`
 	UpdatedAt       string   `json:"updated_at"`
 }
 type IntegrationCredentials struct {
+	JiraProjectID   string   `json:"jira_project_id,omitempty"`
+	JiraIssueTypeID string   `json:"jira_issue_type_id,omitempty"`
 	LinearTeamID    string   `json:"linear_team_id,omitempty"`
 	AllowedNetworks []string `json:"allowed_networks,omitempty"`
 	Endpoint        string   `json:"endpoint"`
@@ -121,6 +124,9 @@ func validateIntegration(v IntegrationInput) error {
 	return nil
 }
 func validateIntegrationCredentials(kind string, c IntegrationCredentials, enabled bool) error {
+	if c.JiraProjectID != "" && !jiraNumericID.MatchString(c.JiraProjectID) || c.JiraIssueTypeID != "" && !jiraNumericID.MatchString(c.JiraIssueTypeID) {
+		return ErrIntegrationInput
+	}
 	if c.LinearTeamID != "" && !ticketUUID.MatchString(c.LinearTeamID) {
 		return ErrIntegrationInput
 	}
@@ -192,6 +198,7 @@ func scanIntegration(row interface{ Scan(...any) error }) (Integration, Integrat
 	v.HasEndpoint = c.Endpoint != "" || c.SMTPHost != ""
 	v.HasSecret = c.Secret != "" || c.Token != "" || c.Password != ""
 	v.HasTeamMapping = v.Kind == "linear" && c.LinearTeamID != ""
+	v.HasJiraMapping = v.Kind == "jira" && c.JiraProjectID != "" && c.JiraIssueTypeID != ""
 	return v, c, nil
 }
 
@@ -319,5 +326,6 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 	v.HasEndpoint = credentials.Endpoint != "" || credentials.SMTPHost != ""
 	v.HasSecret = credentials.Secret != "" || credentials.Token != "" || credentials.Password != ""
 	v.HasTeamMapping = v.Kind == "linear" && credentials.LinearTeamID != ""
+	v.HasJiraMapping = v.Kind == "jira" && credentials.JiraProjectID != "" && credentials.JiraIssueTypeID != ""
 	return v, nil
 }

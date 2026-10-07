@@ -348,3 +348,7 @@ P8/F4，参考官方 https://developer.atlassian.com/cloud/jira/platform/rest/v3
 P8/F4，官方认证依据 https://developer.atlassian.com/cloud/jira/platform/basic-auth-for-rest-apis/，显式 Username（账户邮箱）+Token（API token），不使用 Password 字段。发送器仅接收 HTTPS 根地址、无 user/query/fragment、有效凭据与固定项目/类型，POST /rest/api/3/issue，15 秒上下文、64 KiB 回执限制。生产默认复用禁止代理/重定向、DNS/IP 限制的 HTTP 客户端；必须传授权回调，POST 前/有效回执后复核，撤权后保留回执但 unknown。不自动重试、原始传输和权限错误不输出。
 
 纯协议/发送器定向 race 1.668s 通过，受控 transport 覆盖 Basic header、目标 URL、deadline、前置撤权零 POST、有效回执、后置撤权保留身份、伪造来源、配置错误、传输未知。尚未调用真实 Jira，未接入 Store/Runner/UI，Jira 仍不提供创建选项。后续需项目/问题类型持久映射、渠道版本与可靠回执存储、用户详情入口、必填自定义字段处理和认证范围说明。
+
+### S6 Jira 固定项目/类型映射（开发验证中）
+
+P8/F4，IntegrationCredentials 增加可选 jira_project_id / jira_issue_type_id，配置校验拒绝非正数/超限/路径/换行 ID，旧无映射配置保持可读。公开 Integration 仅增加 has_jira_mapping 布尔，scan 与 Save 返回路径一致，不返回项目/类型 ID、邮箱或 token。真实 Store 测试验证新建、仅重命名保留凭据、列表存在标志、数据库持久映射与敏感值不出响应。Jira/Linear 相关定向 race 2.888s、vet/diff 通过；增加非法 ID 与旧配置专项后重新执行定向验证。Jira 仍未进入候选渠道/消费者/UI，不把持久配置当作完整创建能力。前一 Jira 发送层完整测试 13084 仍运行，等待同一进程终态后验证本版本；9a80965 CI 37602358756 仍 in_progress。
