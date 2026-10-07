@@ -532,3 +532,11 @@ P8/F4，挑战发行、有效绑定完成、实际撤销分别在同事务写入
 真实 SQLite 专项 race10.545s通过：发行两次/绑定一次/撤销一次的 actor+target 历史计数准确，重复撤销不增加，令牌不出现在target。受控 SQLite BEFORE INSERT trigger 强制审计写失败后撤销返回失败、挑战仍存在，验证同事务回滚。此前无故障注入版本专项15.206s也通过；vet/diff通过。新操作审计版本需全量，前版证据链接全量62154仍同进程运行，未假定已成功。
 
 该历史补齐不替代机器人复审动作、其他providers、跨平台GitHub等完整需求；AC-013和整体目标仍未完成。后续推送依据本地全量与精确远端CI结果。
+
+### S7 机器人复审复用原子入队基础
+
+P8/F4，检查现有 Runner.Submit/SubmitFollowup 与 Store.EnqueueUser：用户提交须 operator、完整 snapshot ACL、context admission、followup parent约束、quota与重复任务复用。提取 Store.enqueueTx，将既有入队校验/去重/配额/run/context/event 写入供调用方同事务使用，原有 enqueue wrapper 负责 begin/commit。为机器人后续 replay receipt 与入队一起提交提供基础，避免两个独立事务发生权限变更/nonce先消费却未创建任务的窗口。不新增公开复审命令，不绕过原权限/配额或替代审批。
+
+现有并发入队/配额/提交/context/followup相关race13.260s通过。新真实SQLite事务test race2.179s验证receipt+run+run.created一起rollback或一起commit，无部分状态。该test采用受控receipt插入，仅证明事务边界，不声称签名复审整链完成。vet/diff通过。
+
+前版证据链接babcac2全量62154终态success，platform170.132s；随后绑定audit与当前enqueue提取需当前独立全量。复审请求格式、固定HEAD约束、真实Runner admission与HTTP签名/重复/配额故障矩阵仍待实施，AC-013未完成；GitHub/其他bots等完整范围保持。

@@ -23,14 +23,25 @@ func (s *Store) EnqueueUser(ctx context.Context, snap Snapshot, actor int64, for
 }
 
 func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, authorize bool) (int64, bool, error) {
-	if snap.ProjectID <= 0 || snap.MRIID <= 0 || snap.SourceProjectID <= 0 || snap.HeadSHA == "" || snap.BaseSHA == "" {
-		return 0, false, fmt.Errorf("invalid snapshot")
-	}
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, false, err
 	}
 	defer tx.Rollback()
+	id, created, err := s.enqueueTx(ctx, tx, snap, actor, force, authorize)
+	if err != nil {
+		return 0, false, err
+	}
+	return id, created, tx.Commit()
+}
+
+// Share admission with signed bot callbacks so replay consumption and run
+// creation can commit atomically rather than using independent transactions.
+func (s *Store) enqueueTx(ctx context.Context, tx *sql.Tx, snap Snapshot, actor int64, force, authorize bool) (int64, bool, error) {
+	if snap.ProjectID <= 0 || snap.MRIID <= 0 || snap.SourceProjectID <= 0 || snap.HeadSHA == "" || snap.BaseSHA == "" {
+		return 0, false, fmt.Errorf("invalid snapshot")
+	}
+	var err error
 	if err = validateContextAdmission(ctx, tx, snap); err != nil {
 		return 0, false, err
 	}
@@ -75,7 +86,7 @@ func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, 
 	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'run.created',?,?)`, actor, fmt.Sprint(id), now()); err != nil {
 		return 0, false, err
 	}
-	return id, true, tx.Commit()
+	return id, true, nil
 }
 
 func (s *Store) Claim(ctx context.Context) (int64, error) { return s.claimRun(ctx, "") }
