@@ -364,3 +364,11 @@ P8/F4，jiraTicketReady 统一要求完整项目/问题类型 ID、HTTPS 根端�
 P8/F4，工单表迁移增加内部 endpoint_origin（默认空兼容旧记录），预留时保存凭据中的端点但不回传 API。领取包含固定端点；Finish 租约完整身份新增端点匹配。Jira created/带回执 unknown 必须数字远端 ID 与该固定 HTTPS 根站点的合法 /browse/<key>，Linear 沿用独立身份规则；failed 仍不接受回执。Jira 暂未开放预留，因此测试在独立数据库显式构造 Jira 记录验证持久层，不视作产品端到端能力。
 
 协议/迁移/重开/HTTP 定向 race 8.068s，固定站点/租约拒绝定向 race 3.482s、vet/diff 通过。覆盖合法 Jira 回执持久化、外站链接拒绝、伪造 endpoint 即使配套伪造链接也因 SQL 身份不符拒绝；已有 Linear 租约测试补充端点伪造。前一映射绑定完整 Go 65571 仍运行，待同一进程终态；本版本全量验证尚待执行。
+
+Jira 映射绑定版本完整 Go 测试通过（platform 114.462s）。
+
+### S6 Jira 预留与消费接通（开发验证中）
+
+P8/F4，可选渠道与预留通过同一 ticketProviderReady 分派 Linear/Jira，Jira 要求持久项目/类型与认证完整。后台 Dispatcher 分派 Jira sender，当前凭据端点必须与持久 endpoint_origin 完全一致，避免旧记录发送到新站点。现有 Runner 队列自动消费明确预留记录，仍无审计事件隐式建单。使用实际 Store/预留/授权快照/受控 HTTP/回执落库完整矩阵：有效 created、发送前禁用零 POST、缺项目映射零 POST、发送后 revision 变化 unknown 保留回执、传输未知不重发。原审计摘要不导出。
+
+Jira/Linear 消费/渠道定向 race 8.779s、vet/diff 通过。尚需管理员 Jira 表单、Jira 查看链接前端适配、后台生命周期 Jira 专项及实际浏览器交互/必填字段与认证范围说明；不声称 Jira 功能完整验收。前一远端 CI 37602358756 待终态后再推送。

@@ -29,7 +29,7 @@ func (s *Store) FindingTicketChannels(ctx context.Context, runID, actor int64, f
 	if err := requireTicketProjectsEnabled(ctx, tx, snap); err != nil {
 		return nil, err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT id,revision,name,kind,CASE WHEN length(CAST(credentials AS BLOB))<=65536 THEN credentials ELSE '' END FROM platform_integrations WHERE enabled=1 AND kind='linear' AND EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(project_ids) THEN project_ids ELSE '[]' END) WHERE value=?) ORDER BY id LIMIT 501`, snap.ProjectID)
+	rows, err := tx.QueryContext(ctx, `SELECT id,revision,name,kind,CASE WHEN length(CAST(credentials AS BLOB))<=65536 THEN credentials ELSE '' END FROM platform_integrations WHERE enabled=1 AND kind IN ('linear','jira') AND EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(project_ids) THEN project_ids ELSE '[]' END) WHERE value=?) ORDER BY id LIMIT 501`, snap.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (s *Store) FindingTicketChannels(ctx context.Context, runID, actor int64, f
 		if len(raw) > 65536 || json.Unmarshal([]byte(raw), &credentials) != nil {
 			continue
 		}
-		if !linearTicketReady(credentials) {
+		if !ticketProviderReady(v.Provider, credentials) {
 			continue
 		}
 		out = append(out, v)
@@ -66,4 +66,15 @@ func (s *Store) FindingTicketChannels(ctx context.Context, runID, actor int64, f
 
 func linearTicketReady(credentials IntegrationCredentials) bool {
 	return credentials.Endpoint == "https://api.linear.app/graphql" && ticketUUID.MatchString(credentials.LinearTeamID) && credentials.Token != "" && credentials.Token == strings.TrimSpace(credentials.Token) && !strings.ContainsAny(credentials.Token, "\r\n") && validateIntegrationCredentials("linear", credentials, true) == nil
+}
+
+func ticketProviderReady(provider string, c IntegrationCredentials) bool {
+	switch provider {
+	case "linear":
+		return linearTicketReady(c)
+	case "jira":
+		return jiraTicketReady(c)
+	default:
+		return false
+	}
 }

@@ -63,6 +63,9 @@ func (s *Store) TicketSendContext(ctx context.Context, claim TicketClaim) (Snaps
 	if err := validateIntegrationCredentials(provider, credentials, true); err != nil {
 		return failed(err)
 	}
+	if claim.Provider == "jira" && (claim.EndpointOrigin == "" || credentials.Endpoint != claim.EndpointOrigin) {
+		return failed(ErrConflict)
+	}
 	if err := tx.Commit(); err != nil {
 		return failed(err)
 	}

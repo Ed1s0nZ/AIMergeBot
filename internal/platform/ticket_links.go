@@ -68,7 +68,7 @@ func (s *Store) ReserveFindingTicket(ctx context.Context, runID, actor, integrat
 		return TicketLink{}, false, ErrConflict
 	}
 	var credentials IntegrationCredentials
-	if provider != "linear" || json.Unmarshal([]byte(rawCredentials), &credentials) != nil || !linearTicketReady(credentials) {
+	if json.Unmarshal([]byte(rawCredentials), &credentials) != nil || !ticketProviderReady(provider, credentials) {
 		return TicketLink{}, false, ErrConflict
 	}
 	var scope []int
