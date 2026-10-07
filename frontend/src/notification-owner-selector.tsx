@@ -29,6 +29,7 @@ export function NotificationOwnerSelector({
   projectIDs,
   projects,
   projectsLoading,
+  projectsError,
   ownerIDs,
   events,
   disabled,
@@ -38,6 +39,7 @@ export function NotificationOwnerSelector({
   projectIDs: number[];
   projects: Project[];
   projectsLoading: boolean;
+  projectsError: string;
   ownerIDs: number[];
   events: string[];
   disabled: boolean;
@@ -56,7 +58,7 @@ export function NotificationOwnerSelector({
   const projectOK =
     projectIDs.length > 0 &&
     projectIDs.every((id) => projects.some((p) => p.id === id && p.enabled));
-  const canLoad = !projectsLoading && projectOK;
+  const canLoad = !projectsLoading && !projectsError && projectOK;
   useEffect(() => {
     const controller = new AbortController();
     setState(null);
@@ -138,6 +140,8 @@ export function NotificationOwnerSelector({
       </p>
       {projectsLoading ? (
         <Empty>加载项目范围…</Empty>
+      ) : projectsError ? (
+        <ErrorBox error="项目范围读取失败，请刷新列表后重试。" />
       ) : !projectOK ? (
         <p>请先选择启用的项目。</p>
       ) : !current ? (

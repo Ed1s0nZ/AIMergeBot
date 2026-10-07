@@ -680,3 +680,11 @@ fec020f设计先提交。新增独立GitHub lexer/bare owner校验及RE2 pattern
 专项race2.538s通过Unicode/长TLD/RFC符号、根规则、CRLF、空owner与证据不可变，ASCII共同支持模式×路径与hmarr差分（含Unicode目标路径?）、unsupported/malformed无partial及预算边界。补充***模式负例后最终GitHub专项race1.787s通过。固定HEAD来源/本地Git/provider及OwnerRecommendation Store真实HTTP/完整snapshotACL扩大race35.877s通过。完整Go13242 completed/success，platform136.499s，evaluation13.982s；全项目vet/build及diff检查通过。仅受控规则/测试仓库，无生产凭据、真实外部发送或模型调用。
 
 前版UI c8ef2ea精确CI37621134568 completed/success后才推送本生产改动；本版仍需精确CI独立验收。GitHub真实provider、自动推荐通知、其余完整REQ及整体验收继续保留，不认定整个REQ-019或目标完成。
+
+### S8 项目范围失败时禁止旧候选保存
+
+606d17d先提交推送补强契约。集成页projectDataReady/projectReady独立校验，项目loading/error/缺data不显示缓存标签、禁止所有保存（owner为空也不能绕过）；已选项目须当前存在且启用。独立selector接收projectsError，即时隐藏旧候选并取消读取；错误保留草稿ID。刷新列表同时GET集成/项目。缺失项目显示明确移除按钮，停用项目保留标签说明并允许取消选择；不自动调整范围、不写ACL、不发送消息。原409锁定与保存403清除凭据机制保持。
+
+受控编译产物8802浏览器：已有配置原项目1与候选就绪；项目503刷新隐藏原项目名/全部候选并disabled保存（owner空）；选owner2后项目403刷新隐藏候选、保留选中数且不可保存，明确清空owner后仍不可保存。项目1缺失时只剩项目2和“移除不可用项目#1”，明确移除后选择项目2，候选仅admin/both3且恢复保存。项目1停用时原选择保留、显示停用原因/保存disabled；3秒项目加载过程中不显示旧项目/候选，成功后项目1与候选恢复/saveEnabled=true。没有实际POST/PATCH或渠道测试发送。360×800 DOM scrollWidth==innerWidth360，临时tab15关闭、viewport重置、fixture23406停止。
+
+typecheck/临时Vite及正式build通过，embedded index-DuJUZKMO.js/index-SQxcMfgg.css；Go build ./...、vet ./...最终43168 completed/success及diff检查通过。本阶段只修改前端，Go生产源码不变。529516d精确CI37622635264仍in_progress（Go tests and race checks），本生产改动等待该CI终态再推送，未取消/重启其run。完整REQ及其他平台闭环仍未完成。
