@@ -99,27 +99,58 @@ func requireSnapshotRole(ctx context.Context, q queryRower, snap Snapshot, user 
 }
 
 func (s *Store) ProjectsForUser(ctx context.Context, user User) ([]Project, error) {
-	if user.Role == "admin" {
-		items, err := s.Projects(ctx)
-		for i := range items {
-			items[i].AccessRole = "admin"
-		}
-		return items, err
-	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT p.id,p.name,p.enabled,m.role FROM platform_projects p JOIN platform_project_members m ON m.project_id=p.id WHERE m.user_id=? ORDER BY p.name,p.id`, user.ID)
+	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer tx.Rollback()
+	var role string
+	var disabled bool
+	if err = tx.QueryRowContext(ctx, `SELECT role,disabled FROM platform_users WHERE id=?`, user.ID).Scan(&role, &disabled); err != nil {
+		return nil, err
+	}
+	if disabled {
+		return nil, ErrCredentials
+	}
+	query := `SELECT p.id,p.name,p.enabled,'admin' FROM platform_projects p ORDER BY p.name,p.id`
+	args := []any{}
+	if role != "admin" {
+		query = `SELECT p.id,p.name,p.enabled,m.role FROM platform_projects p JOIN platform_project_members m ON m.project_id=p.id WHERE m.user_id=? ORDER BY p.name,p.id`
+		args = append(args, user.ID)
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
 	items := []Project{}
 	for rows.Next() {
 		var p Project
 		if err = rows.Scan(&p.ID, &p.Name, &p.Enabled, &p.AccessRole); err != nil {
+			rows.Close()
 			return nil, err
 		}
 		items = append(items, p)
 	}
-	return items, rows.Err()
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	for i := range items {
+		binding, err := readRepositoryBinding(ctx, tx, items[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		if binding.Revision > 0 {
+			available := false
+			items[i].Repository = &binding
+			items[i].RepositoryExecutionAvailable = &available
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 type ProjectMember struct {

@@ -1,3 +1,4 @@
+import type { RepositoryBinding } from "./repository-types";
 export class APIError extends Error {
   constructor(
     public status: number,
@@ -21,6 +22,8 @@ export async function api<T>(
     if (res.status === 401 && path != "/auth/login")
       window.dispatchEvent(new Event("session-expired"));
     const messages: Record<string, string> = {
+      repository_unavailable: "该仓库尚不能执行审计，请检查平台接入状态。",
+      project_config_sync_pending: "配置已保存，配置文件同步待恢复。请核对当前数据后再操作。",
       context_repository_unavailable:
         "关联仓库授权已变更或不可用，请联系管理员后重新提交。",
       worker_unavailable: "审计服务正在恢复，请稍后重试。",
@@ -52,6 +55,8 @@ export type User = {
 };
 export type ProjectRole = "viewer" | "reviewer" | "operator" | "admin";
 export type Project = {
+  repository?: RepositoryBinding;
+  repository_execution_available?: boolean;
   id: number;
   name: string;
   enabled: boolean;

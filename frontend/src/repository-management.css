@@ -1,0 +1,46 @@
+.repository-management {
+  margin-top: 20px;
+}
+.repository-management form,
+.repository-management fieldset,
+.repository-fields {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.repository-management label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.repository-management input,
+.repository-management select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.repository-management p,
+.repository-caption {
+  overflow-wrap: anywhere;
+}
+.repository-management button {
+  margin: 8px 8px 0 0;
+}
+.repository-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.repository-fields p {
+  grid-column: 1 / -1;
+}
+@media (max-width: 640px) {
+  .repository-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .repository-management {
+    padding: 16px;
+  }
+  .repository-management button {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

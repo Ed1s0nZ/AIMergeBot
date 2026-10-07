@@ -35,3 +35,15 @@ Maintainability Gate：projects.tsx多责任medium/high，只组合独立reposit
 - 360×800实际完整截图检查创建字段/按钮可见且单列，无文档横溢（scrollWidth=innerWidth=360）。项目名称Tab到仓库平台select，关闭创建面板焦点回到创建触发按钮。结束恢复默认视口。
 
 尚待：创建409/403的实际浏览器矩阵、profile与binding慢/错误恢复、空项目下repo与webhook对比、项目slow/error时集成保存禁止、member只读及绑定面板窄屏/关闭focus；最终正式embedded构建+Go vet/build、独立生产提交/精确CI。GitHub实际provider执行G3–G6、自动推荐路由、邮件/bots外部闭环及其他完整REQ继续保留。没有main合并或发布。
+
+## F4/F5 页面切片收尾
+
+补充实际浏览器矩阵：create409保留原UUID和草稿、字段/原请求重试锁定；显式放弃后字段解锁且下次POST使用新UUID。create403清全部可见编辑字段，关闭后原actor的耐久attempt仍可恢复，防止丢失不确定结果。profiles503时无新建表单/提交入口；原attempt恢复时错误明确显示，配置标签改为“尚未读取”，不再把读取失败误报为确实没有可用配置。profiles三秒慢加载显示加载提示并禁刷新，完成后恢复原草稿。binding三秒慢加载无旧字段；刷新GET503后清旧版本/字段并允许显式重读。
+
+绑定成功后的父列表刷新原先会使子面板成功提示消失，已由父页面持有保存回执提示；选中仓库按钮采用React ref恢复，列表重新挂载后关闭仍能聚焦当前按钮。实际PATCH成功后列表org/saved-final与binding版本3显示，成功提示保留；360像素绑定表单所有字段宽258、文档宽360无横溢，关闭聚焦GitHub fixture卡片仓库绑定按钮。
+
+空项目列表下，同一名称草稿的Webhook保存disabled、GitHub及GitLab保存enabled；前轮本地实际GitHub空scope保存已证明请求project_ids=[]，其真实后端创建/scope语义由15c182d精确CI证明。项目scope三秒慢读取与503时，即使repo草稿也disabled，不能用空范围绕过读取失败；项目页慢加载不显示身份卡且新建disabled。member重新认证加载后只显示平台/路径/内部ID/remoteID，没有创建/绑定/停用及管理导航。后端真实成员撤权/损坏身份/停用账户/伪admin caller由投影测试覆盖；fixture不作为服务端ACL证明。
+
+修正profile提示时一次机械替换误加参数被tsc拒绝，立即删除误加实参后typecheck64056成功；最终焦点/反馈补强后typecheck和临时Vite54548成功。正式npm run build85336成功，JS index-DOrFma53.js与CSS index-RiSjjNhI.css的SHA256与实际浏览器验收的临时产物逐字一致。全Go47118 success（Go生产代码之后未变），最终正式embed Go build ./...及go vet ./...50469 success，git diff --check通过。当前切片可提交推送并由独立精确HEAD CI全量验证，不用旧CI替代。
+
+仍未覆盖所有浏览器组合（存储禁止/损坏、切账号、写请求途中卸载、凭据选项在请求期间变更）；这些分支采取阻止新建或保留原请求、后台权限/CAS为最终边界。没有真实GitHub/GitLab凭据连通测试/外部发送/模型调用。真实GitHub provider审计与自动闭环、邮件/bots完整联调、原REQ整体验收及F6完整release审计继续未完成。此次是仓库管理配置页面切片，不声称原生GitHub审计已可用，未合并main/发布。

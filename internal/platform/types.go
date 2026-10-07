@@ -10,11 +10,13 @@ type User struct {
 }
 
 type Project struct {
-	ContextRepositories []ContextRepository `json:"context_repositories,omitempty"`
-	AccessRole          string              `json:"access_role,omitempty"`
-	ID                  int                 `json:"id"`
-	Name                string              `json:"name"`
-	Enabled             bool                `json:"enabled"`
+	Repository                   *RepositoryBinding  `json:"repository,omitempty"`
+	RepositoryExecutionAvailable *bool               `json:"repository_execution_available,omitempty"`
+	ContextRepositories          []ContextRepository `json:"context_repositories,omitempty"`
+	AccessRole                   string              `json:"access_role,omitempty"`
+	ID                           int                 `json:"id"`
+	Name                         string              `json:"name"`
+	Enabled                      bool                `json:"enabled"`
 }
 
 type Finding struct {

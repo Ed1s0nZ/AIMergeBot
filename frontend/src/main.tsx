@@ -332,7 +332,7 @@ function App() {
           ) : route === "/runs" ? (
             <Runs />
           ) : route === "/projects" ? (
-            <Projects admin={user.role === "admin"} />
+            <Projects admin={user.role === "admin"} userID={user.id} />
           ) : route === "/bot-bindings" ? (
             <BotBindings />
           ) : route === "/policies" && user.role === "admin" ? (
