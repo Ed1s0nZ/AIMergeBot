@@ -328,3 +328,5 @@ P8/F4，将目标/fork 源/关联仓库启用状态检查提取为同一事务�
 ### S6 工单安全错误诊断（开发验证中）
 
 P8/F4，TicketLink 查询增加 updated_at 与安全 error_code，SQL 仅投影四个已定义诊断码，未知/损坏字段返回空码，不返回上游错误文本。详情页将配置失效、权限/配置变化、远端未确认、不支持渠道转为具体中文提示；unknown 继续要求先核对远端且不自动重发。消费者测试验证每种结果的错误码及更新时间，真实 HTTP 测试向 DB 注入非白名单 PRIVATE_UPSTREAM_ERROR 并确认列表不输出。定向 race 8.054s、前端 typecheck 通过。前一完整 Go 测试 24331 已重新确认进程仍 live，待其终态后构建新前端，避免 go:embed 与 Vite emptyOutDir 并发。新功能尚需 build、全量验证及浏览器诊断提示核验。
+
+项目启用版本的完整 Go 测试通过（platform 112.270s）。诊断版本前端 build 通过，产物重建完成，随后启动新完整 Go 测试 14954（无 Vite/Go 并发）。受控实际页面验证 409 渠道版本冲突后清除旧选择/创建表单、显式刷新重新加载默认未选渠道；成功模拟 unknown 时具体 creation_unacknowledged 提示可见且创建禁用；can_submit=false 的 viewer 页面仅显示现有工单和刷新，无创建渠道与按钮。临时 tab 已关闭。前一精确 9241467 的 CI 37601382357 已核实 completed/success。慢响应加载和管理员团队表单浏览器验收仍未完成。
