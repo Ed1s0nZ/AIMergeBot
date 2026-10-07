@@ -136,7 +136,8 @@ function PolicyEditor({ project }: { project: Project }) {
           <fieldset disabled={busy}>
             <legend>提交检查发布规则</legend>
             <p>
-              当前仅保存规则，自动发布尚未接入；保存后不会立即向代码平台发送检查。
+              保存后，使用此版本授权的任务会在审计结束后自动发布 GitLab
+              检查。未捕获该授权的历史任务不会补发。
             </p>
             <label>
               <input

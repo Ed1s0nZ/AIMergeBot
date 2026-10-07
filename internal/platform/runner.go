@@ -83,6 +83,8 @@ func (r *Runner) Start(parent context.Context) error {
 	}
 	if r.Settings != nil {
 		r.wg.Add(1)
+		go func() { defer r.wg.Done(); r.checkLoop(ctx) }()
+		r.wg.Add(1)
 		go func() { defer r.wg.Done(); r.commentLoop(ctx) }()
 		r.wg.Add(1)
 		go func() { defer r.wg.Done(); r.Poll(ctx) }()
