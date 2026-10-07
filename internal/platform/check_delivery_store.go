@@ -9,26 +9,22 @@ import (
 )
 
 type CheckDelivery struct {
-	Actor    int64  `json:"actor"`
-	RunID    int64  `json:"run_id"`
-	HeadSHA  string `json:"head_sha"`
-	State    string `json:"state"`
-	Blocking bool   `json:"blocking"`
-	RemoteID int    `json:"remote_id"`
-	Code     string `json:"code"`
-	Lease    string `json:"-"`
-}
-
-func migrateCheckDeliveries(tx *sql.Tx) error {
-	_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS platform_check_deliveries(run_id INTEGER PRIMARY KEY REFERENCES platform_runs(id),head_sha TEXT NOT NULL,actor INTEGER NOT NULL,state TEXT NOT NULL DEFAULT 'pending',blocking INTEGER NOT NULL DEFAULT 0,remote_id INTEGER NOT NULL DEFAULT 0,code TEXT NOT NULL DEFAULT '',lease TEXT NOT NULL DEFAULT '',lease_until TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL)`)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec(`CREATE INDEX IF NOT EXISTS platform_check_pending ON platform_check_deliveries(state,run_id)`)
-	return err
+	Automatic bool   `json:"automatic"`
+	Actor     int64  `json:"actor"`
+	RunID     int64  `json:"run_id"`
+	HeadSHA   string `json:"head_sha"`
+	State     string `json:"state"`
+	Blocking  bool   `json:"blocking"`
+	RemoteID  int    `json:"remote_id"`
+	Code      string `json:"code"`
+	Lease     string `json:"-"`
 }
 
 func (s *Store) QueueRunCheck(ctx context.Context, runID, actor int64, blocking bool) error {
+	return s.queueRunCheck(ctx, runID, actor, blocking, false)
+}
+
+func (s *Store) queueRunCheck(ctx context.Context, runID, actor int64, blocking, automatic bool) error {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -40,6 +36,11 @@ func (s *Store) QueueRunCheck(ctx context.Context, runID, actor int64, blocking 
 	}
 	if _, err = requireSnapshotRole(ctx, tx, snap, actor, "admin"); err != nil {
 		return err
+	}
+	if automatic {
+		if err = validateAutomaticCheckPolicy(ctx, tx, snap, actor, blocking); err != nil {
+			return err
+		}
 	}
 	var head, status string
 	var newest int64
@@ -54,11 +55,11 @@ func (s *Store) QueueRunCheck(ctx context.Context, runID, actor int64, blocking 
 	default:
 		return ErrConflict
 	}
-	var existingBlocking bool
+	var existingBlocking, existingAutomatic bool
 	var existingHead string
-	err = tx.QueryRowContext(ctx, `SELECT blocking,head_sha FROM platform_check_deliveries WHERE run_id=?`, runID).Scan(&existingBlocking, &existingHead)
+	err = tx.QueryRowContext(ctx, `SELECT blocking,head_sha,automatic FROM platform_check_deliveries WHERE run_id=?`, runID).Scan(&existingBlocking, &existingHead, &existingAutomatic)
 	if err == nil {
-		if existingBlocking != blocking || existingHead != head {
+		if existingBlocking != blocking || existingHead != head || existingAutomatic != automatic {
 			return ErrConflict
 		}
 		return tx.Commit()
@@ -66,7 +67,7 @@ func (s *Store) QueueRunCheck(ctx context.Context, runID, actor int64, blocking 
 	if err != sql.ErrNoRows {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_check_deliveries(run_id,head_sha,actor,blocking,updated_at) VALUES(?,?,?,?,?)`, runID, head, actor, blocking, now()); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_check_deliveries(run_id,head_sha,actor,blocking,automatic,updated_at) VALUES(?,?,?,?,?,?)`, runID, head, actor, blocking, automatic, now()); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_events(actor,action,target,created_at) VALUES(?,'check.queued',?,?)`, actor, runID, now()); err != nil {
@@ -89,7 +90,7 @@ func (s *Store) ClaimRunCheck(ctx context.Context) (CheckDelivery, error) {
 		return CheckDelivery{}, err
 	}
 	var d CheckDelivery
-	err = tx.QueryRowContext(ctx, `SELECT run_id,head_sha,state,blocking,actor FROM platform_check_deliveries WHERE state='pending' ORDER BY run_id LIMIT 1`).Scan(&d.RunID, &d.HeadSHA, &d.State, &d.Blocking, &d.Actor)
+	err = tx.QueryRowContext(ctx, `SELECT run_id,head_sha,state,blocking,actor,automatic FROM platform_check_deliveries WHERE state='pending' ORDER BY run_id LIMIT 1`).Scan(&d.RunID, &d.HeadSHA, &d.State, &d.Blocking, &d.Actor, &d.Automatic)
 	if err == sql.ErrNoRows {
 		if e := tx.Commit(); e != nil {
 			return d, e

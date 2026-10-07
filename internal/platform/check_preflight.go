@@ -21,6 +21,11 @@ func (s *Store) CheckPublicationRun(ctx context.Context, d CheckDelivery) (Run, 
 	if _, err = requireSnapshotRole(ctx, tx, snap, d.Actor, "admin"); err != nil {
 		return Run{}, err
 	}
+	if d.Automatic {
+		if err = validateAutomaticCheckPolicy(ctx, tx, snap, d.Actor, d.Blocking); err != nil {
+			return Run{}, err
+		}
+	}
 	var original int64
 	if err = tx.QueryRowContext(ctx, `SELECT requested_by FROM platform_runs WHERE id=?`, d.RunID).Scan(&original); err != nil {
 		return Run{}, err
@@ -44,7 +49,7 @@ func (s *Store) CheckPublicationRun(ctx context.Context, d CheckDelivery) (Run, 
 		}
 	}
 	var valid bool
-	err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_check_deliveries d JOIN platform_runs r ON r.id=d.run_id WHERE d.run_id=? AND d.actor=? AND d.head_sha=? AND r.head_sha=d.head_sha AND d.state='sending' AND d.lease=? AND d.lease!='' AND julianday(d.lease_until)>julianday(?) AND NOT EXISTS(SELECT 1 FROM platform_runs n WHERE n.project_id=r.project_id AND n.mr_iid=r.mr_iid AND n.id>r.id))`, d.RunID, d.Actor, d.HeadSHA, d.Lease, now()).Scan(&valid)
+	err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_check_deliveries d JOIN platform_runs r ON r.id=d.run_id WHERE d.run_id=? AND d.actor=? AND d.automatic=? AND d.blocking=? AND d.head_sha=? AND r.head_sha=d.head_sha AND d.state='sending' AND d.lease=? AND d.lease!='' AND julianday(d.lease_until)>julianday(?) AND NOT EXISTS(SELECT 1 FROM platform_runs n WHERE n.project_id=r.project_id AND n.mr_iid=r.mr_iid AND n.id>r.id))`, d.RunID, d.Actor, d.Automatic, d.Blocking, d.HeadSHA, d.Lease, now()).Scan(&valid)
 	if err != nil {
 		return Run{}, err
 	}
