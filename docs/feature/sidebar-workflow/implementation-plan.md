@@ -482,3 +482,9 @@ ff33a4f 的真实编译前端在本地可切换受控 fixture 完成浏览器回
 P8/F4，Slack 完成绑定事务在 challenge 所属当前启用用户上复用 botChannelAccess，校验当前仍有任一启用 scope 项目权限。不能仅依赖发行时授权：用户成员权限被撤销或项目停用后，原签名/未过期挑战不能写入绑定。签名/replay、权限查询、绑定写入与挑战消费在同一事务；拒绝回滚全部副作用。不因此授权其他项目或审计操作。
 
 全部 Slack 与真实认证 HTTP 专项 race 7.018s 通过，新测试覆盖发行后撤销成员权限拒绝且无绑定、恢复成员但停用项目仍拒绝、全部授权恢复后同一请求可完成（此前失败没有错误消费 nonce）。vet/diff 通过。前版 e5f88b3 全量 32125 completed/success，platform 202.977s；本回调新版本需独立全量。ff33a4f 创建页面的正式 npm run build 已成功更新 embedded assets index-CK-qagnj.js。远端精确 e21a8a2 CI 37606369057 仍 in_progress，本地后续提交尚未推送，不以该旧 CI证明本改动。AC-013 尚缺管理员域配置和机器人审计操作完整 ACL。
+
+### S7 Slack 管理员域配置（开发验证中）
+
+P8/F4，集成编辑增加可选 Slack 应用 A-ID/工作区 T-ID；填写其一要求完整双方与 signing secret，通知-only 旧配置保持可读。完整替换请求包含 slack_app_id/slack_workspace_id，选中保存后清空字段，保持既有凭据不重填也不丢失配置。页面显示保存渠道实际 ID/revision 的回调路径，明确需 HTTPS 站点根地址及版本更新后同步 Slack URL。目前回调仅身份绑定，不声称操作审计可用。
+
+公开 Integration 增加 has_slack_binding 布尔元数据，Save 与列表 Scan 均依据完整合法配置生成，不回显 app/workspace/secret。专项 race 6.977s 加已有全部 Slack/HTTP 测试通过，新真实数据库测试验证元数据保存/读取、普通编辑保留域与secret、JSON 不含 workspace/secret。typecheck、vet/diff 通过。新表单的实际浏览器填表/保存与移动端验证仍待执行，正式构建尚未更新；不得以 typecheck 宣称界面验收完成。c0f1c8a 全量 11229 仍运行；精确 e21a8a2 CI 37606369057 已 completed/success。待当前本地验证完再推送新版本并检查其独立 CI。

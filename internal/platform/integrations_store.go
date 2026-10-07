@@ -29,6 +29,7 @@ type Integration struct {
 	HasSecret       bool     `json:"has_secret"`
 	HasJiraMapping  bool     `json:"has_jira_mapping"`
 	HasTeamMapping  bool     `json:"has_team_mapping"`
+	HasSlackBinding bool     `json:"has_slack_binding"`
 	UpdatedAt       string   `json:"updated_at"`
 }
 type IntegrationCredentials struct {
@@ -204,6 +205,7 @@ func scanIntegration(row interface{ Scan(...any) error }) (Integration, Integrat
 	v.HasSecret = c.Secret != "" || c.Token != "" || c.Password != ""
 	v.HasTeamMapping = v.Kind == "linear" && c.LinearTeamID != ""
 	v.HasJiraMapping = v.Kind == "jira" && c.JiraProjectID != "" && c.JiraIssueTypeID != ""
+	v.HasSlackBinding = v.Kind == "slack" && slackBindingReady(c)
 	return v, c, nil
 }
 
@@ -332,5 +334,6 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 	v.HasSecret = credentials.Secret != "" || credentials.Token != "" || credentials.Password != ""
 	v.HasTeamMapping = v.Kind == "linear" && credentials.LinearTeamID != ""
 	v.HasJiraMapping = v.Kind == "jira" && credentials.JiraProjectID != "" && credentials.JiraIssueTypeID != ""
+	v.HasSlackBinding = v.Kind == "slack" && slackBindingReady(credentials)
 	return v, nil
 }
