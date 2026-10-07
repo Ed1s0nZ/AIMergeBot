@@ -15,12 +15,13 @@ import (
 
 // NotificationSummary carries no source snippets, tool output, or private trace.
 type NotificationSummary struct {
-	Version   string `json:"version"`
-	EventID   string `json:"event_id"`
-	ProjectID int    `json:"project_id"`
-	RunID     int64  `json:"run_id"`
-	Text      string `json:"text"`
-	URL       string `json:"url"`
+	sourceEventID int64  // Server-side source identity; never sent in payloads.
+	Version       string `json:"version"`
+	EventID       string `json:"event_id"`
+	ProjectID     int    `json:"project_id"`
+	RunID         int64  `json:"run_id"`
+	Text          string `json:"text"`
+	URL           string `json:"url"`
 }
 type NotificationRequest struct {
 	Body    []byte

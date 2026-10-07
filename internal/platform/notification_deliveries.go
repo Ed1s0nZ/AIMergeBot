@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -50,6 +51,9 @@ func (s *Store) QueueNotification(ctx context.Context, integrationID, actor int6
 	}
 	if !allowed || !integration.Enabled {
 		return 0, ErrProjectPermission
+	}
+	if len(integration.OwnerIDs) > 0 && (summary.RunID != 0 || !strings.HasPrefix(summary.EventID, "test-")) {
+		return 0, ErrIntegrationInput
 	}
 	if summary.RunID > 0 {
 		snap, err := snapshotForRun(ctx, tx, summary.RunID)

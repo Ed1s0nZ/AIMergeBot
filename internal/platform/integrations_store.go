@@ -22,6 +22,7 @@ type Integration struct {
 	Kind            string   `json:"kind"`
 	Enabled         bool     `json:"enabled"`
 	ProjectIDs      []int    `json:"project_ids"`
+	OwnerIDs        []int64  `json:"owner_ids"`
 	Events          []string `json:"events"`
 	Frequency       string   `json:"frequency"`
 	MinimumSeverity string   `json:"minimum_severity"`
@@ -61,6 +62,7 @@ func migrateIntegrations(tx *sql.Tx) error {
 	for _, q := range []string{
 		`CREATE TABLE IF NOT EXISTS platform_integrations(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,name TEXT NOT NULL,kind TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 0,project_ids TEXT NOT NULL,events TEXT NOT NULL,frequency TEXT NOT NULL,minimum_severity TEXT NOT NULL,credentials TEXT NOT NULL,updated_at TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS platform_notification_deliveries(id INTEGER PRIMARY KEY,integration_id INTEGER NOT NULL REFERENCES platform_integrations(id),integration_revision INTEGER NOT NULL,project_id INTEGER NOT NULL,run_id INTEGER NOT NULL DEFAULT 0,event_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempt INTEGER NOT NULL DEFAULT 0,next_attempt TEXT NOT NULL,lease_until TEXT NOT NULL DEFAULT '',lease_token TEXT NOT NULL DEFAULT '',payload TEXT NOT NULL,error_code TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(integration_id,event_key))`,
+		`CREATE TABLE IF NOT EXISTS platform_integration_owner_routes(integration_id INTEGER PRIMARY KEY REFERENCES platform_integrations(id),owner_ids TEXT NOT NULL)`,
 		`CREATE INDEX IF NOT EXISTS platform_delivery_ready ON platform_notification_deliveries(status,next_attempt,id)`,
 	} {
 		if _, err := tx.Exec(q); err != nil {
@@ -124,7 +126,7 @@ func validateIntegration(v IntegrationInput) error {
 	if v.Credentials != nil && v.ClearCredentials {
 		return ErrIntegrationInput
 	}
-	return nil
+	return validateNotificationOwnerRoute(v.Integration)
 }
 func validateIntegrationCredentials(kind string, c IntegrationCredentials, enabled bool) error {
 	if c.SlackAppID != "" && !slackAppID.MatchString(c.SlackAppID) || c.SlackWorkspaceID != "" && !slackWorkspaceID.MatchString(c.SlackWorkspaceID) {
@@ -187,8 +189,8 @@ func validateIntegrationCredentials(kind string, c IntegrationCredentials, enabl
 }
 func scanIntegration(row interface{ Scan(...any) error }) (Integration, IntegrationCredentials, error) {
 	var v Integration
-	var projects, events, secret string
-	err := row.Scan(&v.ID, &v.Revision, &v.Name, &v.Kind, &v.Enabled, &projects, &events, &v.Frequency, &v.MinimumSeverity, &secret, &v.UpdatedAt)
+	var projects, events, secret, owners string
+	err := row.Scan(&v.ID, &v.Revision, &v.Name, &v.Kind, &v.Enabled, &projects, &events, &v.Frequency, &v.MinimumSeverity, &secret, &v.UpdatedAt, &owners)
 	if err != nil {
 		return v, IntegrationCredentials{}, err
 	}
@@ -196,7 +198,7 @@ func scanIntegration(row interface{ Scan(...any) error }) (Integration, Integrat
 	for _, item := range []struct {
 		s string
 		v any
-	}{{projects, &v.ProjectIDs}, {events, &v.Events}, {secret, &c}} {
+	}{{projects, &v.ProjectIDs}, {events, &v.Events}, {secret, &c}, {owners, &v.OwnerIDs}} {
 		if err = json.Unmarshal([]byte(item.s), item.v); err != nil {
 			return v, c, err
 		}
@@ -209,7 +211,7 @@ func scanIntegration(row interface{ Scan(...any) error }) (Integration, Integrat
 	return v, c, nil
 }
 
-const integrationColumns = `id,revision,name,kind,enabled,project_ids,events,frequency,minimum_severity,credentials,updated_at`
+const integrationColumns = `id,revision,name,kind,enabled,project_ids,events,frequency,minimum_severity,credentials,updated_at,COALESCE((SELECT owner_ids FROM platform_integration_owner_routes WHERE integration_id=platform_integrations.id),'[]')`
 
 func (s *Store) Integrations(ctx context.Context, actor int64) ([]Integration, error) {
 	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
@@ -280,6 +282,15 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 			return Integration{}, ErrIntegrationInput
 		}
 	}
+	if input.OwnerIDs == nil {
+		input.OwnerIDs = append([]int64{}, old.OwnerIDs...)
+	}
+	if err = validateNotificationOwnerRoute(input.Integration); err != nil {
+		return Integration{}, err
+	}
+	if err = requireNotificationRouteUsers(ctx, tx, input.Integration); err != nil {
+		return Integration{}, err
+	}
 	if input.ClearCredentials {
 		credentials = IntegrationCredentials{}
 	} else if input.Credentials != nil {
@@ -310,6 +321,11 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 		_, err = tx.ExecContext(ctx, `UPDATE platform_integrations SET revision=?,name=?,enabled=?,project_ids=?,events=?,frequency=?,minimum_severity=?,credentials=?,updated_at=? WHERE id=?`, revision, strings.TrimSpace(input.Name), input.Enabled, string(projects), string(events), input.Frequency, input.MinimumSeverity, string(secret), updated, id)
 	}
 	if err != nil {
+		return Integration{}, err
+	}
+	sort.Slice(input.OwnerIDs, func(i, j int) bool { return input.OwnerIDs[i] < input.OwnerIDs[j] })
+	owners, _ := json.Marshal(input.OwnerIDs)
+	if _, err = tx.ExecContext(ctx, `INSERT INTO platform_integration_owner_routes(integration_id,owner_ids) VALUES(?,?) ON CONFLICT(integration_id) DO UPDATE SET owner_ids=excluded.owner_ids`, id, string(owners)); err != nil {
 		return Integration{}, err
 	}
 	// Saved destination changes invalidate pending payloads; never resend them to a new recipient.

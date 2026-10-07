@@ -7,6 +7,8 @@ func migrateNotificationEvents(tx *sql.Tx) error {
 		`CREATE TABLE IF NOT EXISTS platform_notification_events(id INTEGER PRIMARY KEY,run_id INTEGER NOT NULL REFERENCES platform_runs(id),kind TEXT NOT NULL,event_key TEXT NOT NULL UNIQUE,severity INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS platform_notification_event_findings(event_id INTEGER PRIMARY KEY REFERENCES platform_notification_events(id),finding_id TEXT NOT NULL,disposition_revision INTEGER NOT NULL,owner INTEGER NOT NULL,head_sha TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS platform_notification_delivery_runs(delivery_id INTEGER NOT NULL REFERENCES platform_notification_deliveries(id),run_id INTEGER NOT NULL REFERENCES platform_runs(id),PRIMARY KEY(delivery_id,run_id))`,
+		`CREATE TABLE IF NOT EXISTS platform_notification_delivery_events(delivery_id INTEGER NOT NULL REFERENCES platform_notification_deliveries(id),event_id INTEGER NOT NULL REFERENCES platform_notification_events(id),PRIMARY KEY(delivery_id,event_id))`,
+		`CREATE TABLE IF NOT EXISTS platform_notification_delivery_event_counts(delivery_id INTEGER PRIMARY KEY REFERENCES platform_notification_deliveries(id),expected_events INTEGER NOT NULL)`,
 		`CREATE INDEX IF NOT EXISTS platform_notification_event_window ON platform_notification_events(created_at,id)`,
 		`CREATE TABLE IF NOT EXISTS platform_notification_collector(id INTEGER PRIMARY KEY CHECK(id=1),last_integration INTEGER NOT NULL DEFAULT 0)`,
 		`INSERT OR IGNORE INTO platform_notification_collector(id) VALUES(1)`,

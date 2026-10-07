@@ -113,6 +113,13 @@ func (s *Store) CollectNotifications(ctx context.Context, publicURL string, at t
 				if _, err = requireSnapshotRole(ctx, tx, snap, e.actor, "viewer"); err != nil {
 					skip = true
 				}
+				if !skip && len(v.OwnerIDs) > 0 {
+					allowed, err := notificationOwnerEventAllowed(ctx, tx, v, e.id, project)
+					if err != nil {
+						return err
+					}
+					skip = !allowed
+				}
 				if !skip && v.Frequency != "instant" {
 					created, err := time.Parse(time.RFC3339Nano, e.created)
 					if err != nil {
@@ -129,7 +136,7 @@ func (s *Store) CollectNotifications(ctx context.Context, publicURL string, at t
 					if publicURL != "" {
 						link = strings.TrimRight(publicURL, "/") + fmt.Sprintf("/#/runs/%d", e.run)
 					}
-					summary := NotificationSummary{Version: "aimangebot.notification.v1", EventID: fmt.Sprintf("audit-event-v%d-%d", v.Revision, e.id), ProjectID: project, RunID: e.run, Text: text, URL: link}
+					summary := NotificationSummary{sourceEventID: e.id, Version: "aimangebot.notification.v1", EventID: fmt.Sprintf("audit-event-v%d-%d", v.Revision, e.id), ProjectID: project, RunID: e.run, Text: text, URL: link}
 					if v.Frequency == "instant" {
 						if err = insertNotificationOutbox(ctx, tx, v, summary, at); err != nil {
 							return err
@@ -178,7 +185,10 @@ func insertNotificationOutbox(ctx context.Context, tx *sql.Tx, v Integration, su
 	}
 	stamp := at.UTC().Format(time.RFC3339Nano)
 	_, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_notification_deliveries(integration_id,integration_revision,project_id,run_id,event_key,next_attempt,payload,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`, v.ID, v.Revision, summary.ProjectID, summary.RunID, summary.EventID, stamp, string(data), stamp, stamp)
-	return err
+	if err != nil {
+		return err
+	}
+	return recordDeliveryEvent(ctx, tx, v.ID, summary.EventID, summary.sourceEventID)
 }
 func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary NotificationSummary, at time.Time, sourceRun int64) error {
 	var id int64
@@ -188,7 +198,7 @@ func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary 
 		if err = insertNotificationOutbox(ctx, tx, v, summary, at); err != nil {
 			return err
 		}
-		return recordDigestRun(ctx, tx, v.ID, summary.EventID, sourceRun)
+		return recordDigestRun(ctx, tx, v.ID, summary.EventID, sourceRun, summary.sourceEventID)
 	}
 	if err != nil {
 		return err
@@ -203,6 +213,15 @@ func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary 
 				return err
 			}
 			status = "cancelled"
+		}
+	}
+	if status == "pending" && len(v.OwnerIDs) > 0 {
+		var count int
+		if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM platform_notification_delivery_events WHERE delivery_id=?`, id).Scan(&count); err != nil {
+			return err
+		}
+		if count == 0 || count >= 200 {
+			status = "full_or_unproven"
 		}
 	}
 	if status != "pending" {
@@ -225,10 +244,13 @@ func appendDigestOutbox(ctx context.Context, tx *sql.Tx, v Integration, summary 
 	if err != nil {
 		return err
 	}
-	return recordDigestRun(ctx, tx, v.ID, summary.EventID, sourceRun)
+	return recordDigestRun(ctx, tx, v.ID, summary.EventID, sourceRun, summary.sourceEventID)
 }
 
-func recordDigestRun(ctx context.Context, tx *sql.Tx, integrationID int64, eventKey string, runID int64) error {
+func recordDigestRun(ctx context.Context, tx *sql.Tx, integrationID int64, eventKey string, runID, eventID int64) error {
 	_, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO platform_notification_delivery_runs(delivery_id,run_id) SELECT id,? FROM platform_notification_deliveries WHERE integration_id=? AND event_key=?`, runID, integrationID, eventKey)
-	return err
+	if err != nil {
+		return err
+	}
+	return recordDeliveryEvent(ctx, tx, integrationID, eventKey, eventID)
 }

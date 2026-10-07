@@ -55,3 +55,5 @@ GET/POST/PATCH integrations增加owner_ids数组，最多100个唯一正平台�
 新增platform_notification_delivery_events(delivery_id,event_id)保留即时/汇总源事件。NotificationSummary内部sourceEventID不序列化到外部；禁止人工QueueNotification绕过非空owner_ids的依据检查，只有管理员主动渠道测试（run_id=0、test-前缀）可发送固定测试摘要。责任人汇总每份最多200个源事件，超出拆补充份；发送时有界读取全部事件并校验各run/项目与原发起者、owner、HEAD、disposition_revision及当前完整权限。当前版本/owner/HEAD变化即取消旧提醒，不改派旧正文。无证据旧队列不通过责任人路由。
 
 验证需覆盖省略保留/显式清空、权限与输入拒绝、持久重开、原子写入失败、即时/日周汇总、晚到/去重、历史不明事件、变更owner/revision/HEAD、source/context撤权及停用、混入其他项目事件、无依据队列/人工绕过/明确测试。前端独立选择器与真实浏览器验收仍在后续，第二阶段API不代表UI或完整需求完成。
+
+实施补强：delivery_event_counts保存预期源事件数量，与来源关联同事务累加且重复关联不增加；发前数量须一致，防部分关联丢失被剩余依据掩盖。明确渠道测试也先重查渠道revision/启用，再免除owner事件依据。

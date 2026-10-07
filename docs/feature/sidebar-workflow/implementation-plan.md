@@ -644,3 +644,17 @@ Store首轮race14.653s通过：target/source/context独立权限、候选缺cont
 最新推荐UI提交11c059b精确CI37615975567 completed/success，包含完整Go/race/vet、工具测试、漏洞检查、前端与embedded构建。后续事件依据版本不能用该前版green代替。
 
 事件依据版本完整Go88011 completed/success，platform149.220s；go build ./...、go vet ./...、git diff --check均通过。前端及embedded资源未变，无额外UI行为，通知路由消费仍按设计后续接入。
+
+### S8 已保存责任人通知路由后端
+
+第二阶段契约与maintainability gate已推送ae2aba0，见owner-notification-design.md。集成增加owner_ids：最多100唯一正ID，创建省略为空，PATCH省略保留、显式[]清空；仅通知渠道且事件限finding.reviewed/risk.expired，拒绝混合run事件。保存全部用户当前启用且具备全部所选项目viewer；独立owner_routes表与integration版本、队列失效及审计事件同事务，不赋予ACL。旧集成读为[]。
+
+collector新委托notificationOwnerEventAllowed，按事件捕获owner/revision/HEAD与当前处理一致、所有项目启用、发起者与责任人完整target/source/context权限筛选。即时和汇总outbox保存独立delivery_events及expected_events计数，正文不发送内部来源ID；任何依据部分丢失也不能被剩余有效依据掩盖。责任人汇总每份200事件，超过拆补充份，晚到事件沿用现有机制。collector不读仓库、不自动分配或按外部身份生成目的地。
+
+发前新增独立notification_owner_access.go，复查渠道版本/启用、每个源事件/项目/运行、全部权限及当前HEAD/owner/revision。改派、撤权、停用或证据不足取消旧提醒（permission_changed），不改写旧目的地。手工QueueNotification不能绕过owner范围；管理员runless test-固定渠道测试仍可排队，但仍受渠道版本校验。原runless测试补上真实integration身份，避免零ID占位假定绕过新检查；所有测试无真实HTTP/SMTP发送或生产数据操作。
+
+专项先后race19.529s/22.318s/27.703s/37.401s通过，最后补强明确渠道测试也复查版本后的专项race25.383s通过。覆盖实际Register/Login匿名401/member403/跨站403/输入400/旧版409/返回no-store与脱敏、PATCH省略保留/显式清空；持久重开、撤权保存拒绝与强制写入ABORT回滚；instant/daily/weekly去重与源依据；source/context/target撤权、项目/用户停用、改派与仅处理版本变更、HEAD变更、无依据与部分依据丢失；202事件分为200+2且全部可复查，collector证据写入失败outbox/route/count整体回滚，重开后outbox与路由回执保留。完整Go41283 completed/success，platform125.930s；vet/build通过。最后调整为明确测试免除owner依据前也须复查渠道版本，最终生产代码完整Go83475正在执行，vet再次通过。前端配置选择器与真实UI验收、自动推荐路由及完整REQ范围仍未完成。
+
+前版事件依据39fedd7精确CI37617419334 completed/success（Go/race/vet、工具、漏洞、前端与embedded检查全部通过）。本路由后端需独立精确CI，不能借前版green宣称完成。
+
+最终路由生产代码完整Go83475 completed/success，platform111.956s；最终专项race25.383s、vet及diff通过。当前仅后端/API/发送依据链已实现；管理员选择器与实际UI验证待下一阶段，不将源码/配置存在视为完整用户场景交付。

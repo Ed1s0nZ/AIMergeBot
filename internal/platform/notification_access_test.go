@@ -107,7 +107,7 @@ func TestDigestAccessRevocationAndLegacyReceipt(t *testing.T) {
 	if err = s.DB.QueryRow(`SELECT status FROM platform_notification_deliveries WHERE id=?`, d.ID).Scan(&status); err != nil || status != "cancelled" {
 		t.Fatal("legacy pending remained active", status, err)
 	}
-	if err = s.requireNotificationAccess(ctx, NotificationDelivery{ProjectID: 1, EventKey: "test:explicit"}); err != nil {
+	if err = s.requireNotificationAccess(ctx, NotificationDelivery{IntegrationID: v.ID, IntegrationRevision: v.Revision, ProjectID: 1, EventKey: "test:explicit"}); err != nil {
 		t.Fatal("runless test incorrectly blocked", err)
 	}
 }

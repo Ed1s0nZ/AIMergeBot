@@ -55,5 +55,8 @@ func (s *Store) requireNotificationAccess(ctx context.Context, d NotificationDel
 			return err
 		}
 	}
+	if err = requireNotificationOwnerAccess(ctx, tx, d); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
