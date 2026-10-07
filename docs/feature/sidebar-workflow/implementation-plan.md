@@ -408,3 +408,11 @@ P8/F4，依据官方 https://docs.slack.dev/authentication/verifying-requests-fr
 P8/F4，迁移增加 callback receipts（integration_id + 原始 timestamp/body SHA256 摘要唯一，expires_at 索引），不保存回调正文、外部用户或签名秘密。内部 consumeSlackCallback 在同一事务读取当前启用 Slack 渠道/revision 的有界凭据、验证原始请求签名与时间，再原子 INSERT OR IGNORE；只有新记录提交成功才通过。先签名后清理过期摘要，过期请求本身始终拒绝；旧 revision/禁用渠道不通过。此 gate 只建立来源/一次性消费，用户绑定和项目授权仍需独立校验，尚无 HTTP 入口。
 
 签名/持久 replay 定向 race 2.132s、vet/diff 通过：伪造正文拒绝且不污染合法回调，12 个并发消费者只有一个成功，实际 Close/OpenStore 后相同请求拒绝、数据库仅保存 64 字符摘要、过期/禁用拒绝。前一签名模块全量 Go 64265 仍运行，本次迁移版需其终态后执行新全量验证；不因为等待超时重启。AC-013 身份绑定/授权复审等仍未完成。
+
+签名模块前一完整 Go 测试通过（platform 106.440s）。
+
+### S7 用户主动一次性绑定挑战（开发验证中）
+
+P8/F4，迁移增加按渠道/平台用户唯一的绑定挑战，只保存 SHA256 token_hash、渠道 revision 和十分钟过期时间。内部发行函数校验当前启用账号、当前启用 Slack 渠道/revision 与签名秘密配置，生成 24 字节随机 token 一次返回；重新发行原子替换旧挑战。函数不接受外部用户名，不增加项目成员/权限。尚无发行 HTTP/UI 或回调完成绑定入口，用户身份必须由已认证会话传入，后续消费仍需签名、持久 replay 与外部稳定身份域校验。
+
+挑战/签名/replay 定向 race 2.711s、vet/diff 通过，验证数据库只保存摘要、再次发行不同 token且仅一条记录、版本变化/停用用户拒绝且不返回 token。新的 replay+challenge 迁移版本完整 Go 随后验证。AC-013 仍未完成，当前 e6b29e5 CI 37603901544 未确认终态，未推送覆盖。
