@@ -12,10 +12,17 @@ import (
 )
 
 func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) {
-	for _, change := range []string{"valid", "target", "context", "disabled-user", "disabled-project", "channel-scope", "binding"} {
+	for _, change := range []string{"valid", "target", "source", "context", "disabled-user", "disabled-project", "disabled-source", "channel-scope", "binding"} {
 		t.Run(change, func(t *testing.T) {
 			s, admin, member, snap := contextFixture(t)
 			ctx := context.Background()
+			if err := s.SaveProject(ctx, Project{ID: 3, Name: "source", Enabled: true}); err != nil {
+				t.Fatal(err)
+			}
+			snap.SourceProjectID = 3
+			if err := s.SetProjectMember(ctx, 3, member.ID, "viewer", admin.ID); err != nil {
+				t.Fatal(err)
+			}
 			if err := s.SetProjectMember(ctx, 2, member.ID, "viewer", admin.ID); err != nil {
 				t.Fatal(err)
 			}
@@ -41,6 +48,11 @@ func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) 
 			case "context":
 				mutation = `DELETE FROM platform_project_members WHERE project_id=2 AND user_id=?`
 				args = []any{member.ID}
+			case "source":
+				mutation = `DELETE FROM platform_project_members WHERE project_id=3 AND user_id=?`
+				args = []any{member.ID}
+			case "disabled-source":
+				mutation = `UPDATE platform_projects SET enabled=0 WHERE id=3`
 			case "disabled-user":
 				mutation = `UPDATE platform_users SET disabled=1 WHERE id=?`
 				args = []any{member.ID}

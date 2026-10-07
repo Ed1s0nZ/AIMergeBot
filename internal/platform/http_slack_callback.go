@@ -1,10 +1,13 @@
 package platform
 
 import (
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +27,18 @@ func (h *HTTP) slackBindingCallback(c *gin.Context) {
 	if err != nil {
 		c.JSON(400, gin.H{"error": "invalid callback"})
 		return
+	}
+	if strings.HasSuffix(c.FullPath(), "/command") {
+		fields, parseErr := url.ParseQuery(string(body))
+		if parseErr == nil && len(fields["text"]) == 1 && strings.HasPrefix(fields.Get("text"), "status ") {
+			out, err := h.Store.slackRunStatus(c.Request.Context(), id, revision, c.GetHeader("X-Slack-Request-Timestamp"), c.GetHeader("X-Slack-Signature"), body, time.Now())
+			if err != nil {
+				c.JSON(403, gin.H{"error": "callback rejected"})
+				return
+			}
+			c.JSON(200, gin.H{"response_type": "ephemeral", "text": fmt.Sprintf("Audit #%d · %s · HEAD %s", out.ID, out.Status, out.HeadSHA)})
+			return
+		}
 	}
 	if _, err := h.Store.completeSlackBinding(c.Request.Context(), id, revision, c.GetHeader("X-Slack-Request-Timestamp"), c.GetHeader("X-Slack-Signature"), body, time.Now()); err != nil {
 		// Do not disclose account, challenge or channel existence to callers.

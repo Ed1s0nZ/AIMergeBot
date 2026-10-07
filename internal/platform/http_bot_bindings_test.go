@@ -157,6 +157,24 @@ func TestBotBindingHTTPAuthenticatedOwnerAndOrigin(t *testing.T) {
 	if err := s.DB.QueryRow(`SELECT user_id FROM platform_bot_bindings`).Scan(&actor); err != nil || actor != 1 {
 		t.Fatal(actor, err)
 	}
+	run, _, err := s.Enqueue(ctx, Snapshot{ProjectID: 1, SourceProjectID: 1, MRIID: 1, BaseSHA: strings.Repeat("a", 40), HeadSHA: strings.Repeat("b", 40)}, 1, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	callbackPath = strings.TrimSuffix(callbackPath, "/bind") + "/command"
+	callbackBody = fmt.Sprintf("api_app_id=A1&team_id=T1&user_id=U1&text=status+%d", run)
+	mac = hmac.New(sha256.New, []byte("private-secret"))
+	mac.Write([]byte("v0:" + stamp + ":" + callbackBody))
+	signature = "v0=" + hex.EncodeToString(mac.Sum(nil))
+	if res := callback("invalid", "application/x-www-form-urlencoded", callbackBody); res.Code != 403 {
+		t.Fatal("unsigned status exposed", res.Code)
+	}
+	if res := callback(signature, "application/x-www-form-urlencoded", callbackBody); res.Code != 200 || !strings.Contains(res.Body.String(), "pending") || !strings.Contains(res.Body.String(), `"response_type":"ephemeral"`) {
+		t.Fatal(res.Code, res.Body.String())
+	}
+	if res := callback(signature, "application/x-www-form-urlencoded", callbackBody); res.Code != 403 {
+		t.Fatal("HTTP status replay accepted", res.Code)
+	}
 	if res := request("GET", "/api/v1/bot-bindings", "", "", ""); res.Code != 401 {
 		t.Fatal(res.Code)
 	}

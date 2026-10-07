@@ -502,3 +502,11 @@ P8/F4，新增内部 slackRunStatus，签名/app/workspace/revision/replay gate 
 SQLite fixture 定向 race 13.259s 通过：合法 bound actor 返回 pending 与固定 HEAD，重复请求拒绝，目标权限撤销、context 权限撤销、账号停用、context 项目停用、渠道范围移出目标项目、绑定撤销均无输出。初测发现新函数误用 queued，按实际 platform_runs.pending 修正后重跑通过，不改现有状态契约。来源仓库独立拒绝矩阵仍待新增，不能以目标/context 案例宣称该矩阵已验证。
 
 前版495a8b1（Slack配置与正式前端）全量51586已completed/success，platform118.341s；本读取函数尚需完整全量与公开接口证据。精确e21a8a2远端CI已success，后续本地提交尚未推送。AC-013保持未完成，完整机器人操作与其他provider未覆盖。
+
+### S7 统一 Slack 命令回调与来源仓库矩阵
+
+P8/F4，新增 /api/v1/bot-callbacks/slack/:id/:revision/command，保持旧 /bind 只绑定。新路径读取有界原始 form，分派 bind 或 status <任务ID>，每条实际操作仍独立执行完整签名/replay/domain gate，不以未验证解析结果授权。status 返回 ephemeral 静态格式 task ID/status/HEAD，不携带发现、源码、trace或用户资料。管理员配置说明改为统一 command 路径与 status 使用方式；没有新增复审/合并写操作。
+
+状态授权测试改为独立 target1/source3/context2，新增 source 权限撤销和 source 项目停用拒绝，合法测试保留全部访问。该矩阵 race18.039s通过。实际 Register/SQLite 测试追加无session签名status成功、伪签名403、HTTP重放403、ephemeral输出；与完整来源/context矩阵race16.039s通过，vet/diff通过。前端说明typecheck待当前进程结果，正式embedded assets尚需顺序更新。
+
+旧6e04c85完整测试28677仍运行，不能据此证明本HTTP新增版本全量通过；新版本全量/远端CI、命令联调、其他机器人providers和复审授权仍待完成。AC-013未完成。
