@@ -238,3 +238,9 @@ P9/F4，确认 REQ-003/005 的窄屏和键盘要求：前次 360 像素浏览器
 P8/F4，确认 REQ-013 与 design.md 工单契约：先实现独立请求构建及有界回执解析，再接关联表/权限/发送/UI。依据 [Linear 官方 GraphQL](https://linear.app/developers/graphql)，使用 issueCreate(input: $input)，variables 传值，回执必须无 errors、success=true 且 issue ID/URL 有效；HTTP 200 本身不代表成功。文本长度和团队 UUID 校验，错误内容不回传，未知结果不当作可直接重试。该基础不执行网络写入，不声称已有实际工单能力。
 
 协议定向 race 1.648s、go vet ./... 和 diff 检查通过。验证注入式标题仍仅位于 variables、无团队名称替代 UUID、损坏/超限响应和 500 不报成功、200 携 errors 不报成功、凭据 URL/仿冒域名不留链接。尚未接入发送器、服务端团队配置、ticket_link 持久幂等表、权限预检或 UI，REQ-013 未完成。上一提交 CI 37595546480 仍运行，待其终态后推送本协议基础及待推送导航修复。
+
+### S6 Linear 受限发送适配器（开发验证中）
+
+P8/F4，沿用工单明确操作授权契约：仅官方 https://api.linear.app/graphql 收取 API token，调用已有禁代理/禁重定向、DNS/IP 校验和 TLS 发送客户端；请求 15 秒、响应 64 KiB 上限。每次创建需调用方提供授权复核，POST 前检查，成功回执后再次检查；写入后失效保留 unknown，不假装没有创建。发送器不自动重试。测试注入 RoundTripper，不对真实 Linear 发请求。持久幂等/团队配置/HTTP 和 UI 仍未接入。
+
+发送协议 race 1.662s 通过，涵盖授权缺失/撤销零请求、合法 POST 带身份和 deadline、发送后撤销保留回执但 unknown、传输错误不泄露原始错误、响应超限和 GraphQL 错误不报 created。完整 Go（platform 86.848s）、vet、diff 检查通过。e63aba7 的远端 CI 37595546480 completed/success，待推送导航 36ffa5f、协议 b715636 与本适配器一起推送后跟踪新 HEAD CI。REQ-013 仍未完成，未发送真实工单。
