@@ -63,6 +63,24 @@ func TestBotBindingHTTPAuthenticatedOwnerAndOrigin(t *testing.T) {
 	if res := request("POST", path+"/challenge", "", body, ""); res.Code != 401 {
 		t.Fatal(res.Code)
 	}
+	if res := request("GET", "/api/v1/bot-binding-channels", token, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), `"provider":"slack"`) || strings.Contains(res.Body.String(), "private-secret") {
+		t.Fatal(res.Code, res.Body.String())
+	}
+	if res := request("GET", "/api/v1/bot-binding-channels", otherToken, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), `"items":[]`) {
+		t.Fatal("channel disclosed without project access", res.Code, res.Body.String())
+	}
+	if res := request("POST", path+"/challenge", otherToken, body, ""); res.Code != 404 {
+		t.Fatal("unguarded challenge issuance", res.Code, res.Body.String())
+	}
+	if _, err := s.DB.Exec(`INSERT INTO platform_project_members(project_id,user_id,role) VALUES(1,?,'viewer')`, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	if res := request("GET", "/api/v1/bot-binding-channels", otherToken, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), `"provider":"slack"`) {
+		t.Fatal("authorized channel missing", res.Code, res.Body.String())
+	}
+	if _, err := s.DB.Exec(`DELETE FROM platform_project_members WHERE user_id=?`, other.ID); err != nil {
+		t.Fatal(err)
+	}
 	if res := request("POST", path+"/challenge", token, body, "https://attacker.example"); res.Code != 403 {
 		t.Fatal(res.Code)
 	}

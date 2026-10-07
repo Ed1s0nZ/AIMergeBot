@@ -458,3 +458,9 @@ P8/F4，新增 GET /api/v1/bot-bindings 与 OwnBotBindings，只读事务内校�
 P8/F4，日常导航加入所有登录用户可见的「我的机器人绑定」。页面查询自身身份、明确停用渠道仍可撤销、删除同时撤销未用凭据、成功刷新服务端状态；加载时清空旧记录，失败显示错误与可刷新按钮，操作失败不静默重试。useEffect 清理防止离开页面后旧加载响应覆盖状态。无绑定创建表单/可用渠道选择，空状态明确说明绑定入口待完善，不声称机器人操作已经可用。
 
 真实编译前端+本地受控 HTTP fixture 的浏览器验证：member 账号导航可见，停用 Controlled Slack 的 T1/U1 展示，实际 DELETE /bot-bindings/1 后成功提示和空列表可见。仅本地 fixture，无真实 Slack 操作。typecheck 与临时目录 Vite 构建通过；随后正式 npm run build 更新 embedded assets。后端 df527db 全量测试 27127 completed/success，platform 108.783s。移动布局、慢加载/失败/键盘回归、创建绑定流程及配置 UI 仍待补齐，AC-013 未完成。
+
+### S7 可用绑定渠道与发行权限（开发验证中）
+
+P8/F4，新增 GET /api/v1/bot-binding-channels，只返回启用 Slack、签名秘密/app/workspace 配置完整、且用户拥有任一启用 scope 项目 viewer 或更高权限的渠道 ID/revision/name/provider。管理员仍要求 scope 中存在启用项目。列表事务检查当前启用账号，凭据保持服务端，候选超过 500 明确冲突。挑战发行采用完全相同的 scope 权限谓词，不能通过猜渠道 ID 绕过列表；返回不可见 404。身份绑定本身不增加权限，真实审计操作仍须完整 snapshot 授权，尚待接入。
+
+实际 HTTP/Register/Login/SQLite 专项 race 与全部 Slack 测试 6.288s 通过，验证无项目成员权限时列表为空且挑战发行 404、增加 viewer 后渠道可见、管理员可见配置完整渠道、响应不含签名 secret。vet/diff 通过。创建绑定界面仍待实施，AC-013 仍未完成；新切片全量验证在后续运行，不以旧版 CI 代替。

@@ -43,11 +43,11 @@ func (s *Store) issueSlackBindingChallenge(ctx context.Context, actor, integrati
 		return botBindingChallenge{}, ErrCredentials
 	}
 	var raw string
-	if err := tx.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(credentials AS BLOB))<=65536 THEN credentials ELSE '' END FROM platform_integrations WHERE id=? AND revision=? AND kind='slack' AND enabled=1`, integrationID, revision).Scan(&raw); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(i.credentials AS BLOB))<=65536 THEN i.credentials ELSE '' END FROM platform_integrations i JOIN platform_users u ON u.id=? AND u.disabled=0 WHERE i.id=? AND i.revision=? AND i.kind='slack' AND i.enabled=1 AND `+botChannelAccess, actor, integrationID, revision).Scan(&raw); err != nil {
 		return botBindingChallenge{}, err
 	}
 	var credentials IntegrationCredentials
-	if json.Unmarshal([]byte(raw), &credentials) != nil || credentials.Secret == "" || len(credentials.Secret) > 4096 || !slackAppID.MatchString(credentials.SlackAppID) || !slackWorkspaceID.MatchString(credentials.SlackWorkspaceID) {
+	if json.Unmarshal([]byte(raw), &credentials) != nil || !slackBindingReady(credentials) {
 		return botBindingChallenge{}, ErrConflict
 	}
 	seed := make([]byte, 24)
