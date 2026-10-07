@@ -452,3 +452,9 @@ P8/F4，公开 POST /api/v1/bot-callbacks/slack/:id/:revision/bind，仅处理 a
 P8/F4，新增 GET /api/v1/bot-bindings 与 OwnBotBindings，只读事务内校验当前启用账号，按 session 用户筛选绑定，返回渠道 ID/name/enabled 与该用户自己的稳定外部身份/创建时间。停用渠道仍显示，以便撤销；不返回其他用户身份、渠道凭据、challenge token。最多 500 条，超过明确冲突而非静默截断；空结果 items=[]。
 
 真实 HTTP/SQLite 专项 race 加全部 Slack 测试 7.677s 通过，覆盖匿名 401、其他账号空列表、停用渠道仍返回自己的绑定、无 secret 泄露、撤销后列表清空。vet/diff 通过。认证接口前版 14e7f9b 完整测试 73886 已 completed/success，platform 112.209s；当前回调加状态查询版本全量进程 27127 正在运行。本切片未推送，不声称远端验证完成，绑定状态 UI 和机器人操作权限仍待接入。
+
+### S7 自身机器人绑定页面（开发验证中）
+
+P8/F4，日常导航加入所有登录用户可见的「我的机器人绑定」。页面查询自身身份、明确停用渠道仍可撤销、删除同时撤销未用凭据、成功刷新服务端状态；加载时清空旧记录，失败显示错误与可刷新按钮，操作失败不静默重试。useEffect 清理防止离开页面后旧加载响应覆盖状态。无绑定创建表单/可用渠道选择，空状态明确说明绑定入口待完善，不声称机器人操作已经可用。
+
+真实编译前端+本地受控 HTTP fixture 的浏览器验证：member 账号导航可见，停用 Controlled Slack 的 T1/U1 展示，实际 DELETE /bot-bindings/1 后成功提示和空列表可见。仅本地 fixture，无真实 Slack 操作。typecheck 与临时目录 Vite 构建通过；随后正式 npm run build 更新 embedded assets。后端 df527db 全量测试 27127 completed/success，platform 108.783s。移动布局、慢加载/失败/键盘回归、创建绑定流程及配置 UI 仍待补齐，AC-013 未完成。

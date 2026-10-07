@@ -28,6 +28,7 @@ import {
   Events,
 } from "./pages";
 import { Integrations } from "./integrations";
+import { BotBindings } from "./bot-bindings";
 import { WorkflowPolicies } from "./workflow-policy";
 import { WorkspaceContext } from "./workspace-context";
 import { WorkspaceMetrics } from "./workspace-metrics";
@@ -240,6 +241,7 @@ function App() {
     { path: "/usage", label: "用量与成本", icon: ScrollText },
     { path: "/quality", label: "质量反馈", icon: FileCode2 },
     { path: "/projects", label: "项目", icon: FolderGit2 },
+    { path: "/bot-bindings", label: "我的机器人绑定", icon: UserRound },
     ...(user.role === "admin"
       ? [
           { path: "/policies", label: "审计策略", icon: Settings },
@@ -331,6 +333,8 @@ function App() {
             <Runs />
           ) : route === "/projects" ? (
             <Projects admin={user.role === "admin"} />
+          ) : route === "/bot-bindings" ? (
+            <BotBindings />
           ) : route === "/policies" && user.role === "admin" ? (
             <WorkflowPolicies />
           ) : route === "/context-repositories" && user.role === "admin" ? (
