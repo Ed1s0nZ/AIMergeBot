@@ -396,3 +396,9 @@ P9/F5，受控 localhost 页面加载真实编译产物，已有 Jira 默认不�
 ### S6 Jira 数据库重开与配置恢复说明（开发验证中）
 
 P9/F5，将实际 Close/OpenStore 的持久恢复测试扩为 Linear/Jira 同场景，验证 created、带回执 unknown、过期 sending 三类状态，固定 endpoint_origin/记录 ID/内部唯一键在重开后保留，合法回执保留，过期发送转 unknown，旧确认拒绝，再次预留不创建新记录。两类 provider 定向 race 4.661s、vet/diff 通过。生产代码未变化，不重复前一已通过全量测试；design.md 增补实际配置、认证支持范围、角色、显式触发、202/pending 语义与 unknown 核对/不重发契约。当前 e6b29e5 的远端 CI 37603901544 仍 in_progress，等待其终态后推送测试和文档。完整需求验收仍有机器人回调/GitHub/诊断等缺口，不标记整体完成。
+
+### S7 Slack 回调来源验证基础（开发验证中）
+
+P8/F4，依据官方 https://docs.slack.dev/authentication/verifying-requests-from-slack/，对未经解析的原始字节校验 v0:<timestamp>:<body> HMAC-SHA256，hmac.Equal 常量时间比较，拒绝非数字/溢出时间、超过前后五分钟请求、非法版本/hex/长度、64 KiB 超限体及缺失 secret。函数只验证来源，不授予身份或权限，不消费 nonce，也不能阻止五分钟内相同签名重放；后续必须原子回放记录、主动用户绑定、当前完整项目权限重新校验。
+
+定向 race 1.693s、vet/diff 通过，覆盖签名有效、秘密变化、用户 ID 篡改、等义 URL 编码但原始字节不同、过期/未来签名、时间溢出/签名版本/编码异常/超限体。无外部机器人消息发送，回调 HTTP 路由未开放。机器人完整 AC-013 仍未完成，不用签名 helper 代替身份绑定与防重放验收。当前 e6b29e5 CI 37603901544 尚 in_progress，未追加推送。
