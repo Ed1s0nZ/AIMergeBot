@@ -24,18 +24,8 @@ func (s *Store) TicketSendContext(ctx context.Context, claim TicketClaim) (Snaps
 	if claim.HeadSHA != snap.HeadSHA || !commitID.MatchString(snap.HeadSHA) {
 		return failed(ErrConflict)
 	}
-	projects := []int{snap.ProjectID, snap.SourceProjectID}
-	for _, item := range contextPolicyItems(snap) {
-		projects = append(projects, item.ProjectID)
-	}
-	for _, project := range projects {
-		var enabled bool
-		if err := tx.QueryRowContext(ctx, `SELECT enabled FROM platform_projects WHERE id=?`, project).Scan(&enabled); err != nil {
-			return failed(err)
-		}
-		if !enabled {
-			return failed(ErrProjectPermission)
-		}
+	if err := requireTicketProjectsEnabled(ctx, tx, snap); err != nil {
+		return failed(err)
 	}
 	var valid bool
 	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_ticket_links WHERE id=? AND run_id=? AND finding_id=? AND integration_id=? AND integration_revision=? AND provider=? AND actor=? AND head_sha=? AND idempotency_key=? AND state='sending' AND lease=? AND lease!='' AND julianday(lease_until)>julianday(?))`, claim.ID, claim.RunID, claim.FindingID, claim.IntegrationID, claim.IntegrationRevision, claim.Provider, claim.Actor, claim.HeadSHA, claim.IdempotencyKey, claim.Lease, now()).Scan(&valid); err != nil {
@@ -77,4 +67,21 @@ func (s *Store) TicketSendContext(ctx context.Context, claim TicketClaim) (Snaps
 		return failed(err)
 	}
 	return snap, credentials, nil
+}
+
+func requireTicketProjectsEnabled(ctx context.Context, tx *sql.Tx, snap Snapshot) error {
+	projects := []int{snap.ProjectID, snap.SourceProjectID}
+	for _, item := range contextPolicyItems(snap) {
+		projects = append(projects, item.ProjectID)
+	}
+	for _, project := range projects {
+		var enabled bool
+		if err := tx.QueryRowContext(ctx, `SELECT enabled FROM platform_projects WHERE id=?`, project).Scan(&enabled); err != nil {
+			return err
+		}
+		if !enabled {
+			return ErrProjectPermission
+		}
+	}
+	return nil
 }

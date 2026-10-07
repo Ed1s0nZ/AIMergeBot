@@ -49,6 +49,9 @@ func (s *Store) ReserveFindingTicket(ctx context.Context, runID, actor, integrat
 	if err != nil {
 		return TicketLink{}, false, err
 	}
+	if err := requireTicketProjectsEnabled(ctx, tx, snap); err != nil {
+		return TicketLink{}, false, err
+	}
 	if headSHA != snap.HeadSHA || !commitID.MatchString(headSHA) {
 		return TicketLink{}, false, ErrConflict
 	}
