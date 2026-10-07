@@ -59,7 +59,11 @@ func ownerReviewAndCollect(t *testing.T, s *Store, run int64) []NotificationDeli
 	if err != nil {
 		t.Fatal(err)
 	}
-	return d
+	items := make([]NotificationDelivery, len(d))
+	for i := range d {
+		items[i] = d[i].NotificationDelivery
+	}
+	return items
 }
 
 func TestNotificationOwnerRouteConfigPreservesOmissionAndCanClear(t *testing.T) {
@@ -257,14 +261,14 @@ func TestNotificationOwnerRouteFiltersLegacyUnassignedAndManualBypass(t *testing
 		t.Fatal(err)
 	}
 	ds, total, err = s.NotificationRecords(ctx, 1, 1, 20)
-	if err != nil || total != 1 || ds[0].ID != id || s.requireNotificationAccess(ctx, ds[0]) != nil {
+	if err != nil || total != 1 || ds[0].ID != id || s.requireNotificationAccess(ctx, ds[0].NotificationDelivery) != nil {
 		t.Fatal(ds, total, err)
 	}
 	rev := v.Revision
 	if _, err = s.SaveIntegration(ctx, v.ID, 1, IntegrationInput{Integration: v, ExpectedRevision: &rev}); err != nil {
 		t.Fatal(err)
 	}
-	if s.requireNotificationAccess(ctx, ds[0]) == nil {
+	if s.requireNotificationAccess(ctx, ds[0].NotificationDelivery) == nil {
 		t.Fatal("explicit test bypassed changed channel version")
 	}
 	// JSON never persists the internal event association inside the externally sent payload.
@@ -305,9 +309,9 @@ func TestNotificationOwnerDigestSplitsBoundedEvidenceAndRejectsPartialLoss(t *te
 		}
 		sum += count
 		if count == 200 {
-			large = d
+			large = d.NotificationDelivery
 		}
-		if err = s.requireNotificationAccess(ctx, d); err != nil {
+		if err = s.requireNotificationAccess(ctx, d.NotificationDelivery); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -348,7 +352,7 @@ func TestNotificationOwnerOutboxEvidenceFailureRollsBackRouting(t *testing.T) {
 		t.Fatal(err)
 	}
 	ds, total, err := s.NotificationRecords(ctx, 1, 1, 20)
-	if err != nil || total != 1 || s.requireNotificationAccess(ctx, ds[0]) != nil {
+	if err != nil || total != 1 || s.requireNotificationAccess(ctx, ds[0].NotificationDelivery) != nil {
 		t.Fatal(ds, total, err)
 	}
 }

@@ -45,3 +45,13 @@ sequenceDiagram
 F2 3d564dc已推。修改notification_records.go：局部记录DTO、列表单查询LEFT JOIN、当前状态投影；保持原RetryNotification与发送队列逻辑。新增notification_retry_availability_test.go，真实临时SQLite验证修改集成name/凭据后revision变化、同配置failed/unknown、disabled、missing配置、attempt边界/终态、列表无副作用、JSON无payload/lease、admin拒绝及分页，保留既有unknown确认/版本冲突测试。修改notification-records.tsx：类型与有限原因解释、仅明确can_retry提供操作、unknown确认、409刷新，保留原loading/empty/error与分页；必要时局部拆可用状态展示组件，便于实际组件渲染验收，不改整个集成页。
 
 先完成专项Go/race及通知事件/owner/access扩大回归，再全Go/vet；frontend typecheck/build与受控组件/浏览器证明同版本、变更配置/停用/上限/unknown确认、缺字段和409刷新。不调用外部渠道、不读取真实凭据；正式前端资源构建与Go嵌入构建串行执行。文档及CHANGELOG随生产提交记录已完成与未完成状态。前版生产HEAD71e4eec精确CI37644666501当前in_progress，新生产push等待该run终态，避免取消其独立验收；不等待虚构进程或以初次列表空为失败。回滚只撤销新观察投影/界面字段消费，保持重试权限与冻结版本边界。
+
+## F4/F5 实施与验证
+
+F3 1c3b94e已推后实施。记录DTO通过单次LEFT JOIN读取当前渠道版本/启用状态，原JSON字段及脱敏保留，不修改runtime DTO、数据库结构或RetryNotification。记录页只在明确can_retry时提供请求；缺字段及未知原因关闭操作，409清除重复确认并重新读取，无自动再次POST。读取失败同时显示错误并隐藏旧记录。仅整理本次两个通知组件，未重排整个集成页面。
+
+真实临时SQLite专项覆盖failed/unknown、真实SaveIntegration改名后的版本冲突、停用、尝试次数边界、终态、损坏历史引用、权限、分页、JSON脱敏和读取不改投递状态。缺失渠道夹具仅在临时单连接Store中短暂关闭外键构造，立即恢复；未改生产外键。初轮测试误用非枚举错误码transport_failed，随后缺失渠道夹具被外键拒绝；修正为provider_http_rejected及上述受控夹具后，TestNotificationRetryAvailabilityCurrentConfiguration通过0.726s，全部TestNotification的race通过36.373s。原unknown重复确认/owner/事件/access测试仍执行且未弱化断言，必要的Go调用方仅解包局部记录DTO。
+
+前端使用既有esbuild/ReactDOM在内存编译实际NotificationRetryControl并渲染可请求、六类拒绝、旧响应缺字段/未知原因（包含constructor）及busy/unknown确认；实际NotificationRecords在受控useResource/api/useState夹具下执行409，验证一次POST、一次刷新、重复确认清除、配置变更不呈现重试、读取错误不呈现旧操作、loading/empty。所有断言通过；这是组件/处理函数验证，不声称真实浏览器端到端或外部通知送达。npm run typecheck、go vet ./...及git diff --check通过。
+
+前一生产71e4eec的CI37644666501已completed/success，允许独立新生产push。初次全Go回归在修正夹具前编译，失败仅来自上述缺失渠道外键夹具；修正后重跑go test ./...全部通过（platform 143.103s）。随后串行npm run build通过（tsc -b及Vite），正式JS为index-DYy66Kuj.js，CSS保持index-RiSjjNhI.css；之后go build ./...通过，正式资源可被嵌入应用。UAR-001/002/004、跨配置通知恢复及全部其余确认需求仍未闭合；没有main合并、部署或整体完成声明。

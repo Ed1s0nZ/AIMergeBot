@@ -50,7 +50,7 @@ func TestDigestAccessRevocationAndLegacyReceipt(t *testing.T) {
 	if err != nil || total != 1 {
 		t.Fatalf("%+v %d %v", records, total, err)
 	}
-	d := records[0]
+	d := records[0].NotificationDelivery
 	var refs int
 	if err = s.DB.QueryRow(`SELECT COUNT(*) FROM platform_notification_delivery_runs WHERE delivery_id=?`, d.ID).Scan(&refs); err != nil || refs != 2 {
 		t.Fatalf("refs=%d %v", refs, err)

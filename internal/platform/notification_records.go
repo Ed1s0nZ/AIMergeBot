@@ -8,7 +8,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (s *Store) NotificationRecords(ctx context.Context, actor int64, page, size int) ([]NotificationDelivery, int, error) {
+// Availability describes the current retry request gate, not a delivery promise.
+type NotificationRecord struct {
+	NotificationDelivery
+	CanRetry               bool   `json:"can_retry"`
+	RetryUnavailableReason string `json:"retry_unavailable_reason,omitempty"`
+}
+
+func notificationRetryUnavailable(d NotificationDelivery, revision sql.NullInt64, enabled sql.NullBool) string {
+	if d.Status != "failed" && d.Status != "unknown" {
+		return "state_not_retryable"
+	}
+	if d.Attempt < 1 {
+		return "invalid_attempt"
+	}
+	if d.Attempt >= 5 {
+		return "attempts_exhausted"
+	}
+	if !revision.Valid || revision.Int64 <= 0 || d.IntegrationRevision <= 0 || !enabled.Valid {
+		return "configuration_unavailable"
+	}
+	if revision.Int64 != d.IntegrationRevision {
+		return "configuration_changed"
+	}
+	if !enabled.Bool {
+		return "integration_disabled"
+	}
+	return ""
+}
+
+func (s *Store) NotificationRecords(ctx context.Context, actor int64, page, size int) ([]NotificationRecord, int, error) {
 	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, 0, err
@@ -21,17 +50,21 @@ func (s *Store) NotificationRecords(ctx context.Context, actor int64, page, size
 	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM platform_notification_deliveries`).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT id,integration_id,integration_revision,project_id,run_id,event_key,status,attempt,next_attempt,error_code,created_at,updated_at FROM platform_notification_deliveries ORDER BY id DESC LIMIT ? OFFSET ?`, size, (page-1)*size)
+	rows, err := tx.QueryContext(ctx, `SELECT d.id,d.integration_id,d.integration_revision,d.project_id,d.run_id,d.event_key,d.status,d.attempt,d.next_attempt,d.error_code,d.created_at,d.updated_at,i.revision,i.enabled FROM platform_notification_deliveries d LEFT JOIN platform_integrations i ON i.id=d.integration_id ORDER BY d.id DESC LIMIT ? OFFSET ?`, size, (page-1)*size)
 	if err != nil {
 		return nil, 0, err
 	}
-	items := []NotificationDelivery{}
+	items := []NotificationRecord{}
 	for rows.Next() {
-		var d NotificationDelivery
-		if err = rows.Scan(&d.ID, &d.IntegrationID, &d.IntegrationRevision, &d.ProjectID, &d.RunID, &d.EventKey, &d.Status, &d.Attempt, &d.NextAttempt, &d.ErrorCode, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		var d NotificationRecord
+		var revision sql.NullInt64
+		var enabled sql.NullBool
+		if err = rows.Scan(&d.ID, &d.IntegrationID, &d.IntegrationRevision, &d.ProjectID, &d.RunID, &d.EventKey, &d.Status, &d.Attempt, &d.NextAttempt, &d.ErrorCode, &d.CreatedAt, &d.UpdatedAt, &revision, &enabled); err != nil {
 			rows.Close()
 			return nil, 0, err
 		}
+		d.RetryUnavailableReason = notificationRetryUnavailable(d.NotificationDelivery, revision, enabled)
+		d.CanRetry = d.RetryUnavailableReason == ""
 		items = append(items, d)
 	}
 	err = rows.Err()
