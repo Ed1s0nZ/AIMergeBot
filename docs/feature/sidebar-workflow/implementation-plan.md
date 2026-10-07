@@ -402,3 +402,9 @@ P9/F5，将实际 Close/OpenStore 的持久恢复测试扩为 Linear/Jira 同场
 P8/F4，依据官方 https://docs.slack.dev/authentication/verifying-requests-from-slack/，对未经解析的原始字节校验 v0:<timestamp>:<body> HMAC-SHA256，hmac.Equal 常量时间比较，拒绝非数字/溢出时间、超过前后五分钟请求、非法版本/hex/长度、64 KiB 超限体及缺失 secret。函数只验证来源，不授予身份或权限，不消费 nonce，也不能阻止五分钟内相同签名重放；后续必须原子回放记录、主动用户绑定、当前完整项目权限重新校验。
 
 定向 race 1.693s、vet/diff 通过，覆盖签名有效、秘密变化、用户 ID 篡改、等义 URL 编码但原始字节不同、过期/未来签名、时间溢出/签名版本/编码异常/超限体。无外部机器人消息发送，回调 HTTP 路由未开放。机器人完整 AC-013 仍未完成，不用签名 helper 代替身份绑定与防重放验收。当前 e6b29e5 CI 37603901544 尚 in_progress，未追加推送。
+
+### S7 Slack 持久原子防重放（开发验证中）
+
+P8/F4，迁移增加 callback receipts（integration_id + 原始 timestamp/body SHA256 摘要唯一，expires_at 索引），不保存回调正文、外部用户或签名秘密。内部 consumeSlackCallback 在同一事务读取当前启用 Slack 渠道/revision 的有界凭据、验证原始请求签名与时间，再原子 INSERT OR IGNORE；只有新记录提交成功才通过。先签名后清理过期摘要，过期请求本身始终拒绝；旧 revision/禁用渠道不通过。此 gate 只建立来源/一次性消费，用户绑定和项目授权仍需独立校验，尚无 HTTP 入口。
+
+签名/持久 replay 定向 race 2.132s、vet/diff 通过：伪造正文拒绝且不污染合法回调，12 个并发消费者只有一个成功，实际 Close/OpenStore 后相同请求拒绝、数据库仅保存 64 字符摘要、过期/禁用拒绝。前一签名模块全量 Go 64265 仍运行，本次迁移版需其终态后执行新全量验证；不因为等待超时重启。AC-013 身份绑定/授权复审等仍未完成。
