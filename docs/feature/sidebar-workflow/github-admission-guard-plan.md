@@ -9,3 +9,5 @@ Runner.Submit在Snapshot前检查target；enqueueTx在原权限校验后、去�
 poll在每项目/页与Snapshot前检查target，不将拒绝项目标initialized/seen；seen写入改为短事务内再查snapshot binding，禁止网络读取期间新增绑定后写入错误baseline。服务读取GitLab MR target后才知道source，因此source检查保证无source源码读取或enqueue，不承诺事前未知source时target metadata零访问。
 
 测试：显式target手工Submit零repo calls、legacy成功、source/context enqueue拒绝且零新增run/event、Snapshot调用期间创建binding后二次拒绝、执行/Scope/owner推荐零reader、retry无child/父失败保留、poll零HTTP/零seen与baseline写入竞态；原followup/Slack/恢复/poll/推荐回归，race/vet/build/全Go与精确CI。计划先commit/push docs-only；6f54bec CI37625207628终态后再推生产代码。其他完整REQ保持。
+
+HTTP沿用fail统一映射，新增ErrRepositoryUnavailable→503/code=repository_unavailable，固定脱敏提示且不发Retry-After（配置能力未就绪，不保证短暂等待自动恢复）。真实Register/Login的Submit负例证明0仓库calls/无run，匿名/未授权仍先按已有401/403返回。历史check/comment发布队列也必须在G2公开配置前接入binding检查，留到后续发布/factory边界，不将本阶段guard声称覆盖全部远端写入。
