@@ -39,6 +39,9 @@ const ticketLinkColumns = `id,run_id,finding_id,integration_id,integration_revis
 func scanTicketLink(row interface{ Scan(...any) error }) (TicketLink, error) {
 	var v TicketLink
 	err := row.Scan(&v.ID, &v.RunID, &v.FindingID, &v.IntegrationID, &v.IntegrationRevision, &v.Provider, &v.HeadSHA, &v.Actor, &v.State, &v.RemoteID, &v.URL, &v.IdempotencyKey, &v.ErrorCode, &v.UpdatedAt, &v.EndpointOrigin)
+	if err == nil && v.Provider == "jira" && !validJiraTicketIdentity(v.RemoteID, v.URL, v.EndpointOrigin) {
+		v.URL = ""
+	}
 	return v, err
 }
 

@@ -154,4 +154,11 @@ func TestJiraReceiptFencedToPersistedOrigin(t *testing.T) {
 	if err != nil || link.State != "created" || link.URL != receipt.URL || link.EndpointOrigin != endpoint {
 		t.Fatal(link, err)
 	}
+	if _, err := s.DB.Exec(`UPDATE platform_ticket_links SET url='https://attacker.example/browse/AUDIT-12' WHERE id=?`, link.ID); err != nil {
+		t.Fatal(err)
+	}
+	link, err = s.FindingTicket(ctx, run, 1, integration.ID, "f")
+	if err != nil || link.URL != "" {
+		t.Fatal("foreign persisted link disclosed", link, err)
+	}
 }

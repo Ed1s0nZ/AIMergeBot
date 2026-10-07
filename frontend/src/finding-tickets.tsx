@@ -22,16 +22,16 @@ const errors: Record<string,string> = {
  creation_unacknowledged: "远端未返回可验证的创建结果，请先核对远端。",
  unsupported_provider: "此工单渠道暂未支持。",
 };
-function safeLink(value?: string) {
+function safeLink(value?: string, provider?: string) {
   try {
     const u = new URL(value || "");
     return u.protocol === "https:" &&
-      u.host === "linear.app" &&
+      (provider === "jira" || u.host === "linear.app") &&
       !u.username &&
       !u.password &&
       !u.search &&
       !u.hash &&
-      u.pathname.includes("/issue/")
+      (provider === "jira" ? /^\/browse\/[A-Z][A-Z0-9_]{0,63}-[1-9][0-9]{0,19}$/.test(u.pathname) : u.pathname.includes("/issue/"))
       ? value
       : undefined;
   } catch {
@@ -110,12 +110,12 @@ export function FindingTicketsPanel({
               {tickets.map((t) => (
                 <li key={t.id}>
                   {t.provider} · {states[t.state] || "状态待核对"}
-                  {safeLink(t.url) && (
+                  {safeLink(t.url,t.provider) && (
                     <>
                       {" "}
                       ·{" "}
                       <a
-                        href={safeLink(t.url)}
+                        href={safeLink(t.url,t.provider)}
                         target="_blank"
                         rel="noopener noreferrer"
                       >

@@ -372,3 +372,9 @@ Jira 映射绑定版本完整 Go 测试通过（platform 114.462s）。
 P8/F4，可选渠道与预留通过同一 ticketProviderReady 分派 Linear/Jira，Jira 要求持久项目/类型与认证完整。后台 Dispatcher 分派 Jira sender，当前凭据端点必须与持久 endpoint_origin 完全一致，避免旧记录发送到新站点。现有 Runner 队列自动消费明确预留记录，仍无审计事件隐式建单。使用实际 Store/预留/授权快照/受控 HTTP/回执落库完整矩阵：有效 created、发送前禁用零 POST、缺项目映射零 POST、发送后 revision 变化 unknown 保留回执、传输未知不重发。原审计摘要不导出。
 
 Jira/Linear 消费/渠道定向 race 8.779s、vet/diff 通过。尚需管理员 Jira 表单、Jira 查看链接前端适配、后台生命周期 Jira 专项及实际浏览器交互/必填字段与认证范围说明；不声称 Jira 功能完整验收。前一远端 CI 37602358756 待终态后再推送。
+
+### S6 Jira 管理表单与查看链接（开发验证中）
+
+P7/F4，既有凭据替换表单新增 Jira 账户邮箱、项目 ID、问题类型 ID（启用时必填），写入 username/jira_project_id/jira_issue_type_id；默认保留既有凭据，不回填秘密。公开状态显示 has_jira_mapping。表单说明直接站点 HTTPS 根地址、Cloud v3 与账户邮箱/API token；scoped-token 网关、Data Center、额外自定义必填字段暂未实现，需要无需额外必填字段的普通 issue 类型。保存不创建，用户从发现详情明确操作。
+
+详情链接支持 Jira HTTPS /browse/<合法 key>，Store 查询先用固定 endpoint_origin 与 remote ID 再校验链接，避免损坏持久数据变成外站链接。数据库测试注入外站 url 并验证返回 URL 为空。Jira 回执/消费者定向 race 4.914s、前端 typecheck、vet/diff 通过。旧完整 Go 47530 仍运行，尚未执行本版本 build/全量/浏览器表单验收；避免 Vite 清理产物与 go:embed 并发。相关能力仍在开发验证阶段。
