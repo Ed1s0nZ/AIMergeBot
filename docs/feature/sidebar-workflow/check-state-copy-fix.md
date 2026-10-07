@@ -12,3 +12,9 @@
 ## F3 实施计划
 
 F2 cf5894e已推。仅替换RunCheckAdvice的固定HEAD说明，不增加重复状态分支；disabled/pending/sending/unknown/failed/cancelled/stale与已发布提示/阻断继续由现有动态段落表达。验证frontend typecheck/build及实际组件SSR渲染覆盖各发布状态，确认已发布场景不再出现否认发布/阻断文本，未知结果不显示成功；无需新增镜像文案的长期测试。正式构建同步web/dist，随后检查嵌入应用构建。回滚只恢复文案和对应前端资源，不影响持久数据或远端操作。F4/F5记录实际结果并推送，跟踪生产HEAD精确CI；不合并main或发布。
+
+## F4/F5 实施与验证
+
+F3 b98a158已推后才修改源码。RunCheckAdvice固定说明改为本次固定提交、不代表PR最新版本；下方沿用现有真实发布状态，不再无条件否认发布或阻断。frontend npm run build通过，包含tsc -b与Vite正式构建；新JS index-FnbN0sa5.js，CSS index-RiSjjNhI.css保持。使用已安装esbuild/ReactDOM server在内存编译并渲染真实组件，无额外依赖或长期镜像文案测试；disabled/pending/sending/unknown/failed/cancelled/stale与published advisory/blocking共9场景均通过，已发布无否认发布/阻断、未确认无成功声称、固定提交限定保持。首轮fixture将cancelled期望写为组件不存在的“检查发布已取消”，校正为既有“未发送的检查已取消”后完整重跑通过，未为fixture修改原状态分支。
+
+实际Xcode PATH go build ./...通过，正式前端资源可被应用嵌入。无Go源码或状态机改动，不重复全Go/race；推送后独立精确CI继续跟踪。CHANGELOG记录该用户可见修正；UAR-001/002/004及其余需求仍未闭合，未宣称整体完成或合并就绪，无main合并/发布。

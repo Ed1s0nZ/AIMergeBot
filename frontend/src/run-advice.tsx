@@ -31,8 +31,8 @@ export function RunCheckAdvice({ value }: { value: CheckAssessment }) {
       </p>
       <p>
         运行 #{value.run_id} · HEAD {value.head_sha.slice(0, 12)}
-        。当前摘要尚未发布为平台合并检查，未启用阻断；完成不代表代码安全，也不代表当前
-        PR 最新提交。
+        。此摘要对应本次固定提交；审计完成不代表代码安全，也不代表当前 PR
+        最新提交。检查发布状态见下方。
       </p>
       <p>
         {value.published
