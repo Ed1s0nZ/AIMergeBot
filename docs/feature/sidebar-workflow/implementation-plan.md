@@ -184,3 +184,11 @@ WorkflowPolicy 增加可选 checks：enabled（默认关闭）、advisory/blocki
 自动采集提交 1c1a249 的远端 CI 37591714750 completed/success。继续在现有已确认 REQ-021 范围内完善发布身份：检查名称使用数据库持久安装 namespace 加运行 ID，复用已有安装身份迁移，不生成每次启动变化的身份。发布者缺失身份或非 16 字节十六进制身份时拒发；回执仍须匹配完整名称和 HEAD。两个安装的同编号运行、同一提交在受控 GitLab 服务得到不同检查名，非法身份零新增 POST；检查协议/消费者定向 race 5.613s 通过。
 
 本切片处于 P8/F4–F5，依赖已有确认需求、设计、队列与授权预检；无需新用户决策。完整 go test ./... 通过（platform 88.463s），go vet ./... 和 git diff --check 通过；远端精确提交 CI 待推送验证。安装隔离不解决旧运行阻断检查残留，自动消费循环、启用控件及旧检查处理仍未完成；没有发生真实外部检查写入。
+
+### S5 同 MR 检查稳定名称（开发验证中）
+
+P8/F4：现有确认需求 REQ-021 要求新结果对应当前提交、旧结果不能覆盖。检查名改为安装 namespace + 目标项目 + MR，不再为每次运行创建独立 job；运行编号留在描述与链接。依据 [GitLab 外部状态更新规则](https://docs.gitlab.com/ci/ci_cd_for_external_repos/external_commit_statuses/)，同 pipeline 同名终态可通过新状态重试并隐藏旧 job。保留发送前两次授权与 HEAD/base/source 预检。验证同 MR 不同运行名相同、不同 MR/安装名不同。尚需明确绑定 pipeline、处理发送竞态以及已有 run 名旧 job；稳定名称本身不证明完整阻断链路可用，自动发布仍未启用。
+
+追加 MR head_pipeline 显式绑定：存在时要求 ID 正数、项目匹配源项目、SHA 匹配审计 HEAD，POST 带 pipeline_id；合并结果 SHA 或目标项目 pipeline 不冒充源提交 pipeline，拒绝写入。没有 head_pipeline 时保留 GitLab 默认选取行为，尚不能保证重复 pipeline 场景唯一性。实际 POST 参数、不同 SHA/项目零写入、稳定名称与发布预检定向 race 5.591s 通过；完整 Go/vet 待完成。没有执行旧 run 名检查清理，未启用生产发布。
+
+本切片完整 Go 测试通过（platform 80.621s），go vet ./... 退出 0。上一笔 df043f1 的远端 CI 37592704787 仍 in_progress，等待终态后才推送下一笔，避免工作流并发取消已启动验证。检查适配器仍无生产自动消费，不把受控协议测试当作真实 GitLab 合并规则验证。

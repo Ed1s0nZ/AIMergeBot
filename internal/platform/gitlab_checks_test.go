@@ -11,7 +11,7 @@ import (
 
 func TestGitLabCheckPublicationPinsForkAndAcknowledgement(t *testing.T) {
 	head, base := strings.Repeat("b", 40), strings.Repeat("a", 40)
-	for _, mode := range []string{"ack", "stale_head", "stale_base", "source_changed", "bad_receipt", "transport_failure"} {
+	for _, mode := range []string{"ack", "pipeline", "wrong_pipeline_sha", "wrong_pipeline_project", "stale_head", "stale_base", "source_changed", "bad_receipt", "transport_failure"} {
 		t.Run(mode, func(t *testing.T) {
 			posts := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -28,7 +28,18 @@ func TestGitLabCheckPublicationPinsForkAndAcknowledgement(t *testing.T) {
 					if mode == "source_changed" {
 						source = 4
 					}
-					json.NewEncoder(w).Encode(map[string]any{"source_project_id": source, "source_branch": "feature", "diff_refs": map[string]string{"head_sha": h, "base_sha": b}})
+					response := map[string]any{"source_project_id": source, "source_branch": "feature", "diff_refs": map[string]string{"head_sha": h, "base_sha": b}}
+					if strings.Contains(mode, "pipeline") {
+						pipelineSHA, pipelineProject := head, 2
+						if mode == "wrong_pipeline_sha" {
+							pipelineSHA = base
+						}
+						if mode == "wrong_pipeline_project" {
+							pipelineProject = 1
+						}
+						response["head_pipeline"] = map[string]any{"id": 73, "project_id": pipelineProject, "sha": pipelineSHA}
+					}
+					json.NewEncoder(w).Encode(response)
 					return
 				}
 				if req.Method == "POST" && req.URL.Path == "/api/v4/projects/2/statuses/"+head {
@@ -37,8 +48,11 @@ func TestGitLabCheckPublicationPinsForkAndAcknowledgement(t *testing.T) {
 					if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
 						t.Error(err)
 					}
-					if payload["state"] != "skipped" || payload["name"] != "aimangebot/"+strings.Repeat("a", 32)+"/run/9" || payload["ref"] != "feature" || strings.Contains(payload["description"].(string), "PRIVATE") {
+					if payload["state"] != "skipped" || payload["name"] != "aimangebot/"+strings.Repeat("a", 32)+"/project/1/mr/3" || payload["ref"] != "feature" || strings.Contains(payload["description"].(string), "PRIVATE") {
 						t.Error("wrong status payload", payload)
+					}
+					if mode == "pipeline" && payload["pipeline_id"] != float64(73) {
+						t.Error("MR pipeline not selected", payload)
 					}
 					if mode == "transport_failure" {
 						w.WriteHeader(500)
@@ -62,19 +76,22 @@ func TestGitLabCheckPublicationPinsForkAndAcknowledgement(t *testing.T) {
 			run := Run{ID: 9, Snapshot: Snapshot{ProjectID: 1, SourceProjectID: 2, MRIID: 3, HeadSHA: head, BaseSHA: base}, Status: "incomplete", Result: AuditResult{Summary: "PRIVATE"}}
 			result := repo.PublishRunCheck(context.Background(), run, "https://audit.example/#/runs/9", false, strings.Repeat("a", 32), func(context.Context) error { return nil })
 			want := "unknown"
-			if mode == "ack" {
+			if mode == "ack" || mode == "pipeline" {
 				want = "published"
 			}
 			if strings.HasPrefix(mode, "stale") || mode == "source_changed" {
 				want = "stale"
 			}
+			if strings.HasPrefix(mode, "wrong_pipeline") {
+				want = "failed"
+			}
 			if result.State != want {
 				t.Fatal(result)
 			}
-			if want == "stale" && posts != 0 {
+			if (want == "stale" || want == "failed") && posts != 0 {
 				t.Fatal("stale snapshot published")
 			}
-			if want != "stale" && posts != 1 {
+			if want != "stale" && want != "failed" && posts != 1 {
 				t.Fatal("wrong post count", posts)
 			}
 			invalid := run
@@ -148,5 +165,29 @@ func TestGitLabCheckNamespacesIsolateInstallations(t *testing.T) {
 	}
 	if outcome := repo.PublishRunCheck(context.Background(), run, "", false, "invalid", authorize); outcome.State != "failed" || len(names) != 2 {
 		t.Fatal("invalid namespace published", outcome)
+	}
+	// Re-auditing the same commit and MR must use the same job name even
+	// when the new local run has a different identity and outcome.
+	run.ID++
+	run.Status = "failed"
+	if outcome := repo.PublishRunCheck(context.Background(), run, "", true, strings.Repeat("a", 32), authorize); outcome.State != "published" {
+		t.Fatal(outcome)
+	}
+	if names[2] != names[0] {
+		t.Fatal("re-audit left a separate job", names)
+	}
+	run.MRIID++
+	if outcome := repo.PublishRunCheck(context.Background(), run, "", true, strings.Repeat("a", 32), authorize); outcome.State != "published" {
+		t.Fatal(outcome)
+	}
+	if names[3] == names[0] {
+		t.Fatal("different MRs share a job", names)
+	}
+	run.ProjectID++
+	if outcome := repo.PublishRunCheck(context.Background(), run, "", true, strings.Repeat("a", 32), authorize); outcome.State != "published" {
+		t.Fatal(outcome)
+	}
+	if names[4] == names[3] {
+		t.Fatal("different target projects share a job", names)
 	}
 }

@@ -52,6 +52,12 @@ func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL
 	if source != r.SourceProjectID || current.DiffRefs.HeadSha != r.HeadSHA || current.DiffRefs.BaseSha != r.BaseSHA {
 		return CheckPublication{State: "stale", Code: "snapshot_changed"}
 	}
+	// Explicitly select the MR pipeline when GitLab supplies it. A pipeline
+	// belonging to a merged-result SHA or another project cannot accept this
+	// source-commit result without changing its meaning.
+	if p := current.HeadPipeline; p != nil && (p.ID <= 0 || p.ProjectID != source || p.SHA != r.HeadSHA) {
+		return CheckPublication{State: "failed", Code: "preflight_unavailable"}
+	}
 	if err := authorize(ctx); err != nil {
 		return checkPreflightFailure(err)
 	}
@@ -61,13 +67,18 @@ func (g *GitLabRepository) PublishRunCheck(ctx context.Context, r Run, targetURL
 		rules.Mode = "blocking"
 	}
 	state, thresholdCount := checkStateForRules(r, rules)
-	name := fmt.Sprintf("aimangebot/%s/run/%d", namespace, r.ID)
+	// Keep one status per MR within an installation. A repeated audit must
+	// replace the MR's result rather than leave a separate failed run job.
+	name := fmt.Sprintf("aimangebot/%s/project/%d/mr/%d", namespace, r.ProjectID, r.MRIID)
 	mode := "advisory"
 	if blocking {
 		mode = "blocking"
 	}
 	description := fmt.Sprintf("AIMergeBot run #%d: %s; risks>=%s: %d; mode=%s", r.ID, a.State, rules.MinimumSeverity, thresholdCount, mode)
 	options := &gitlab.SetCommitStatusOptions{State: gitlab.BuildStateValue(state), Name: &name, Description: &description}
+	if current.HeadPipeline != nil {
+		options.PipelineID = &current.HeadPipeline.ID
+	}
 	if targetURL != "" {
 		options.TargetURL = &targetURL
 	}
