@@ -81,6 +81,8 @@ G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Githu
 
 ### 当前实施状态（2026-10-07）
 
+身份与恢复补充见 [repository-recovery-contract.md](repository-recovery-contract.md)：否决删除绑定后回退 legacy；定义持久项目 kind、固定多仓 scope、source ACL 前零内容读取与历史任务隔离。此为 F2 草案，尚未开放恢复 API 或 native factory，不表示 UAR-001 已关闭。
+
 上文“当前事实”是设计创建时的基线：现已实现G1绑定存储与历史、G2 HTTP/配置同步/原生创建/管理页面，G3安全读取client及固定commit/tree/blob/目录列表的内部模块。bound执行仍由guard明确拒绝，repository_execution_available=false；PR observation/compare/diff/metadata、统一factory与G4–G6尚未完成。具体证据见github-read-client-plan.md、github-fixed-objects-plan.md及repository-management-ui-gate.md，不把这些配置与读取模块等同原生GitHub审计可用。
 
 ### G3 研究纠正与待解决契约（2026-10-07）
