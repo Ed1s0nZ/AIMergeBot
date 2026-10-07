@@ -45,3 +45,13 @@ collector 为进入 outbox 的每个事件保存来源事件依据；即时与�
 5. 独立管理 UI、异常/冲突/只读/窄屏/键盘验收；完整回归、精确 CI 与逐项需求核验。
 
 第一步不等于通知路由完成，全部范围验收前 REQ-019 / AC-017 保持未完成。
+
+## 已保存责任人渠道过滤 API 与实施 gate（第二阶段）
+
+P8/F4，输入需求已确认，第一阶段39fedd7已推送。现有模块均低于800行，但integrations_store包含契约/配置验证/存储，notification_events包含采集/汇总；风险medium，允许adapter_extraction：新增notification_owner_routes.go处理配置权限与事件匹配、notification_owner_access.go处理发送前证据验证。原集成/采集/发送路径只委托，独立测试验证职责边界，无广泛重排。
+
+GET/POST/PATCH integrations增加owner_ids数组，最多100个唯一正平台用户ID。创建时省略或空数组为原项目范围；更新省略保留原配置，显式[]清空，防旧客户端无意关闭路由。范围非空仅限email/feishu/dingtalk/wecom/slack/teams/webhook，事件须非空且仅finding.reviewed/risk.expired；run.completed/run.failed目前没有单一发现责任人依据，拒绝混合配置而非静默漏发。保存时所有选定用户启用且具备所有所选项目viewer权限，不授予ACL；实际collector再按完整运行快照过滤。范围保存在独立platform_integration_owner_routes，与集成revision、队列失效及审计事件同事务，避免改变旧表列迁移。
+
+新增platform_notification_delivery_events(delivery_id,event_id)保留即时/汇总源事件。NotificationSummary内部sourceEventID不序列化到外部；禁止人工QueueNotification绕过非空owner_ids的依据检查，只有管理员主动渠道测试（run_id=0、test-前缀）可发送固定测试摘要。责任人汇总每份最多200个源事件，超出拆补充份；发送时有界读取全部事件并校验各run/项目与原发起者、owner、HEAD、disposition_revision及当前完整权限。当前版本/owner/HEAD变化即取消旧提醒，不改派旧正文。无证据旧队列不通过责任人路由。
+
+验证需覆盖省略保留/显式清空、权限与输入拒绝、持久重开、原子写入失败、即时/日周汇总、晚到/去重、历史不明事件、变更owner/revision/HEAD、source/context撤权及停用、混入其他项目事件、无依据队列/人工绕过/明确测试。前端独立选择器与真实浏览器验收仍在后续，第二阶段API不代表UI或完整需求完成。
