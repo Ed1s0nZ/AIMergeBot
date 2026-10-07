@@ -6,6 +6,7 @@ import { FindingWorkbench } from "./finding-workbench";
 import { FrozenContextRepositories } from "./context-repositories";
 import { SARIFDownload } from "./sarif-download";
 import { PRInvestigationPanel } from "./pr-investigation";
+import { RunComparisonPanel } from "./run-comparison";
 import { FindingAssociationsPanel } from "./finding-associations";
 import { RetryUsagePanel } from "./retry-usage";
 import { FollowupAuditPanel } from "./followup-audit";
@@ -451,6 +452,7 @@ export function RunDetail({ id }: { id: number }) {
         lifecycle={resource.data?.finding_lifecycle}
         findings={r.result.findings}
       />
+      <RunComparisonPanel key={r.id} runId={r.id} />
       <FindingAssociationsPanel
         key={`associations:${r.id}`}
         run={r}

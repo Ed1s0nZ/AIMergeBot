@@ -196,6 +196,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.GET("/runs/:id/status", h.runStatus)
 	api.GET("/runs/:id/sarif", h.runSARIF)
 	api.GET("/runs/:id/scope", h.runScope)
+	api.GET("/runs/:id/comparison", h.compareRuns)
 	api.GET("/runs/:id/associations", h.findingAssociations)
 	api.PUT("/runs/:id/associations/:association_id", h.decideFindingAssociation)
 	api.POST("/runs/:id/followup", h.followupRun)
