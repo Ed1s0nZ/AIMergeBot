@@ -428,3 +428,9 @@ Slack 全部定向 race 3.217s、vet/diff 通过，验证有效绑定返回正�
 P8/F4，依据官方 https://docs.slack.dev/interactivity/implementing-slash-commands/ 的 api_app_id/team_id/user_id 契约，服务端凭据增加可选 slack_app_id/slack_workspace_id。旧出站通知配置仍可读，只有完整合法 A-ID/T-ID 与 signing secret 的渠道可发行绑定挑战。签名通过后再解析原始 form，要求 api_app_id/team_id 单值并精确匹配当前配置；来源正确也不能跨工作区/应用消费 nonce。此模块当前处理 form slash-command 回调，不声称支持 JSON Events API 或所有 provider。
 
 Slack 定向 race 3.293s、vet/diff 通过，新增同秘密有效签名但不同 app、不同 workspace、重复 team_id 均拒绝，合法请求仍原子消费一次。绑定/挑战样本更新为明确域配置。前一完成绑定版本完整 Go 39176 仍运行，当前域校验版本全量验证待其终态后启动。绑定发行/撤销 UI、HTTP callback 和完整 snapshot 授权复审仍待完成，尚未发布回调入口。
+
+### S7 用户主动撤销 Slack 绑定（开发验证中）
+
+P8/F4，新增内部撤销事务，依据已认证平台账号删除该渠道下自己的绑定与全部未用挑战，不接受外部用户名或其他用户参数。渠道停用或重配置后仍可解除；停用账号拒绝调用；重复撤销返回未变化。删除挑战避免旧 token 在撤销后重新绑定。尚无撤销 HTTP/UI，此内部函数不能替代端到端身份认证证据。
+
+Slack 定向 race 3.596s 通过，覆盖其他账号不能删除既有绑定、渠道停用后所有者仍可撤销、绑定与挑战共同清空、重复撤销幂等。完整 Go 与 vet 正在执行。此前 e6b29e5 的 CI 37603901544 已确认 completed/success；后续本地 Slack 切片未推送、未据此声明远端已验证。AC-013 仍缺认证发行/撤销入口、实际回调与项目快照权限授权。

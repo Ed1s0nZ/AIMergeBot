@@ -82,4 +82,32 @@ func TestSlackBindingCompletionConsumesChallengeAndRejectsReplay(t *testing.T) {
 	if _, err := s.completeSlackBinding(ctx, channel.ID, channel.Revision, stamp, sign(other), other, at); err == nil {
 		t.Fatal("disabled account bound")
 	}
+	if _, err := s.DB.Exec(`UPDATE platform_users SET disabled=0 WHERE id=1`); err != nil {
+		t.Fatal(err)
+	}
+	otherUser, err := s.CreateUser(ctx, "other", "a-long-password", "member")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed, err := s.revokeSlackBinding(ctx, otherUser.ID, channel.ID); err != nil || removed {
+		t.Fatal("another user revoked binding", removed, err)
+	}
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_bot_bindings`).Scan(&count); err != nil || count != 1 {
+		t.Fatal("owner binding lost", count, err)
+	}
+	if _, err := s.DB.Exec(`UPDATE platform_integrations SET enabled=0 WHERE id=?`, channel.ID); err != nil {
+		t.Fatal(err)
+	}
+	if removed, err := s.revokeSlackBinding(ctx, 1, channel.ID); err != nil || !removed {
+		t.Fatal("owner cannot revoke disabled channel", removed, err)
+	}
+	for _, table := range []string{"platform_bot_bindings", "platform_bot_binding_challenges"} {
+		if err := s.DB.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&count); err != nil || count != 0 {
+			t.Fatal("revocation retained identity or challenge", table, count, err)
+		}
+	}
+	if removed, err := s.revokeSlackBinding(ctx, 1, channel.ID); err != nil || removed {
+		t.Fatal("revocation not idempotent", removed, err)
+	}
+
 }
