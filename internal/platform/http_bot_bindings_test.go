@@ -2,12 +2,17 @@ package platform
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -96,5 +101,42 @@ func TestBotBindingHTTPAuthenticatedOwnerAndOrigin(t *testing.T) {
 	}
 	if res := request("DELETE", path, token, "", ""); res.Code != 200 || !strings.Contains(res.Body.String(), `"revoked":false`) {
 		t.Fatal(res.Code, res.Body.String())
+	}
+	res = request("POST", path+"/challenge", token, body, "")
+	if res.Code != 201 || json.Unmarshal(res.Body.Bytes(), &out) != nil {
+		t.Fatal(res.Code, res.Body.String())
+	}
+	callbackPath := fmt.Sprintf("/api/v1/bot-callbacks/slack/%d/%d/bind", channel.ID, channel.Revision)
+	callbackBody := "api_app_id=A1&team_id=T1&user_id=U1&text=bind+" + out.Token
+	stamp := strconv.FormatInt(time.Now().Unix(), 10)
+	mac := hmac.New(sha256.New, []byte("private-secret"))
+	mac.Write([]byte("v0:" + stamp + ":" + callbackBody))
+	signature := "v0=" + hex.EncodeToString(mac.Sum(nil))
+	callback := func(signature, contentType, payload string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("POST", callbackPath, strings.NewReader(payload))
+		req.Header.Set("Content-Type", contentType)
+		req.Header.Set("X-Slack-Request-Timestamp", stamp)
+		req.Header.Set("X-Slack-Signature", signature)
+		res := httptest.NewRecorder()
+		router.ServeHTTP(res, req)
+		return res
+	}
+	if res := callback("invalid", "application/x-www-form-urlencoded", callbackBody); res.Code != 403 {
+		t.Fatal(res.Code)
+	}
+	if res := callback(signature, "application/json", callbackBody); res.Code != 400 {
+		t.Fatal(res.Code)
+	}
+	if res := callback(signature, "application/x-www-form-urlencoded", strings.Repeat("x", 65537)); res.Code != 400 {
+		t.Fatal(res.Code)
+	}
+	if res := callback(signature, "application/x-www-form-urlencoded", callbackBody); res.Code != 200 || !strings.Contains(res.Body.String(), `"response_type":"ephemeral"`) || res.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal(res.Code, res.Body.String())
+	}
+	if res := callback(signature, "application/x-www-form-urlencoded", callbackBody); res.Code != 403 {
+		t.Fatal("callback replay", res.Code)
+	}
+	if err := s.DB.QueryRow(`SELECT user_id FROM platform_bot_bindings`).Scan(&actor); err != nil || actor != 1 {
+		t.Fatal(actor, err)
 	}
 }

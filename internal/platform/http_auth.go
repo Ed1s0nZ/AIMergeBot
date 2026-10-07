@@ -164,6 +164,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	})
 	r.GET("/readyz", h.ready)
 	r.POST("/api/v1/auth/login", h.login)
+	r.POST("/api/v1/bot-callbacks/slack/:id/:revision/bind", h.slackBindingCallback)
 	api := r.Group("/api/v1", h.guard)
 	api.GET("/auth/me", func(c *gin.Context) { c.JSON(200, currentUser(c)) })
 	api.POST("/bot-bindings/:id/challenge", h.issueBotBinding)

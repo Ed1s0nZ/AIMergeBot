@@ -440,3 +440,9 @@ Slack 定向 race 3.596s 通过，覆盖其他账号不能删除既有绑定、�
 P8/F4，认证路由新增 POST /api/v1/bot-bindings/:id/challenge 与 DELETE /api/v1/bot-bindings/:id，沿用真实 session guard 和 origin 检查。挑战请求体限制 4KiB，必须提供当前渠道 revision；身份仅从 currentUser 取得。响应一次性返回 token/expires_at 且 no-store，不返回渠道 secret；删除接口只撤销当前登录用户的绑定/挑战，重复请求返回 revoked=false。发行不增加项目权限；当前仍没有公开 Slack callback 或操作授权入口。
 
 真实 HTTP.Register+Store.Login 定向 race 与全部 Slack 测试 7.430s 通过，覆盖匿名 401、跨站发行/删除 403、无 revision 400、有效发行 201、请求 user_id 不能覆盖 session 身份、另一用户删除不影响 owner 挑战、重复撤销幂等。vet 与 diff 检查通过。此前 c6de0b7 完整 Go 61475 已 completed/success（platform 112.869s）；新增认证接口尚需自身全量验证，不能沿用前版结果。配置/自身绑定界面、公开签名回调和 snapshot 权限授权仍未完成。
+
+### S7 Slack 签名绑定 HTTP 回调（开发验证中）
+
+P8/F4，公开 POST /api/v1/bot-callbacks/slack/:id/:revision/bind，仅处理 application/x-www-form-urlencoded 与最多 64KiB 原始字节。绕开浏览器 session guard，使用 Slack timestamp/signature 和当前配置 app/workspace、revision、一用挑战及持久 replay 完成同事务绑定。认证失败统一 403，不公开账号、挑战或渠道是否存在；成功只返回 ephemeral 静态身份绑定提示，无审计内容、秘密或平台身份 ID。不增加项目权限、不执行复审或合并操作。渠道配置/rotation 后 callback URL 的 revision 必须同步更新；尚缺配置界面及操作回调完整权限检视。
+
+真实 Register/SQLite/Login 的专项 race 与全部 Slack 测试 7.478s 通过：无需浏览器 session 的有效签名绑定成功、伪造签名 403、错误 media type/超大 body 400、持久重放 403、绑定对应 challenge 所属平台账号、成功 no-store/ephemeral。vet/diff 通过。认证接口前版完整测试 73886 仍运行，本回调新增版本需后续独立全量与远端 CI 证据；不据此前版测试声称本回调已全量验证。AC-013 仍未完成。
