@@ -57,9 +57,9 @@ func (s *Store) OwnerRouting(ctx context.Context, project int, actor int64) (Own
 	}
 	return p, tx.Commit()
 }
-func (s *Store) SaveOwnerRouting(ctx context.Context, project int, actor, expected int64, p OwnerRouting) (OwnerRouting, error) {
-	if project <= 0 || expected < 0 || expected == 1<<63-1 || p.DefaultOwner < 0 || len(p.Aliases) > 100 {
-		return OwnerRouting{}, ErrConflict
+func validateOwnerRouting(p OwnerRouting) (map[int64]bool, error) {
+	if p.DefaultOwner < 0 || len(p.Aliases) > 100 {
+		return nil, ErrConflict
 	}
 	users := map[int64]bool{}
 	if p.DefaultOwner > 0 {
@@ -67,16 +67,27 @@ func (s *Store) SaveOwnerRouting(ctx context.Context, project int, actor, expect
 	}
 	for alias, ids := range p.Aliases {
 		if len(alias) < 1 || len(alias) > 128 || strings.TrimSpace(alias) != alias || strings.ContainsAny(alias, "\r\n\t ") || len(ids) < 1 || len(ids) > 20 {
-			return OwnerRouting{}, ErrConflict
+			return nil, ErrConflict
 		}
 		seen := map[int64]bool{}
 		for _, id := range ids {
 			if id <= 0 || seen[id] {
-				return OwnerRouting{}, ErrConflict
+				return nil, ErrConflict
 			}
 			seen[id] = true
 			users[id] = true
 		}
+	}
+	return users, nil
+}
+
+func (s *Store) SaveOwnerRouting(ctx context.Context, project int, actor, expected int64, p OwnerRouting) (OwnerRouting, error) {
+	if project <= 0 || expected < 0 || expected == 1<<63-1 {
+		return OwnerRouting{}, ErrConflict
+	}
+	users, err := validateOwnerRouting(p)
+	if err != nil {
+		return OwnerRouting{}, err
 	}
 	if p.Aliases == nil {
 		p.Aliases = map[string][]int64{}

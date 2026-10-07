@@ -19,3 +19,11 @@ platform_owner_routing_history 按 project_id/revision 追加配置、actor 和�
 依次完成配置持久化/历史与权限，provider解析和固定版本读取，完整snapshot推荐，认证HTTP，管理员配置与发现推荐UI，通知路由消费和回归。测试包含配置竞争、撤权/停用、数据库重开、last match、GitLab多section/default/exclusion、文件缺失/截断、跨仓库权限、映射不授予权限和失败UI。
 
 依据：[GitHub CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)、[GitLab CODEOWNERS syntax](https://docs.gitlab.com/user/project/codeowners/reference/)、[hmarr/codeowners](https://github.com/hmarr/codeowners)（GitHub匹配器候选，未引入依赖，不能据此声称GitLab支持）。
+
+## 配置接口（已接入，推荐链仍待交付）
+
+登录后 GET `/api/v1/projects/:id/owner-routing` 返回 `revision`、`default_owner` 和 `aliases`；未配置时版本0、默认责任人0、映射为空。当前项目 viewer 以上可读，其他项目配置不披露。
+
+管理员 PUT 同一路径，提交 `expected_revision`、`default_owner` 和 `aliases`。默认责任人0清空默认值，空映射清空alias配置。每个映射必须明确列出平台用户ID，且这些用户当前启用并已具备目标项目读取权限。客户端传入的 `actor` 不参与授权或历史记录。配置自身不会赋予权限，也不会立即改变现有发现的负责人。
+
+请求最大64KiB；格式或缺少版本400、无登录401、无修改权限或跨站请求403、不可访问项目/账号404、版本冲突409。发生冲突须重新读取并核对草稿，再提交新版本；不能自动覆盖。历史与审计事件写入失败时整笔配置更新回滚。本接口尚未提供推荐结果、CODEOWNERS解析或通知派发。

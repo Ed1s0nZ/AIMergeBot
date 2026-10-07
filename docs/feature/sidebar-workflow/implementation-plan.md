@@ -576,3 +576,13 @@ P8/F4，补充owner-routing-design.md纠正GitLab section逐段最后匹配与Gi
 Store权限/版本/8并发writer专项race6.534s通过：未授权owner拒绝、viewer不能修改、target授权后可保存、跨项目不可读取、stale拒绝、owner撤权后旧映射不能重新保存、清空revision/history正确、并发仅一writer成功、无ACL新增。输入/空alias/重复ID/无效ID及revision溢出专项另测。vet/diff通过。配置HTTP/UI、snapshot推荐过滤、固定HEAD来源、provider各自语义解析及通知消费尚未接入，REQ-019/AC-017未完成。
 
 当前e840375精确CI37610294851仍in_progress，新的owner切片未推送，不覆盖该检查。迁移新版本全量单独执行。
+
+### S8 责任人配置登录接口与权限验证
+
+新增 GET /api/v1/projects/:id/owner-routing（当前项目 viewer 以上）与 PUT 同路径（管理员，Store 内再次校验）。复用真实 session/origin guard；请求体上限64KiB，必须提供非负且可递增的 expected_revision。共享结构验证器在 HTTP 将格式错误映射400，旧版本409不泄露最新配置；映射账号失去权限时整笔写入拒绝。客户端 actor/revision 不能覆盖服务器操作人及新版本。
+
+真实 HTTP.Register/Login/SQLite 专项 race9.784s通过，覆盖匿名401、viewer写入403、跨站403、跨项目及撤权读取404、缺失/负/溢出expected_revision、无效alias与超大body400、合法保存与读取一致/no-store、旧版本409、真实actor历史、撤权owner写入拒绝、无额外历史及权限授予。复用全部OwnerRouting存储并发/输入专项。
+
+前版144e5d3的完整Go测试78497已成功，platform165.378s；e840375精确远端CI37610294851已completed/success，Go/race/vet、工具测试、漏洞检查、前端与embedded构建均成功。截图73be028对应旧run37583262424失败原因为迁移测试移除revision时notification trigger仍引用NEW.revision；最新CI已通过该测试。该证据不代替本HTTP版本完整检查。REQ-019/AC-017的UI、固定HEAD CODEOWNERS读取与provider语义、完整快照权限过滤及通知消费仍未完成。
+
+追加事件故障专项race12.058s：owner.routing.updated事件触发器强制ABORT时，当前配置与追加历史均保持旧版本；移除故障后同一expected_revision可成功保存。明确路径SQLite Close/Open专项race5.618s：默认owner/alias/revision/history持久保留，重开后旧版本不能覆盖。vet/diff通过；实际推荐链和管理UI尚未交付。
