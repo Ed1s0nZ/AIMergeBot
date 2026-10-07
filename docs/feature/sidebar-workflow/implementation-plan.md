@@ -88,3 +88,9 @@ GitHub 73be028 的 run 37583262424 与 53068a2 的 run 37583804618 在全量 Go 
 本地同名测试失败与 GitHub 日志一致；目标修复测试通过。此前定向通过不代表全量通过，当前需要完整 Go/race/vet 与最新提交 GitHub CI 成功才能关闭此回归。统计接口正在开发的未提交改动与此修复分开提交。
 
 CI 修复关闭证据：b4c8a447ae19a9f4eceeb4e407a0c5b68aaa2cac 的 [GitHub CI 37584113122](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37584113122) completed/success，verify job 112670223096 全部检查成功。包含完整 Go/race/vet、operations tooling、govulncheck、npm audit/typecheck/build、embedded application build。本地 go test ./... platform 74.434s、完整 platform race 159.672s、go vet ./... 退出 0；本地统计接口未提交开发改动已明确与该修复 commit 分开，远端精确提交 CI 是本次回归关闭的权威证据。后续切片继续跟踪各自 CI；这不表示完整产品需求已经完成。
+
+### S3 用量与质量统计切片（开发验证中）
+
+新增 GET /workspace/usage、/workspace/quality 与侧边栏页面。时间范围按任务创建时间、起点包含/终点不包含、UTC 标准化，最长 366 天；项目与快照 ACL 复用工作台规则。用量 count/page 同一读事务，每页最多 20；逐运行显示模型、HEAD、耗时和已知消耗，不把本页合计冒充全范围账单。费用仅用运行策略内的价格；失败/带错误运行不标记记录完整；轨迹读取最多 1 MiB，超过预算或损坏明确未知，不返回原始错误、轨迹、源代码。质量按模型、策略版本及完整策略快照分组，只返回快照摘要，避免相同版本不同配置混合；显示人工反馈原始数量，不推导准确率/召回率，超过 500 分组明确截断。
+
+定向测试通过：错误运行已知消耗、超预算/损坏历史、耗时、私密数据不返回、目标/来源权限、分页总数、不同策略配置分组、非法时间/项目和时区标准化。前端 typecheck/build 通过。本地全量 go test ./...（platform 73.972s）、go vet ./...、定向 race 3.079s 通过；远端 CI 待推送后验证，实际浏览器 QA 未完成。独立漏报真值登记、配额总览及全范围成本聚合仍需后续实现；本切片不宣称 REQ-008/009 全部完成。

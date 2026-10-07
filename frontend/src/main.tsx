@@ -28,6 +28,7 @@ import {
   Events,
 } from "./pages";
 import { Integrations } from "./integrations";
+import { WorkspaceMetrics } from "./workspace-metrics";
 import { WorkspaceQueue } from "./workspace-queue";
 import { SystemSettings } from "./settings";
 import "./style.css";
@@ -234,6 +235,8 @@ function App() {
     { path: "/tasks", label: "待办中心", icon: ScanLine },
     { path: "/runs", label: "审计任务", icon: ScanLine },
     { path: "/findings", label: "发现中心", icon: FileCode2 },
+    { path: "/usage", label: "用量与成本", icon: ScrollText },
+    { path: "/quality", label: "质量反馈", icon: FileCode2 },
     { path: "/projects", label: "项目", icon: FolderGit2 },
     ...(user.role === "admin"
       ? [
@@ -318,6 +321,8 @@ function App() {
             <Overview />
           ) : route === "/tasks" || route === "/findings" ? (
             <WorkspaceQueue key={route} mode={route === "/tasks" ? "tasks" : "findings"} />
+          ) : route === "/usage" || route === "/quality" ? (
+            <WorkspaceMetrics key={route} mode={route === "/usage" ? "usage" : "quality"} />
           ) : route === "/runs" ? (
             <Runs />
           ) : route === "/projects" ? (
