@@ -15,3 +15,9 @@ Workflow Gate：REQ-012/019/021/023及Confirmed完整scope、github-provider-des
 Maintainability Gate：integrations_store.go约365行但credential/security/storage多责任high，repository_binding.go约200行多责任high。adapter_extraction，提取saveIntegrationTx及saveRepositoryBindingTx保持原Store wrapper/公开语义；新repository_project_create.go只编排短事务，http_repository_project_create.go独立解析并委托，http_auth.go仅两行装配。store.migrate只委托新receipt schema，不重构其他业务。网络/文件同步不在SQLite事务中。原Integration/Binding回归及ABORT失败注入证明提取不丢原权限/lease/CAS/事件。
 
 此阶段仅backend创建协议；页面完整empty/loading/error/403/409/键盘/narrow proof另有gate。G3真实GitHub固定提交读取与factory随后实施，不能把配置存储当原生GitHub审计完成。
+
+## F3 实施计划与证明
+
+先提取两个现有事务helpers，原wrapper负责Begin/Commit；helpers保持validate/admin/CAS/凭据保留/notification取消/审计事件/绑定history及project_sync dirty同事务。仅两种repo integration放宽空项目scope。新Store创建编排及独立receipt迁移，HTTP独立strict decoder并注册admin POST。receipt仅表示创建历史，不按当前binding改写历史；重复请求可重试配置同步，meta不得包含凭据。
+
+新增Store测试从零项目/空scope初始化、两provider同remoteID、已有scope保留、内部ID独立、同key重放/参数变化409、8并发同key只建一次及不同key相同integration版本仅一个成功、重复身份/未知或disabled/权限/endpoint/token/scope满/overflow拒绝、event ABORT整体回滚、实际SQLite重开receipt、无ACL/run。真实Register/Login HTTP初始无项目到创建、角色/Origin/8KiB/未知字段/尾随/缺版本、请求重放以及配置写失败可安全恢复，全部脱敏零真实远端/消息/模型调用。原Integration/Binding/Project/通知lease回归race，最后全Go/vet/build/diff。前端未改无需重构建。阶段说明/证据随代码commit，640f3f8精确CI37631183808终态后再push生产代码，保留其run；本阶段精确HEAD CI独立跟踪。回滚禁用新创建路由、保留identity/receipts/history/guard，不删除binding恢复legacy。
