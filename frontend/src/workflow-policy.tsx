@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, write, type Project } from "./api";
+import { api, write, APIError, type Project } from "./api";
 import { Empty, ErrorBox } from "./components";
 import { Heading, useResource } from "./page-utils";
 
@@ -48,13 +48,14 @@ function PolicyEditor({ project }: { project: Project }) {
     if (
       !resource.loading &&
       !resource.error &&
+      !error &&
       resource.data &&
       draft === null
     ) {
       setDraft(resource.data);
       setExtensions(resource.data.excluded_extensions.join("\n"));
     }
-  }, [resource.data, resource.loading, resource.error, draft]);
+  }, [resource.data, resource.loading, resource.error, draft, error]);
   const reload = () => {
     setDraft(null);
     setError("");
@@ -81,6 +82,10 @@ function PolicyEditor({ project }: { project: Project }) {
       setExtensions(result.excluded_extensions.join("\n"));
       setMessage("已保存；后续新任务使用此版本，历史任务保持原快照。");
     } catch (e) {
+      if (e instanceof APIError && [401, 403, 404].includes(e.status)) {
+        setDraft(null);
+        setExtensions("");
+      }
       setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -102,7 +107,7 @@ function PolicyEditor({ project }: { project: Project }) {
             版本 {draft.revision} ·
             关注项调整审计优先级，不限制其他有证据支持的风险。
           </p>
-          <label>
+          <label className="check">
             <input
               type="checkbox"
               disabled={busy}
@@ -116,7 +121,7 @@ function PolicyEditor({ project }: { project: Project }) {
           <fieldset disabled={busy}>
             <legend>重点关注</legend>
             {Object.entries(priorities).map(([key, label]) => (
-              <label key={key}>
+              <label key={key} className="check">
                 <input
                   type="checkbox"
                   checked={draft.focus.includes(key)}
@@ -139,7 +144,7 @@ function PolicyEditor({ project }: { project: Project }) {
               保存后，使用此版本授权的任务会在审计结束后自动发布 GitLab
               检查。未捕获该授权的历史任务不会补发。
             </p>
-            <label>
+            <label className="check">
               <input
                 type="checkbox"
                 checked={checks.enabled}
@@ -174,7 +179,7 @@ function PolicyEditor({ project }: { project: Project }) {
                 <option value="info">信息</option>
               </select>
             </label>
-            <label>
+            <label className="check">
               <input
                 type="checkbox"
                 checked={checks.block_on_failure}
@@ -185,7 +190,7 @@ function PolicyEditor({ project }: { project: Project }) {
               />
               审计失败时阻断
             </label>
-            <label>
+            <label className="check">
               <input
                 type="checkbox"
                 checked={checks.block_on_incomplete}
@@ -221,7 +226,7 @@ function PolicyEditor({ project }: { project: Project }) {
           </div>
           <p role="status">{message}</p>
         </>
-      ) : !resource.error ? (
+      ) : !resource.error && !error ? (
         <Empty>暂无策略记录。</Empty>
       ) : (
         <button onClick={reload}>重试</button>
