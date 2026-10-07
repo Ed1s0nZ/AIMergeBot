@@ -213,6 +213,8 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.POST("/runs/:id/cancel", h.cancelRun)
 	api.GET("/runs/:id/findings/:finding_id/disposition", h.disposition)
 	api.PUT("/runs/:id/findings/:finding_id/disposition", h.saveDisposition)
+	api.POST("/runs/:id/findings/:finding_id/tickets", h.reserveFindingTicket)
+	api.GET("/runs/:id/findings/:finding_id/tickets/:integration_id", h.findingTicket)
 	api.PUT("/runs/:id/findings/:finding_id/review", h.review)
 	api.GET("/events", admin, h.events)
 	r.POST("/webhook", h.webhook)

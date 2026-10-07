@@ -278,3 +278,7 @@ P7/F4，复用已有完整凭据替换/默认保留契约：Linear 提供团队 
 前端 build 通过。新团队元数据测试首次发现 SaveIntegration 的手工返回路径未设置 has_team_mapping，而列表扫描已设置；补齐后新建、仅改名称保留团队/token、列表仅返回存在标志的 targeted race 4.912s 通过。先前全量测试已用旧代码启动，为避免把旧版本结果当作修复验证，主动终止其具体 go test/platform.test 进程（退出 143）；修复后重新完整 Go/vet，非超时重启。a9f113e 的 CI 37598077800 completed/success；团队表单浏览器验证仍待完成。
 
 修复后完整 Go（platform 98.143s）、vet 和 diff 检查通过，前端静态产物同步提交。Linear/Jira 不参与通知事件收集，工单配置保存不会隐式自动创建；现有 notification collector 的支持类型过滤已核对。待推送消费者 7903241 与本配置入口一起推送，下一精确 HEAD 的远端 CI 待跟踪。
+
+### S6 工单查询与明确预留 API（开发验证中）
+
+P8/F4，沿用已确认 design.md 的 operator 创建、viewer 查询契约。新增 POST /runs/:id/findings/:finding_id/tickets，要求 integration_id、渠道 expected_revision 和 HEAD；新预留返回 202，已存在返回 200，响应 ticket/state 不等同远端创建。GET 对应渠道记录重新检查完整快照 viewer 权限。沿用认证路由和 Store 授权；8 KiB 请求上限。没有在 HTTP handler 同步发送网络请求，后台调度和详情入口仍待接入。定向 HTTP 测试覆盖缺字段/无效 HEAD/超限体，完整认证/成功交互验证尚待补齐。
