@@ -100,3 +100,5 @@ G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Githu
 研究进展（上海2026-10-08）：上述证据文档补充真实改名fork/diverged、5616提交/250返回、首二页文件字段差异，以及两份truncated=false固定树核对。compare返回300项而同路径变化498，证实独立完整差异集合的必要性；不选未经明确的patch/rename实现，不将协议样本当应用端授权/执行验收。
 
 完整差异设计草案见[github-diff-design.md](github-diff-design.md)：核对默认Git审计与镜像依赖，识别单token/network helper复用限制，定义两树覆盖/模式/rename/partial边界，并验证隔离no-index合成字节原型11场景。草案未批准，默认完整工具链、rename、共享预算/网络及绑定恢复仍待闭合，无F3实施许可。
+
+默认工具链方向收敛见[github-git-transport-evidence.md](github-git-transport-evidence.md)：官方Git地址固定机制、每来源URL路径限定凭据和受控TLS/扩展协议证据，使默认路径可推荐复用GitRepository而非新写diff算法。macOS固定commit与Linux2.39.5 transport证据范围分别记录；完整provider/factory、共享预算/撤权及绑定恢复仍未闭合，无F3实施许可。

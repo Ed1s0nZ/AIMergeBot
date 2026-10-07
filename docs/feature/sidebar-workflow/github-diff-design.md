@@ -20,7 +20,7 @@ Settings初始化GitAudit.Enabled=true；README及Dockerfile明确既有bare Git
 | 固定API两树＋隔离本地Git生成patch | 保留安全API读取；无需Git网络或新增自写diff算法 | 本地Git仅在git_audit开启时使用；默认历史等全部工具的provider消费者还须设计 |
 | 固定API两树＋验证compare patch | git_audit关闭时遵守API模式 | 300之外/缺patch的普通文本变化必须partial；不能将其包装为完整差异 |
 
-建议方向：两树负责覆盖真值，patch生产器遵守执行模式。Git启用可使用既有Git能力或隔离本地Git补全patch；Git关闭时禁止偷偷启动Git，保留明确API覆盖限制。此为候选方案，尚未选定默认Git backend与API＋本地patch的全部工具衔接，不将更容易通过测试的受限API模式替代完整原生执行目标。
+初轮候选已由后续[github-git-transport-evidence.md](github-git-transport-evidence.md)收敛：默认Git开启推荐固定元数据＋每来源受限Git fetch＋既有GitRepository，复用成熟完整对象工具，避免默认路径重复API两树及新写patch算法。Git关闭的API范围仍保留，两树负责该模式的覆盖真值；不偷偷运行Git、不把受限API模式替代默认完整工具链。下方两树/patch对象与算法继续作为API模式草案，默认路径无需强制创建该内部对象。完整factory/ACL/绑定恢复合同尚未闭合，不授予F3实施许可。
 
 ## 拟议内部对象与消费者
 
