@@ -10,6 +10,11 @@ import (
 )
 
 func TestTicketDatabaseReopenPreservesReceiptAndUnknown(t *testing.T) {
+	for _, provider := range []string{"linear", "jira"} {
+		t.Run(provider, func(t *testing.T) { testTicketDatabaseReopen(t, provider) })
+	}
+}
+func testTicketDatabaseReopen(t *testing.T, provider string) {
 	for _, state := range []string{"created", "unknown", "sending"} {
 		t.Run(state, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "tickets.db")
@@ -38,8 +43,13 @@ func TestTicketDatabaseReopenPreservesReceiptAndUnknown(t *testing.T) {
 				t.Fatal(err)
 			}
 			team := "9cfb482a-81e3-4154-b5b9-2c805e70a02d"
+			credentials := IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture", LinearTeamID: team}
+			if provider == "jira" {
+				team = "10003"
+				credentials = IntegrationCredentials{Endpoint: "https://fixture.atlassian.net", Username: "fixture@example.com", Token: "fixture", JiraProjectID: "10001", JiraIssueTypeID: "10002"}
+			}
 			zero := int64(0)
-			integration, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: "Linear", Kind: "linear", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://api.linear.app/graphql", Token: "fixture", LinearTeamID: team}})
+			integration, err := s.SaveIntegration(ctx, 0, 1, IntegrationInput{Integration: Integration{Name: provider, Kind: provider, Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &credentials})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -52,6 +62,9 @@ func TestTicketDatabaseReopenPreservesReceiptAndUnknown(t *testing.T) {
 				t.Fatal(err)
 			}
 			remoteURL := "https://linear.app/example/issue/LIN-123/finding"
+			if provider == "jira" {
+				remoteURL = credentials.Endpoint + "/browse/AUDIT-12"
+			}
 			if state != "sending" {
 				receipt := TicketReceipt{State: state, RemoteID: team, URL: remoteURL}
 				if state == "unknown" {
@@ -85,7 +98,7 @@ func TestTicketDatabaseReopenPreservesReceiptAndUnknown(t *testing.T) {
 			if state == "sending" {
 				want = "unknown"
 			}
-			if link.State != want || link.IdempotencyKey != initial.IdempotencyKey || link.ID != initial.ID {
+			if link.State != want || link.IdempotencyKey != initial.IdempotencyKey || link.ID != initial.ID || link.EndpointOrigin != credentials.Endpoint {
 				t.Fatal("identity or state lost", link)
 			}
 			if state != "sending" && (link.RemoteID != team || link.URL != remoteURL) {

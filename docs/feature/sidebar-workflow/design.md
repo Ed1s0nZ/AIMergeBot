@@ -80,3 +80,11 @@ Jira 使用 issue API；Linear 使用 GraphQL，处理成功 HTTP 中的 errors�
 - [Teams 官方文档](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook)：本次支持 Workflows 文本 webhook 契约，不以旧 Connector 为默认依赖；HTTP accepted 不证明工作流最终发布。
 - [飞书自定义机器人](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)、[钉钉自定义机器人](https://open.dingtalk.com/document/orgapp/custom-robot-access)：官方页面为动态内容，浏览器检索未返回正文；需继续检查签名及响应契约，当前受控协议测试不替代真实平台验证。
 - [企业微信群机器人](https://developer.work.weixin.qq.com/document/path/91770)：浏览工具无法读取，仍需进一步核对官方协议，不将当前实现标记全部平台验收完成。
+
+## 工单集成的实际配置与恢复契约
+
+管理员先配置启用的项目范围和完整凭据。Linear 使用官方 GraphQL 地址、API token 和团队 UUID；Jira 当前使用 Cloud v3 的 HTTPS 站点根地址、账户邮箱/API token、数字项目 ID 和问题类型 ID。Jira 网关 scoped token、Data Center、自定义必填字段映射尚未实现，需选择不要求额外字段的普通问题类型。保存渠道不会创建工单，通知事件和频率不参与工单创建。
+
+具有完整任务快照 operator 权限的用户在发现详情选择可用渠道并创建；请求绑定发现 ID、HEAD 与渠道 revision，目标、fork 源及关联仓库必须启用。viewer 只查看记录。创建请求先持久预留并返回 pending，不能把 202 当作远端创建成功。后台独立消费并在发送前后重查权限与配置，回执核对通过后才记录 created。
+
+同一 run/finding/channel 保留唯一记录，重复提交返回既有状态。unknown 表示没有可验证的最终结果或发送后授权变化，应先在远端核对，系统不自动重发，也不提供将 unknown 重置为 pending 的按钮。服务中断造成过期 sending 会转为 unknown，数据库重开保留唯一身份和已有回执，旧发送确认不能覆盖恢复状态。Jira 回执和展示 URL 绑定预留时保存的服务站点，配置变更不能把历史工单指向新站点。failed 的配置/权限诊断只返回有限安全错误码，不输出上游错误正文或凭据。
