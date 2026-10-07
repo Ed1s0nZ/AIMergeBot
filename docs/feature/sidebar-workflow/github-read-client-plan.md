@@ -53,3 +53,5 @@ F2 7b8d831、F3 9cf732e及限流补充c6b35c4均已先推。新增github_read_cl
 较早client版本全Go63299 success平台124.798s，不含后续限流/header补强；最终版本全Go39897仍运行，待终态后再写独立结果。最终vet/build12201 success，diff检查通过。allowlist复制代码已实现，但未单独以实际私网拨号证明输入mutation（测试禁止访问非fixture网络）；64KiB header上限由默认transport字段证明，未对超大header做真实响应实验。没有真实GitHub凭据/远端仓库/模型/通知，也不能以TLS fixture宣称完整GitHub PR审计完成。此前仓库管理c73a1dd精确CI37637933151已completed/success，可在当前完整验证通过后推新生产提交。
 
 最终client代码全Go39897已completed/success：platform131.594s，其余包通过。代码之后未变，最终Github/RetryTransport race60844、vet/build12201与diff均已通过。F4/F5客户端切片可提交并推送；G3固定对象读取与全链路验收不因此完成。
+
+交付：e6a2f356de1f329d7676d302cebd355d7c53420b已推codex/sidebar-workflow，工作树干净。精确新CI37640077799已in_progress：https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37640077799 。上一生产c73a1dd CI37637933151 success，不以其代替本client验证，也不覆盖取消新run。无main合并/发布；后续固定commit/tree/blob/compare/metadata及factory接入继续实施。
