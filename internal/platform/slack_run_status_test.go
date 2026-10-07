@@ -1,0 +1,83 @@
+package platform
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"strconv"
+	"testing"
+	"time"
+)
+
+func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) {
+	for _, change := range []string{"valid", "target", "context", "disabled-user", "disabled-project", "channel-scope", "binding"} {
+		t.Run(change, func(t *testing.T) {
+			s, admin, member, snap := contextFixture(t)
+			ctx := context.Background()
+			if err := s.SetProjectMember(ctx, 2, member.ID, "viewer", admin.ID); err != nil {
+				t.Fatal(err)
+			}
+			run, _, err := s.Enqueue(ctx, snap, admin.ID, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			zero := int64(0)
+			secret := "fixture-signing-secret"
+			channel, err := s.SaveIntegration(ctx, 0, admin.ID, IntegrationInput{Integration: Integration{Name: "Slack", Kind: "slack", Enabled: true, ProjectIDs: []int{1}, Frequency: "instant"}, ExpectedRevision: &zero, Credentials: &IntegrationCredentials{Endpoint: "https://hooks.slack.com/fixture", Secret: secret, SlackAppID: "A1", SlackWorkspaceID: "T1"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.DB.Exec(`INSERT INTO platform_bot_bindings(integration_id,workspace_id,external_user_id,user_id,created_at) VALUES(?,'T1','U1',?,?)`, channel.ID, member.ID, now()); err != nil {
+				t.Fatal(err)
+			}
+			var mutation string
+			var args []any
+			switch change {
+			case "target":
+				mutation = `DELETE FROM platform_project_members WHERE project_id=1 AND user_id=?`
+				args = []any{member.ID}
+			case "context":
+				mutation = `DELETE FROM platform_project_members WHERE project_id=2 AND user_id=?`
+				args = []any{member.ID}
+			case "disabled-user":
+				mutation = `UPDATE platform_users SET disabled=1 WHERE id=?`
+				args = []any{member.ID}
+			case "disabled-project":
+				mutation = `UPDATE platform_projects SET enabled=0 WHERE id=2`
+			case "channel-scope":
+				mutation = `UPDATE platform_integrations SET project_ids='[2]' WHERE id=?`
+				args = []any{channel.ID}
+			case "binding":
+				mutation = `DELETE FROM platform_bot_bindings WHERE user_id=?`
+				args = []any{member.ID}
+			}
+			if mutation != "" {
+				if _, err := s.DB.Exec(mutation, args...); err != nil {
+					t.Fatal(err)
+				}
+			}
+			at := time.Unix(1800000000, 0)
+			stamp := strconv.FormatInt(at.Unix(), 10)
+			body := []byte(fmt.Sprintf("api_app_id=A1&team_id=T1&user_id=U1&text=status+%d", run))
+			mac := hmac.New(sha256.New, []byte(secret))
+			mac.Write([]byte("v0:" + stamp + ":"))
+			mac.Write(body)
+			signature := "v0=" + hex.EncodeToString(mac.Sum(nil))
+			out, err := s.slackRunStatus(ctx, channel.ID, channel.Revision, stamp, signature, body, at)
+			if change != "valid" {
+				if err == nil || out.ID != 0 {
+					t.Fatal("unauthorized status exposed", out, err)
+				}
+				return
+			}
+			if err != nil || out.ID != run || out.HeadSHA != snap.HeadSHA || out.Status != "pending" {
+				t.Fatal(out, err)
+			}
+			if _, err := s.slackRunStatus(ctx, channel.ID, channel.Revision, stamp, signature, body, at); err == nil {
+				t.Fatal("status replay accepted")
+			}
+		})
+	}
+}

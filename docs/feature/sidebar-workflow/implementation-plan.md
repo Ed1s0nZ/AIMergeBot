@@ -494,3 +494,11 @@ P8/F4，集成编辑增加可选 Slack 应用 A-ID/工作区 T-ID；填写其一
 ad9252e 正式 npm run build 成功，embedded asset 更新 index-D8QUL9Ut.js。真实编译前端+本地受控配置 HTTP fixture 浏览器验证：管理员选择已存 Slack 默认保留凭据；显式完整替换后实际填写 HTTPS、fixture signing secret、A123/T123，PATCH 服务端断言具体 JSON 成功。保存后 revision 1→2，回调路径 /api/v1/bot-callbacks/slack/1/2/bind 可见，替换开关复位；重新打开替换区域 HTTPS/secret/app/workspace 均空，只有已配置布尔元数据。不发送通知，不访问真实 Slack，无生产 secret。
 
 上一版 c0f1c8a 全量 11229 已 completed/success，platform 110.763s。当前含 Slack 配置元数据的全量将单独执行；旧 e21a8a2 CI 37606369057 success 不替代本地后续代码远端验证。尚待当前 full/race/CI、配置移动/错误恢复、实际签名绑定联调与审计操作权限，AC-013 不宣称完成。
+
+### S7 签名机器人状态读取授权（开发验证中）
+
+P8/F4，新增内部 slackRunStatus，签名/app/workspace/revision/replay gate 后，仅解析单值稳定 user_id 与 status <runID>，匹配当前绑定及启用平台账号。同事务加载有界 policy JSON 与固定 HEAD，复用完整 requireSnapshotRole viewer（目标/来源/context）、所有项目启用状态以及当前渠道必须包含目标项目。仅返回任务 ID/HEAD/status，无发现、源码或 trace。授权与 replay 消费同事务，不允许身份绑定直接绕过项目 ACL。尚未公开 status HTTP 命令或增加复审动作。
+
+SQLite fixture 定向 race 13.259s 通过：合法 bound actor 返回 pending 与固定 HEAD，重复请求拒绝，目标权限撤销、context 权限撤销、账号停用、context 项目停用、渠道范围移出目标项目、绑定撤销均无输出。初测发现新函数误用 queued，按实际 platform_runs.pending 修正后重跑通过，不改现有状态契约。来源仓库独立拒绝矩阵仍待新增，不能以目标/context 案例宣称该矩阵已验证。
+
+前版495a8b1（Slack配置与正式前端）全量51586已completed/success，platform118.341s；本读取函数尚需完整全量与公开接口证据。精确e21a8a2远端CI已success，后续本地提交尚未推送。AC-013保持未完成，完整机器人操作与其他provider未覆盖。
