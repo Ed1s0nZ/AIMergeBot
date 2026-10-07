@@ -35,3 +35,13 @@ platform_owner_routing_history 按 project_id/revision 追加配置、actor 和�
 预算为256KiB文件、4096行、4096字节单行、2048条有效规则、1024字节模式、100身份/规则、8192身份总数；输入必须UTF-8且无NUL。解析失败不返回部分规则作为完整结果。当前 hmarr 的字符/邮箱限制可能拒绝官方允许的路径或邮箱，这须后续兼容性补齐，并由调用方显示无法推荐；不能将严格解析失败当文件缺失或无owner。尚未接入固定HEAD文件查找、Store完整快照过滤、推荐HTTP/详情或通知。
 
 GitLab依据同时核对官方源码 [File](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/file.rb)、[PatternIndex](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/pattern_index.rb)、[SectionParser](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/section_parser.rb)、[ReferenceExtractor](https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/lib/gitlab/code_owners/reference_extractor.rb)。当前角色/名字/邮箱提取只提供显式alias候选，不推断真实代码平台成员资格。HEAD上的责任人推荐与GitHub原生PR审批使用base分支CODEOWNERS是不同用途，后续UI须明确推荐的仓库与SHA，不声称等同原生必审人。
+
+## 固定 HEAD 来源读取基础
+
+LoadCodeOwnerDocument 仅接受实现 CodeOwnerDirectoryReader 的仓库；provider由实现声明，不从任务URL猜测。GitLab目录顺序为根、docs、.gitlab；GitHub为.github、根、docs。先完整列出根目录，确认候选目录存在，再完整列出该目录，选择第一个已知存在文件。高优先级文件读取/解析失败不会改用低优先级文件；空文件与全部已证明缺失明确区分。
+
+GitLab每个目录最多20页×100项，强制固定source_project_id/HeadSHA且不递归，目录API报错、异常页码、无法证明分页结束、非法条目均不作为缺失。Local Git只用ls-tree/cat-file读固定提交对象，无checkout/执行；要求Metadata声明实际provider，未知provider返回不可用。每个本地目录最多2000项，文件仅允许100644/100755 blob，symlink/gitlink/tree不可作为规则读取。DynamicRepository在单次Load开始冻结客户端配置，目录与文件不因设置中途更新切换origin。
+
+当前HEAD推荐用途须标明source仓库与SHA。GitHub和GitLab原生审批都使用目标/base分支CODEOWNERS，不能把此HEAD推荐声称为平台必审人或合并授权。真实GitHub客户端尚未实现，现有GitHub加载仅有受控目录fixture与共享接口，不能声明GitHub完整审计链完成。来源读取尚未接到发现API/通知；后续读取前后都要验证完整snapshot权限。
+
+位置顺序依据：[GitLab CODEOWNERS file](https://docs.gitlab.com/user/project/codeowners/#codeowners-file)、[GitHub CODEOWNERS location](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-file-location)。

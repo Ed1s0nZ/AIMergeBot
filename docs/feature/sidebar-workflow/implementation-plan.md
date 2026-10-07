@@ -602,3 +602,13 @@ typecheck及临时独立Vite构建成功，受控真实浏览器8800从编译产
 专项race初轮2.087s通过，扩大转义花括号/取反字符集/命名默认section后2.060s通过。身份提取改用官方分类顺序后测试发现相邻角色第二个漏提取（分隔空格被第一次匹配消费），修正为匹配后边界校验，最终race1.716s通过。覆盖Github lastmatch/emptyoverride/case、GitLab多section/default/email/group/roles/inline、目录/相对root/globstar/字面花括号/转义空格/Unicode路径、exclude不能被其他模式重新包含、重复默认section、错误语法/超限/非法路径拒绝。仅受控规则字符串，未读取生产仓库。go mod tidy与vet通过，新增依赖版本固定；完整Go与精确CI待后续闭合。
 
 6ad3a7a精确CI37612408776已completed/success，责任人配置HTTP/UI前版全链检查通过，不代替新解析模块完整检查。
+
+匹配模块e3c6193完整Go43165 completed/success，platform248.757s；已推送，精确CI37613999458当前in_progress，不用前版配置UI的green替代。
+
+### S8 固定 HEAD CODEOWNERS 来源读取基础
+
+新增可选CodeOwnerDirectoryReader及LoadCodeOwnerDocument、GitLab/Dynamic/localGit实现，不扩大原Repository必需接口。明确provider，保留repository_id/sourceHEAD/path/present；位置顺序分别GitLab根/docs/.gitlab、GitHub.github/根/docs。以完整非递归目录证明候选不存在，高优先级known-present后读取/解析失败立即返回，不静默fallback。目录有界并校验分页/路径，文件仅常规blob；Dynamic单次Load冻结客户端，本地只读固定Git对象。
+
+首轮编译暴露误用不存在的validHeadSHA，改为独立validCodeOwnerSHA，拒绝无效/全零提交。专项race2.298s覆盖provider顺序/固定fork HEAD/absent与unavailable区别/空文件/symlink/读取404/解析失败/超大内容、真实GitLabHTTP固定source7/HEAD请求、403及20页未证完成拒绝。追加真实Git仓库：提交CODEOWNERS后更新工作区并再次提交，加载旧SHA仍@pinned；新SHA根symlink不读取目标、不fallback docs；无provider不猜测。最终全部来源专项race2.456s、vet/diff通过，无生产仓库/真实平台/模型调用。
+
+源模块尚未接入Store完整snapshot授权/详情推荐/通知，GitHub真实provider仍待实现，REQ-019/AC-017未完成。本来源版本需独立完整Go并后续精确CI，当前不覆盖正在执行的parser CI。
