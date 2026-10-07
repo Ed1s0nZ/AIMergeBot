@@ -6,9 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) {
@@ -82,13 +86,34 @@ func TestSlackRunStatusRequiresCurrentBindingFullSnapshotAndScope(t *testing.T) 
 				if err == nil || out.ID != 0 {
 					t.Fatal("unauthorized status exposed", out, err)
 				}
-				return
-			}
-			if err != nil || out.ID != run || out.HeadSHA != snap.HeadSHA || out.Status != "pending" {
+			} else if err != nil || out.ID != run || out.HeadSHA != snap.HeadSHA || out.Status != "pending" {
 				t.Fatal(out, err)
 			}
-			if _, err := s.slackRunStatus(ctx, channel.ID, channel.Revision, stamp, signature, body, at); err == nil {
-				t.Fatal("status replay accepted")
+			if change == "valid" {
+				if _, err := s.slackRunStatus(ctx, channel.ID, channel.Revision, stamp, signature, body, at); err == nil {
+					t.Fatal("status replay accepted")
+				}
+			}
+			// A fresh timestamp avoids reusing the successful internal receipt.
+			stamp = strconv.FormatInt(time.Now().Unix(), 10)
+			mac = hmac.New(sha256.New, []byte(secret))
+			mac.Write([]byte("v0:" + stamp + ":"))
+			mac.Write(body)
+			signature = "v0=" + hex.EncodeToString(mac.Sum(nil))
+			router := gin.New()
+			(&HTTP{Store: s}).Register(router)
+			request := httptest.NewRequest("POST", fmt.Sprintf("/api/v1/bot-callbacks/slack/%d/%d/command", channel.ID, channel.Revision), strings.NewReader(string(body)))
+			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			request.Header.Set("X-Slack-Request-Timestamp", stamp)
+			request.Header.Set("X-Slack-Signature", signature)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if change == "valid" {
+				if response.Code != 200 || !strings.Contains(response.Body.String(), snap.HeadSHA) || !strings.Contains(response.Body.String(), `"response_type":"ephemeral"`) {
+					t.Fatal(response.Code, response.Body.String())
+				}
+			} else if response.Code != 403 || response.Body.String() != `{"error":"callback rejected"}` {
+				t.Fatal("HTTP disclosed unauthorized status", response.Code, response.Body.String())
 			}
 		})
 	}

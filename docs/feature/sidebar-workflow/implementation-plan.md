@@ -510,3 +510,9 @@ P8/F4，新增 /api/v1/bot-callbacks/slack/:id/:revision/command，保持旧 /bi
 状态授权测试改为独立 target1/source3/context2，新增 source 权限撤销和 source 项目停用拒绝，合法测试保留全部访问。该矩阵 race18.039s通过。实际 Register/SQLite 测试追加无session签名status成功、伪签名403、HTTP重放403、ephemeral输出；与完整来源/context矩阵race16.039s通过，vet/diff通过。前端说明typecheck待当前进程结果，正式embedded assets尚需顺序更新。
 
 旧6e04c85完整测试28677仍运行，不能据此证明本HTTP新增版本全量通过；新版本全量/远端CI、命令联调、其他机器人providers和复审授权仍待完成。AC-013未完成。
+
+### S7 状态命令真实 HTTP 授权矩阵
+
+27ab672 后的测试扩展将每个独立状态授权 fixture 通过实际 HTTP.Register 的 /command 路由执行有有效 Slack 签名的请求，不含浏览器 session。target1/source3/context2 三域权限分开：目标/来源/context 成员撤销、source/context 项目停用、平台账号停用、渠道 scope 变更、绑定撤销均返回相同 403 {"error":"callback rejected"}，无任务 ID、HEAD 或状态泄露。合法完整授权返回固定 HEAD 和 ephemeral 状态。内部成功与 HTTP 成功使用不同 timestamp，避免测试误命中内部消费 nonce。
+
+定向 race14.960s、vet/diff通过。本次仅扩展测试，不改变生产行为；完整测试31572仍同进程运行，未将观察超时当失败。当前已确认远端CI仍为旧e21a8a2 success，新命令版本待本地全量终态后推送并验证独立CI。有效证据链接与复审操作、机器人provider范围及全部REQ仍待完成，状态查询不替代AC-013。
