@@ -232,3 +232,9 @@ P9/F4，确认 REQ-003/005 的窄屏和键盘要求：前次 360 像素浏览器
 实际浏览器 360×800 截图确认两组标题保持单行；Tab 从系统设置到操作日志时，横向容器自动滚动并显示末端焦点，回车后路由变为 /events 并展示操作日志空态。恢复默认桌面视口截图确认垂直分组保持原布局。npm run build（含 typecheck）通过，静态产物同步更新，diff 检查通过；仅 CSS 改动，不新增镜像实现的测试。临时 tab/viewport/localhost fixture 已清理。前一 e63aba7 的 CI 37595546480 仍运行中，下一笔推送等待其终态。
 
 嵌入应用 go build 退出 0（输出 /tmp/aimangebot-responsive-smoke，不运行服务、不改部署）。本切片未改后端行为，因此没有重复全量后端测试；远端完整 CI 在推送后验证。
+
+### S6 Linear 工单协议基础（开发验证中）
+
+P8/F4，确认 REQ-013 与 design.md 工单契约：先实现独立请求构建及有界回执解析，再接关联表/权限/发送/UI。依据 [Linear 官方 GraphQL](https://linear.app/developers/graphql)，使用 issueCreate(input: $input)，variables 传值，回执必须无 errors、success=true 且 issue ID/URL 有效；HTTP 200 本身不代表成功。文本长度和团队 UUID 校验，错误内容不回传，未知结果不当作可直接重试。该基础不执行网络写入，不声称已有实际工单能力。
+
+协议定向 race 1.648s、go vet ./... 和 diff 检查通过。验证注入式标题仍仅位于 variables、无团队名称替代 UUID、损坏/超限响应和 500 不报成功、200 携 errors 不报成功、凭据 URL/仿冒域名不留链接。尚未接入发送器、服务端团队配置、ticket_link 持久幂等表、权限预检或 UI，REQ-013 未完成。上一提交 CI 37595546480 仍运行，待其终态后推送本协议基础及待推送导航修复。
