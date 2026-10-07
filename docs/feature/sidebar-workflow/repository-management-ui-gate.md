@@ -13,3 +13,9 @@ Projects列表仅data ready时显示；刷新/loading/error不显示旧卡。leg
 绑定状态：GET绑定与admin集成并行有界加载/abort，loading/error隐藏旧配置。expected revision严格来自GET；选择同provider/启用/包含当前项目的profile。403/404清配置并禁止写；409保留草稿锁定，仅明确丢弃并重读解锁。500同步pending表示已保存，GET重读新revision，不能按旧版本再写。表单保存前说明当前绑定执行暂不可用、历史任务不改解释；保存成功刷新list/provider。读写不发送真实消息或触发审计。close返回触发按钮focus，panel focus/label/fieldset/busy/role=status/error与窄屏无溢出。
 
 Maintainability Gate：projects.tsx多责任medium/high，只组合独立repository-project-create.tsx、repository-binding-editor.tsx及共享repository-form.tsx/types；integrations.tsx压缩混合security/render/runtime high，只改scope/说明/token gate，不堆创建状态。page-utils useResource沿用；新增attempt helper负责有界会话存储与输入恢复，creation不混入Project主组件。ProjectForUser权限/IO high，独立身份投影委托或一致Tx保持小方法，不能先公开未授权metadata。adapter_extraction，先不广泛重构。
+
+## F3 实施计划
+
+先加Project可选repository/projection状态，ProjectsForUser一致Tx及真实HTTPviewer/撤权/坏binding无泄漏测试；新增前端共享RepositoryBinding/RepositoryIntegration/receipt types与表单、creation attempt会话helper、独立创建/绑定组件。Projects/main只组合/传userID/focus恢复；integrations scope空仅repo、错误数据继续禁保存，api.ts脱敏code中文。CSS使用现有panel/inline-form/项目样式及必要responsive字段。
+
+真实API回归race/完整Go/vet/build（后端projection变更）；frontend typecheck/临时build，再受控fixture服务/browser证明无项目repo profile可保存而webhook不可、项目error/slow保留禁止；创建成功及同key未知响应/重载/重试、409草稿、403清理、选项变化；binding初始/slow/error/409/500同步pending/403、正确provider/禁用状态/member只读；360×800与键盘focus。所有POST/PATCH仅本地fake API记账，不是远端发送或真实审计。测试fixture源码/tmp与截图不提交；最终正式embedded assets更新后再Go build/vet，避免同时删除embed目录。15c182d CI37633523912终态后才推生产，新增精确HEAD CI独立验证。F4/F5文档记录真实证据，未证明的项继续标未完成；整体scope及G3–G6不变。
