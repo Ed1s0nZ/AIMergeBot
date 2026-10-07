@@ -264,3 +264,9 @@ P8/F4，沿用持久幂等契约：旧表增列 lease/lease_until/error_code，�
 P8/F4，沿用 run/finding 明确身份操作，不要求历史发现必须属于最新 MR 运行。在同一个读事务内重查 actor 的完整 snapshot operator 权限、发现存在、HEAD、目标/源/关联项目启用、发送租约完整身份、当前渠道版本/类型/启用/项目范围；凭据仅在所有预检通过后返回内部消费者，不向 API 暴露。限制凭据读取大小，不接受损坏 JSON。测试覆盖 fork/配置/角色/租约变化，尚未接入外部写入。
 
 预检/领取/预留/协议定向 race 12.757s、完整 Go（platform 88.675s）、vet、diff 检查通过。独立受控样本验证 fork 源仓库撤权/禁用、渠道 revision/启用/项目范围变化、损坏凭据、旧租约、伪造 actor/HEAD 全部拒绝且返回空凭据和空 snapshot。a5bf5a9 的远端 CI 37597019196 completed/success；待推送 993b156 与本预检一起推送后跟踪精确 HEAD。实际消费者、团队映射、API/UI 与 Jira 仍未完成。
+
+### S6 Linear 明确团队映射与消费（开发验证中）
+
+P8/F4，确认工单操作范围：凭据加入可选 linear_team_id（UUID，服务器保存、不回传），消费者从持久记录读取该映射，不接受发起者覆盖团队。领取后预检，再由发送器 POST 前后复核；输出仅运行/发现 ID、提交和平台详情链接，不导出源码。Jira 未实现时记录明确 unsupported_provider，不虚构工单。没有 Runner 自动启动或 HTTP 创建入口，此阶段只消费显式预留记录，使用受控 HTTP 测试。
+
+消费者/预检/Linear 协议定向 race 13.892s、完整 Go（platform 88.862s）、vet 和 diff 检查通过。受控数据库 + HTTP transport 验证配置映射确实进入 variables、有效回执 created 落库、发送后版本变化保留回执但 unknown、缺团队/已禁用零 POST、传输未知和终态不重发，原始审计摘要不进入发送 body。已有可选字段保持旧配置可读；尚需管理页面团队输入、HTTP 创建/查询与调度入口，不声称可从产品 UI 创建工单。前一 a9f113e 的 CI 37598077800 仍运行，待其终态后推送。

@@ -30,6 +30,7 @@ type Integration struct {
 	UpdatedAt       string   `json:"updated_at"`
 }
 type IntegrationCredentials struct {
+	LinearTeamID    string   `json:"linear_team_id,omitempty"`
 	AllowedNetworks []string `json:"allowed_networks,omitempty"`
 	Endpoint        string   `json:"endpoint"`
 	Secret          string   `json:"secret"`
@@ -119,6 +120,9 @@ func validateIntegration(v IntegrationInput) error {
 	return nil
 }
 func validateIntegrationCredentials(kind string, c IntegrationCredentials, enabled bool) error {
+	if c.LinearTeamID != "" && !ticketUUID.MatchString(c.LinearTeamID) {
+		return ErrIntegrationInput
+	}
 	if len(c.AllowedNetworks) > 10 {
 		return ErrIntegrationInput
 	}

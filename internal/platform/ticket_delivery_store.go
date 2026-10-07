@@ -57,7 +57,7 @@ func (s *Store) FinishFindingTicket(ctx context.Context, claim TicketClaim, rece
 		return ErrConflict
 	}
 	switch receipt.Code {
-	case "", "invalid_configuration", "permission_changed", "creation_unacknowledged":
+	case "", "invalid_configuration", "permission_changed", "creation_unacknowledged", "unsupported_provider":
 	default:
 		return ErrConflict
 	}
