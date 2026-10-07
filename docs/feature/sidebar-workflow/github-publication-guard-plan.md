@@ -1,0 +1,11 @@
+# 显式仓库绑定的旧发布队列保护
+
+P8/F3–F5，Confirmed scope及github-provider-design/G2守卫已推送；允许继续补齐公开配置前提。maintainability gate：comments.go协议/授权混合high，采用现有独立guard委托与Store短事务，不新增平台网络分支。check_preflight/check_delivery_store及comment_delivery_store维持小方法边界。
+
+CheckPublicationRun在原角色/项目校验之后加入snapshot binding guard，覆盖初次及远端读前/POST前/POST后authorize。固定code repository_unavailable可持久保存。FinishRunCheck改为短写事务，在published确认前再核对run绑定；已收到有效RemoteID但绑定改变记unknown并保留receipt，不能标published，其他状态不升级成功。
+
+评论初次读取run后加入binding guard，initial bound→blocked且零HTTP；已有unknown遇binding变化保留unknown、停止自动claim，不能抹掉原POST不确定性。deliveryPreflight再次守卫（包括最终POST前）。prepareCommentBody短事务内守卫，避免保存binding与attempt证据写入之间竞态。acknowledgeComment短事务核对run binding：正常保持既有sent/pending语义；POST后绑定变化时保留discussion/note/author/hash/claimed generation、state unknown/attempts5/明确原因，不宣称成功，不自动重新创建。deferComment接受ErrRepositoryUnavailable为停止自动尝试依据，不编造上游Retry-After。
+
+外部POST与本地数据库无法构成原子事务；仍保留最后本地检查到远端发送之间的窗口，通过POST后unknown/receipt记录诚实表达，不声称绝对无竞态/exactly-once。所有外部调用不在DB事务内，不改变当前默认关闭自动发布。新factory完成前显式绑定全部unavailable。
+
+验证：check target/source/context各自绑定零GET/POST、GET期间绑定零POST、POST期间绑定unknown+RemoteID、FinishRunCheck最终数据库窗口；评论初始绑定零HTTP、GET期间绑定零POST、POST/PUT/reconcile期间绑定保留receipt/unknown/no retry；旧legacy发布/租约/代际/回滚/持久重开回归，race/vet/build/全Go及精确CI。文档先commit/push；b418c7d CI37626706232终态后才推代码。HTTP绑定/UI/factory/Github读取及其余完整REQ仍保留。
