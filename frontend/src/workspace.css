@@ -800,3 +800,9 @@ footer {
     margin-left: auto;
   }
 }
+
+.workspace-finding { padding: 16px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.workspace-finding p { margin: 6px 0; }
+.workspace-findings { min-width: 0; }
+
+.navigation-group { padding: 8px 12px 4px; font-size: 12px; color: #64748b; }

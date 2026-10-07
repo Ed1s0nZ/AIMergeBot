@@ -27,6 +27,7 @@ import {
   UserAdmin,
   Events,
 } from "./pages";
+import { WorkspaceQueue } from "./workspace-queue";
 import { SystemSettings } from "./settings";
 import "./style.css";
 import "./responsive.css";
@@ -229,7 +230,9 @@ function App() {
     );
   const links = [
     { path: "/", label: "概览", icon: LayoutDashboard },
+    { path: "/tasks", label: "待办中心", icon: ScanLine },
     { path: "/runs", label: "审计任务", icon: ScanLine },
+    { path: "/findings", label: "发现中心", icon: FileCode2 },
     { path: "/projects", label: "项目", icon: FolderGit2 },
     ...(user.role === "admin"
       ? [
@@ -239,7 +242,7 @@ function App() {
         ]
       : []),
   ];
-  const detail = route.match(/^\/runs\/(\d+)$/);
+  const detail = route.match(/^\/runs\/(\d+)(?:\?.*)?$/);
   const title =
     links.find((x) => x.path === route)?.label ||
     (detail ? "审计详情" : "页面");
@@ -250,8 +253,11 @@ function App() {
           <ShieldCheck /> AIMergeBot
         </a>
         <span className="workspace-label">审计工作空间</span>
-        <nav>
-          {links.map(({ path, label, icon: Icon }) => (
+        {["日常工作", "管理"].map(group => {
+          const grouped = links.filter(link => group === "管理" ? ["/users", "/settings", "/events"].includes(link.path) : !["/users", "/settings", "/events"].includes(link.path));
+          return grouped.length ? <nav key={group} aria-label={group}>
+          <span className="navigation-group">{group}</span>
+          {grouped.map(({ path, label, icon: Icon }) => (
             <a
               key={path}
               href={"#" + path}
@@ -269,7 +275,8 @@ function App() {
               <ChevronRight size={14} />
             </a>
           ))}
-        </nav>
+        </nav> : null;
+        })}
         <div className="sidebar-bottom">
           <div className="avatar">{user.username[0].toUpperCase()}</div>
           <div>
@@ -307,6 +314,8 @@ function App() {
             <RunDetail id={Number(detail[1])} />
           ) : route === "/" ? (
             <Overview />
+          ) : route === "/tasks" || route === "/findings" ? (
+            <WorkspaceQueue key={route} mode={route === "/tasks" ? "tasks" : "findings"} />
           ) : route === "/runs" ? (
             <Runs />
           ) : route === "/projects" ? (

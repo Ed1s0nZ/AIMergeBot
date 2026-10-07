@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Finding, Review } from "./api";
 import { statuses } from "./components";
 import "./finding-workbench.css";
@@ -30,6 +30,17 @@ export function FindingWorkbench({ findings, reviews, renderFinding }: {
     (!verification || (f.verification?.status || "unverified") === verification);
   const visible = findings.filter(matches);
   const anchor = (id: string) => `${prefix}-finding-${encodeURIComponent(id)}`;
+  const focusedLink = useRef("");
+  const requestedFinding = new URLSearchParams(location.hash.split("?")[1] || "").get("finding") || "";
+  useEffect(() => {
+    if (!requestedFinding || focusedLink.current === requestedFinding || !findings.some(f => f.id === requestedFinding)) return;
+    const target = document.getElementById(`${prefix}-finding-${encodeURIComponent(requestedFinding)}`);
+    if (target) {
+      target.scrollIntoView({ block: "start" });
+      target.focus({ preventScroll: true });
+      focusedLink.current = requestedFinding;
+    }
+  }, [requestedFinding, findings, prefix]);
   const active = Boolean(query || severity || reviewStatus || verification);
   return <section aria-label="发现工作台">
     <div className="panel finding-filters">

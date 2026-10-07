@@ -188,6 +188,8 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.GET("/users", admin, h.users)
 	api.POST("/users", admin, h.createUser)
 	api.PATCH("/users/:id", admin, h.updateUser)
+	api.GET("/workspace/findings", h.workspaceFindings)
+	api.GET("/workspace/tasks", h.workspaceTasks)
 	api.GET("/runs", h.runs)
 	api.POST("/runs", h.submit)
 	api.GET("/runs/:id", h.run)
