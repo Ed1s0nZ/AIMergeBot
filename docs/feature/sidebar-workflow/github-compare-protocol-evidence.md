@@ -68,10 +68,44 @@ compare也可能泄露来源提交描述、文件路径和patch，因此它属�
 
 | 决策或证据 | 当前状态 | 进入代码前所需证明 |
 | --- | --- | --- |
-| fork SHA路由 | GitHub.com同名公开fork有真实证据 | renamed/multiple fork歧义及允许origin支持范围明确 |
-| HEAD关系 | ahead/identical/behind样本有证据 | diverged、超过250提交、坏/缺字段、有限计数与对象关系校验形成完整合同 |
+| fork SHA路由 | GitHub.com同名及改名公开fork均有真实证据（见下方补充） | multiple fork歧义及允许origin支持范围明确 |
+| HEAD关系 | ahead/identical/behind/diverged及超过250提交样本有证据（见下方补充） | 坏/缺字段、有限计数与对象关系校验形成完整合同 |
 | 差异覆盖 | compare文件上限已明确 | 固定树比较预算、rename/mode/gitlink/patch语义，截断不能无告警完成 |
 | 来源权限 | 访问顺序已明确 | 未授权时零来源对象/compare访问；版本/ACL变更时入队拒绝的集成证明 |
 | 入口恢复 | UAR-001仍open | 旧项目迁移/恢复及正式开放前置；不得删除身份guard或猜GitLab ID |
 
 没有新增可被执行的核心对象；拟议Snapshot字段仍按github-provider-design.md矩阵，未新增字段。后续实现文件应分离PR观察、compare关系及固定树差异，并通过统一factory供所有入口消费，不能堆在runner.go。推出时必须与绑定开放/恢复及端到端验收一起评估；回滚保留历史身份，不将旧运行改解释为默认GitLab。当前无F3实施许可，无main合并或发布。
+
+## 补充探测：改名fork、diverged及超过接口上限
+
+2026-10-07约16:02 UTC（上海2026-10-08），仍只读且显式请求2022-11-28。原表记录第一轮范围；本节扩展观察范围，不回填或重解释原PR。
+
+[cli/cli PR #14474](https://github.com/cli/cli/pull/14474)提供改名fork来源jarrensj/gh-cli，仓库GET确认ID=1376506649、fork=true，parent/source ID均212613049。来源完整H2=543ced087c7ef3a7069ebfb09f065df38240b137；用前轮固定目标B=17142e08db2e300b37e6da1ddcfb651eb6d9c587比较，不能将此B擅称该PR当时的base。
+
+/repos/cli/cli/compare/B...H2及cli:B...jarrensj:H2均成功，投影一致：status=diverged、base=B、merge_base=0cf1092493af067646fc5f3db9421c6a6ec9c938、ahead_by=total_commits=1、behind_by=58、returned_commits=1、末项=H2、returned_files=1。这一改名来源无需在owner限定参数中填写gh-cli仓库名；说明“fork名称不同就无法比较”不成立，但不能据此省去来源ID/网络/ACL检查或证明同owner多fork所有歧义均不存在。
+
+大比较使用仓库tags实际返回的v2.30.0提交T=570a7202c3b331a9fdc39508d3a754c6847b3513，只用完整T...B请求，后续不依赖标签仍指向该提交：
+
+| 查询 | 实际结果 | 能证明什么 |
+| --- | --- | --- |
+| 不分页 | ahead；base=merge_base=T；ahead_by=total_commits=5616、behind_by=0；commits=250，末项=B；files=300，无head_commit | 提交列表被限制，但该样本末项仍为请求HEAD；文件数量不能当完整性证明 |
+| per_page=1,page=1 | total_commits=5616；唯一commit=aa0f2de885b6902dbcedfc7f7c45c0f91a879099；files字段存在且300条 | 首个分页末项不是HEAD；per_page不将文件变成1条 |
+| per_page=1,page=2 | total_commits=5616；唯一commit=65720e498e623795b6d44904f302f04a987a1f77；files字段不存在 | 不能从后续页缺files推导没有差异，也不能分页补齐文件集合 |
+
+为区分“刚好300个文件”与实际遗漏，又读取T的固定git/commits对象（SHA=T，tree=c591e69f055e46a1de47cc04124e49194d69029a），以及T/B的固定tree各一份recursive=1响应。两份均校验响应SHA等于请求tree SHA、truncated=false；研究进程单份响应预算5MiB，实际205053/454673 bytes。对type!=tree的路径映射比较(mode,type,sha)，只统计，不生成patch、不做rename检测、不运行来源代码：
+
+| 固定tree | entries / 非目录项 | 响应SHA256（不是Git对象SHA） |
+| --- | --- | --- |
+| T：c591e69f055e46a1de47cc04124e49194d69029a | 914 / 684 | ff3f937e3395b549c8c4e6fc52c214334d1e16c0600b772c89cd9b2232944b62 |
+| B：03626743b05d209a4dcb592cb0f30e33761b3e6c | 1960 / 1493 | 7df2add9e1fcf07f501a20856d56596fe9622619b31cc9c5a4a28bee7dc08775 |
+
+同路径内容/模式/类型变化498，新路径845，消失路径36。这些是路径级树差异数，不称为GitHub语义下的rename/文件统计；单是498个现存路径变化已超过compare返回的300项，因此该样本compare文件集合确实不足。tree探测证明独立覆盖核对的价值，不证明现有2000普通源码ListFiles能生成这种完整差异，也不证明递归接口在大仓库不会截断。生产设计仍需非递归有界树比较和完整性传播。
+
+负例也保留：v0.1.0候选commit返回422（标签不存在），tags第50页为空；两个已知合并父节点的候选比较实际是ahead而非diverged，未作为diverged证据。随后用可观察标签/公开fork元数据选择样本，未把失败查询当生产CI失败或重新启动CI。
+
+### 对下一步设计的影响
+
+- 身份关系校验应覆盖四种status；不能依赖统一的非空commits假设，不分页末项与分页末项须分开处理。以上是官方协议与样本证据，坏响应/边界计数仍须明确失败策略。
+- compare files只能作为固定请求下的有界补丁/rename提示；完整路径集合必须来自固定merge-base与HEAD树，不能默认300条代表完整。来源ACL必须在两种访问前完成。
+- 正式差异应单独定义path/mode/objectID/type及覆盖状态；改名提示与双树事实需要一致性验证，未知rename不能伪造血缘。binary、缺patch、非法路径、预算耗尽仍须保留未知/partial；不能因“模型可以读文件”就将缺失差异视作已经覆盖。
+- 本轮没有选择尚未明确的补丁生成依赖或自动绑定恢复方案，也没有生产实现。G3完整consumer合同、G4–G6及UAR-001/002/004持续未完成。

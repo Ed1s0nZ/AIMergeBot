@@ -55,3 +55,7 @@ F3 1c3b94e已推后实施。记录DTO通过单次LEFT JOIN读取当前渠道版�
 前端使用既有esbuild/ReactDOM在内存编译实际NotificationRetryControl并渲染可请求、六类拒绝、旧响应缺字段/未知原因（包含constructor）及busy/unknown确认；实际NotificationRecords在受控useResource/api/useState夹具下执行409，验证一次POST、一次刷新、重复确认清除、配置变更不呈现重试、读取错误不呈现旧操作、loading/empty。所有断言通过；这是组件/处理函数验证，不声称真实浏览器端到端或外部通知送达。npm run typecheck、go vet ./...及git diff --check通过。
 
 前一生产71e4eec的CI37644666501已completed/success，允许独立新生产push。初次全Go回归在修正夹具前编译，失败仅来自上述缺失渠道外键夹具；修正后重跑go test ./...全部通过（platform 143.103s）。随后串行npm run build通过（tsc -b及Vite），正式JS为index-DYy66Kuj.js，CSS保持index-RiSjjNhI.css；之后go build ./...通过，正式资源可被嵌入应用。UAR-001/002/004、跨配置通知恢复及全部其余确认需求仍未闭合；没有main合并、部署或整体完成声明。
+
+独立CI验收：生产HEAD12f9668ea867324db976afcae304274c2a9358b4的[CI37647032652](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/37647032652)现已completed/success。该精确HEAD包含通知重试可用性修正；35a74e7仅为后续协议研究文档，不能用此CI声称GitHub审计执行或其他未完成功能通过验收。未重启或覆盖原CI运行。
+
+CI步骤复查：该run的headSha确为12f9668；verify以及Go tests and race checks、Operations tooling tests、Reachable Go dependency vulnerabilities、Frontend build、Embedded application build均completed/success。没有把文档HEAD或其它run的成功替代此修正验收。

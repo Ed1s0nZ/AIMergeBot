@@ -96,3 +96,5 @@ G1内部Store存在不代表Runner理解显式绑定。G2不得直接开放Githu
 候选身份校验方法仍须设计完整：无分页比较可按契约核对非空commits末项SHA，但behind/identical时不能要求必有HEAD项；空集合需通过固定对象与关系另行验证，分页末项不适合作统一身份依据。merge_base_commit/base_commit各有commit对象，并不自动证明本系统解析的目标/来源ACL身份正确。完整文件差异候选为固定两树的mode/objectID/path比较；尚需确认比较预算、rename语义与生成patch的取舍，不以300文件API列表或2000文件普通源码枚举证明全仓覆盖。此为研究结果与候选方案，未进入F2/F3实施许可。
 
 协议证据补充：见[github-compare-protocol-evidence.md](github-compare-protocol-evidence.md)。2022-11-28真实公开fork请求证明该样本owner:完整SHA可用，并证明identical/behind可以合法返回空commits；源码读取顺序将compare也纳入来源ACL之后。仅缩小协议不确定性，不关闭diverged/大比较/rename与完整差异、来源权限集成或UAR-001恢复，不授予生产实施许可。
+
+研究进展（上海2026-10-08）：上述证据文档补充真实改名fork/diverged、5616提交/250返回、首二页文件字段差异，以及两份truncated=false固定树核对。compare返回300项而同路径变化498，证实独立完整差异集合的必要性；不选未经明确的patch/rename实现，不将协议样本当应用端授权/执行验收。
