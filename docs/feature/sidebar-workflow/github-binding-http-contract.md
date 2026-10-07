@@ -10,3 +10,7 @@ Lifecycle：codex/sidebar-workflow，F2 consumer contract。场景：管理员�
 - 绑定保存不是远端连通性验证。当前显式绑定的审计及发布仍repository_unavailable；不能silent fallback到legacy GitLab。没有DELETE，避免旧任务被重新解释为legacy。
 
 Maintainability Gate：http_auth.go约300行，session/security/route assembly有多责任，风险high；只新增两条路由委托，独立http_repository_binding.go负责有界strict JSON解析与Store调用，不重构原会话代码。Store不增加新逻辑；adapter_extraction，refactor required first=no。现有auth/owner-routing/guard测试可回归；新增真实Register/Login契约测试。
+
+## F3 实施与验证计划
+
+独立http_repository_binding.go：GET参数/Store/固定错误，PATCH 8KiB strict decoder+单一JSON值+expected_revision+G1 validate后调用Store；http_auth.go仅注册GET及admin PATCH。http_repository_binding_test.go真实Register/Login覆盖匿名/member/admin、same-origin/cross-origin/Sec-Fetch-Site、缺失ID/成员撤权、revision0与规范化保存/读回、stale及invalid/oversize/尾随/未知字段无历史变化、服务端actor/无凭据回显、保存后Submit明确503零HTTP。同时跑Binding/Publication/Auth/OwnerRouting相关race、全Go/vet/build及diff。无前端修改，不重复frontend build；仅受控httptest，无生产凭据、真实渠道或模型调用。前生产6b89c47精确CI37628377399终态后才推本生产代码，避免取消CI。文档更新记最终证据并提交推送。回滚禁用新增HTTP路由、保留Store历史和所有guard，不删除binding恢复legacy。后续页面仍需loading/error/403/409/narrow/keyboard真实证明。
