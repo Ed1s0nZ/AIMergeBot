@@ -191,4 +191,13 @@ func mergeScopeAnchors(dst *DiffScope, src DiffScope) {
 	for p, metadata := range src.Metadata {
 		dst.Metadata[p] = metadata
 	}
+	for p, stat := range src.Formatting {
+		if dst.Formatting == nil {
+			dst.Formatting = map[string]FileFormattingScope{}
+		}
+		merged := dst.Formatting[p]
+		merged.mergeFile(stat)
+		merged.Path = p
+		dst.Formatting[p] = merged
+	}
 }

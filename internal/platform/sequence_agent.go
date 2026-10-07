@@ -46,6 +46,11 @@ func (e *EinoAuditor) generateSequences(ctx context.Context, result *AuditResult
 	}
 	for _, i := range sequenceOrder(result.Findings) {
 		f := &result.Findings[i]
+		if f.Origin == deterministicFormattingOrigin {
+			f.SequenceDiagram = unavailableSequence("确定性范围检测不生成问题链路图。")
+			tools.sequenceCheckpoint(*result)
+			continue
+		}
 		if f.Verification != nil && f.Verification.Status == "rejected" {
 			f.SequenceDiagram = unavailableSequence("独立复核未支持该发现，请人工复核原始证据。")
 			tools.sequenceCheckpoint(*result)

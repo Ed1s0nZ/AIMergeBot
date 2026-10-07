@@ -203,7 +203,7 @@ func run() error {
 		}
 		scope := platform.BuildDiff(changes, nil, 96*1024)
 		scope.Notes = append(scope.Notes, notes...)
-		auditor := &platform.EinoAuditor{ContextSources: sources, Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
+		auditor := &platform.EinoAuditor{ContextSources: sources, Repository: repo, Config: platform.AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: steps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, MaxToolCalls: calls, Temperature: float32(cfg.ReAct.Temperature), VerifyFindings: true, GenerateDiagrams: false, CheckFormattingScope: cfg.CheckFormattingScope, Progress: func(result platform.AuditResult, trace []platform.ToolTrace) error {
 			return save(filepath.Join(caseDir, "checkpoint.json"), map[string]any{"result": result, "trace": trace})
 		}}}
 		fmt.Printf("%s started\n", c.ID)
