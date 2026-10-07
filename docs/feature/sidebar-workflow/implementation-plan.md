@@ -244,3 +244,11 @@ P8/F4，确认 REQ-013 与 design.md 工单契约：先实现独立请求构建�
 P8/F4，沿用工单明确操作授权契约：仅官方 https://api.linear.app/graphql 收取 API token，调用已有禁代理/禁重定向、DNS/IP 校验和 TLS 发送客户端；请求 15 秒、响应 64 KiB 上限。每次创建需调用方提供授权复核，POST 前检查，成功回执后再次检查；写入后失效保留 unknown，不假装没有创建。发送器不自动重试。测试注入 RoundTripper，不对真实 Linear 发请求。持久幂等/团队配置/HTTP 和 UI 仍未接入。
 
 发送协议 race 1.662s 通过，涵盖授权缺失/撤销零请求、合法 POST 带身份和 deadline、发送后撤销保留回执但 unknown、传输错误不泄露原始错误、响应超限和 GraphQL 错误不报 created。完整 Go（platform 86.848s）、vet、diff 检查通过。e63aba7 的远端 CI 37595546480 completed/success，待推送导航 36ffa5f、协议 b715636 与本适配器一起推送后跟踪新 HEAD CI。REQ-013 仍未完成，未发送真实工单。
+
+### S6 工单关联持久预留（开发验证中）
+
+P8/F4，确认 REQ-013：创建前按 run/finding/integration 唯一预留，随机持久 idempotency_key；现有记录无论 pending/created/unknown 均复用，不重置或覆盖。事务中检查 operator 的完整快照权限、发现存在、HEAD、启用渠道、Jira/Linear 类型、目标项目范围与渠道 expected revision。记录捕获 actor/HEAD/渠道 revision，读操作重新检查 viewer 快照权限。此阶段只预留 pending，没有网络写入；领取租约、发送前授权复核和 API/UI 后续接入。
+
+首轮测试修正两处 fixture 错误：Store 私有迁移方法为 migrate；撤权后现有权限层隐藏资源，精确错误为 sql.ErrNoRows。修正后权限/HEAD/渠道 revision/重复 unknown 保留/重复迁移保持身份的定向 race 3.088s 通过，vet 和 diff 检查通过。完整 Go 验证进行中，前一 8299131 的 CI 37596410965 仍 in_progress。没有网络发送，本切片不构成工单功能全链路完成。
+
+本切片完整 Go 验证通过（platform 86.327s）。后续仍需 ticket 租约/发送授权复查、明确团队与 Jira 项目映射、HTTP/UI、真实服务验证；当前保持唯一预留的安全基础，不把 pending 当作已建工单。

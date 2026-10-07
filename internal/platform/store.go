@@ -102,6 +102,9 @@ func (s *Store) migrate() error {
 	if err = migrateIntegrations(tx); err != nil {
 		return err
 	}
+	if err = migrateTicketLinks(tx); err != nil {
+		return err
+	}
 	if err = migrateReviewRevision(tx); err != nil {
 		return err
 	}
