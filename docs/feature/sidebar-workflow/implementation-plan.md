@@ -294,3 +294,11 @@ S6 真实会话验证的完整 Go 测试最终通过（platform 189.383s）；�
 P8/F4，Runner 启动独立 2 秒工单循环，单次最多消费 5 条、每条 20 秒超时，使用当前 public_url 和已有授权预检/租约消费者。循环纳入同一取消上下文与 WaitGroup；不收集审计事件自动建单，只处理明确预留记录。结果 unknown 保持终态，不自动重发。增加实际 Start/Stop/Restart 测试，通过受控 transport 验证停止后待处理记录不发送、恢复后发送且已创建记录在再次重启后不重复创建。测试注入为未导出的 Runner 字段，生产默认仍使用受限 HTTP 客户端。
 
 HTTP/消费者/真实 Runner 生命周期定向 race 14.921s、vet 通过；当前新循环版本的完整 Go 测试已启动，等待终态。API/后台链路已接通，但安全可选渠道列表、发现详情操作 UI、Jira 适配器与实际浏览器验证仍未完成，不声明完整工单能力完成。
+
+后台消费版本完整 Go 测试通过（platform 96.081s）。
+
+### S6 发现可用工单渠道（开发验证中）
+
+P8/F4，新增 operator 专用 GET /runs/:id/findings/:finding_id/ticket-channels，重新校验完整发现快照权限。返回仅 ID/revision/name/provider；按目标项目范围过滤，排除禁用、损坏或缺团队/token/非官方端点配置，Jira 适配器完成前不提供其选择。凭据读取在 SQL 限制 64 KiB，候选最多 500，超过明确失败不悄悄截断。真实数据库测试覆盖 viewer 拒绝、缺发现、项目范围/禁用/损坏配置/不支持类型过滤和输出不含 token/团队 UUID。初次定向 race 2.716s 通过，随后 SQL 凭据读取上限调整后重新验证；vet/diff 通过。详情 UI 与完整工单状态列表仍待完成。
+
+SQL 上限调整后的定向 race 2.651s 通过。GitHub 恢复访问，精确 c07558a 的 CI 37599173842 已核实 completed/success。新渠道版本完整 Go 测试运行中，待终态后统一推送本地 API/后台/渠道提交并跟踪新 HEAD CI。

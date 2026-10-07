@@ -7,6 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *HTTP) findingTicketChannels(c *gin.Context) {
+	runID, ok := idParam(c)
+	if !ok {
+		return
+	}
+	out, err := h.Store.FindingTicketChannels(c.Request.Context(), runID, currentUser(c).ID, c.Param("finding_id"))
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(200, gin.H{"items": out})
+}
+
 func (h *HTTP) findingTicket(c *gin.Context) {
 	runID, ok := idParam(c)
 	if !ok {
