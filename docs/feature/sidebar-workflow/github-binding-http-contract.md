@@ -22,3 +22,5 @@ Maintainability Gate：http_auth.go约300行，session/security/route assembly�
 真实Register/Login HTTP专项19811 race3.613s通过；加入事务事件ABORT验证后扩展Binding/PublicationGuard/OwnerRoutingHTTP/SettingsHTTP/ProjectHTTP/Auth race26321 completed/success platform42.229s。覆盖匿名401、member保存403、跨源与Sec-Fetch-Site403、viewer无权限/撤权404、invalid ID400、revision0、规范化写读一致、stale及重复身份409、缺项目/集成404、错误origin409、内部写失败500固定脱敏并整体回滚、所有拒绝不写history/ACL/run、保存后Submit503且legacy reader零调用。最终完整Go10740 completed/success platform114.244s，其余包通过；全项目vet/build81826及diff检查通过。无前端改变或真实渠道/模型调用。
 
 6b89c47精确CI37628377399仍in_progress。生产代码可本地提交，暂不推送以保留该run；终态后推送并跟踪本HEAD独立CI。仅API完成，G2页面、内部ID创建/同步防碰撞及G3–G6全链路和其余完整REQ继续保留，GitHub不能实际审计。phase push仍pending，不宣称F4/F5远端验收完成。
+
+远端状态更新：6b89c47精确CI37628377399已completed/success；60850dd生产API随a7e914d（含后续同步设计）已推送codex/sidebar-workflow。精确HEAD a7e914d CI37629722882已in_progress，仍待远端完整验收；上述“暂不推送”是当时状态，不再为当前状态。无main合并或发布。后续同步设计见github-project-identity-sync-design.md。
