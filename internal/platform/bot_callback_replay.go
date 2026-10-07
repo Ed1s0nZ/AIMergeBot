@@ -26,6 +26,15 @@ func (s *Store) consumeSlackCallback(ctx context.Context, integrationID, revisio
 		return err
 	}
 	defer tx.Rollback()
+	if err := consumeSlackCallbackTx(ctx, tx, integrationID, revision, timestamp, signature, body, at); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+func consumeSlackCallbackTx(ctx context.Context, tx *sql.Tx, integrationID, revision int64, timestamp, signature string, body []byte, at time.Time) error {
+	if integrationID <= 0 || revision <= 0 || len(body) > 65536 {
+		return ErrConflict
+	}
 	var raw string
 	if err := tx.QueryRowContext(ctx, `SELECT CASE WHEN length(CAST(credentials AS BLOB))<=65536 THEN credentials ELSE '' END FROM platform_integrations WHERE id=? AND revision=? AND kind='slack' AND enabled=1`, integrationID, revision).Scan(&raw); err != nil {
 		return err
@@ -50,5 +59,5 @@ func (s *Store) consumeSlackCallback(ctx context.Context, integrationID, revisio
 	if count != 1 {
 		return ErrConflict
 	}
-	return tx.Commit()
+	return nil
 }

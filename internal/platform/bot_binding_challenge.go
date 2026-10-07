@@ -12,6 +12,10 @@ import (
 
 func migrateBotBindingChallenges(tx *sql.Tx) error {
 	_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS platform_bot_binding_challenges(integration_id INTEGER NOT NULL REFERENCES platform_integrations(id),user_id INTEGER NOT NULL REFERENCES platform_users(id),integration_revision INTEGER NOT NULL,token_hash TEXT NOT NULL UNIQUE,expires_at INTEGER NOT NULL,PRIMARY KEY(integration_id,user_id))`)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(`CREATE TABLE IF NOT EXISTS platform_bot_bindings(integration_id INTEGER NOT NULL REFERENCES platform_integrations(id),workspace_id TEXT NOT NULL,external_user_id TEXT NOT NULL,user_id INTEGER NOT NULL REFERENCES platform_users(id),created_at TEXT NOT NULL,PRIMARY KEY(integration_id,workspace_id,external_user_id),UNIQUE(integration_id,workspace_id,user_id))`)
 	return err
 }
 

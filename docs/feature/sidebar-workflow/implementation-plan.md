@@ -416,3 +416,9 @@ P8/F4，迁移增加 callback receipts（integration_id + 原始 timestamp/body 
 P8/F4，迁移增加按渠道/平台用户唯一的绑定挑战，只保存 SHA256 token_hash、渠道 revision 和十分钟过期时间。内部发行函数校验当前启用账号、当前启用 Slack 渠道/revision 与签名秘密配置，生成 24 字节随机 token 一次返回；重新发行原子替换旧挑战。函数不接受外部用户名，不增加项目成员/权限。尚无发行 HTTP/UI 或回调完成绑定入口，用户身份必须由已认证会话传入，后续消费仍需签名、持久 replay 与外部稳定身份域校验。
 
 挑战/签名/replay 定向 race 2.711s、vet/diff 通过，验证数据库只保存摘要、再次发行不同 token且仅一条记录、版本变化/停用用户拒绝且不返回 token。新的 replay+challenge 迁移版本完整 Go 随后验证。AC-013 仍未完成，当前 e6b29e5 CI 37603901544 未确认终态，未推送覆盖。
+
+### S7 Slack 签名绑定完成事务（开发验证中）
+
+P8/F4，回调 gate 提取同事务 helper，使签名/持久 replay、挑战校验、绑定记录写入、挑战删除同一事务完成。外部身份为 integration/workspace T-ID/user U/W-ID；只接受单值 team_id/user_id/text 与 bind <48hex token>，不使用昵称，拒绝重复关键字段。挑战必须当前 revision、未过期、平台账号启用。绑定表约束同工作区外部身份和平台账号均唯一，INSERT 不覆盖已有身份。不添加项目权限，不执行复审，不公开 HTTP。
+
+Slack 全部定向 race 3.217s、vet/diff 通过，验证有效绑定返回正确平台账号、挑战被消费、回调重放拒绝、伪造签名不污染合法绑定、新挑战不能覆盖既有外部身份、停用账号不能在其他工作区绑定。迁移与新完成流程完整验证仍待执行；前一全量 20208 同进程运行中。还需配置 Slack app/workspace 域、撤销绑定、用户认证发行 HTTP/UI、回调授权复审与错误恢复证据，AC-013 仍未完成。
