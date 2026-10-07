@@ -80,3 +80,9 @@ S1 补充：HTTP 分类与非法项目/筛选负例测试通过；具体发现�
 通知 loop 每轮最多处理 100 条到期接受，原记录留历史，更新为 open、生成同事务 risk.expired 事件；工作台新增风险接受到期分类，发现列表显示 disposition、owner、expires_at。展开面板后关闭仍保留草稿，冲突加载不自动替换草稿。
 
 最终定向 race（disposition/通知/工作台）10.079s 通过，前端 typecheck/build 通过；覆盖查看者拒写、版本冲突、HEAD 不符、到期幂等/历史、人工修复确认及跨运行不继承。首轮发现权限快照只有 ACL 身份而无 HEAD，以及 JOIN 后列名歧义，已修正并复跑。实际 UI/完整回归与自动修复验证仍待完成。此切片不自动判断已修复，不等于全部修复闭环/责任人路由已完成。
+
+### CI 回归修复（用户 2026-10-07 提醒）
+
+GitHub 73be028 的 run 37583262424 与 53068a2 的 run 37583804618 在全量 Go 测试中失败。TestReviewRevisionMigratesLegacyDecisionWithoutChangingHistory 用已升级数据库 DROP revision 模拟旧库，但新增通知触发器引用该字段，SQLite 在 DROP 时拒绝。真实旧库无这些触发器，因此修正 fixture：先移除两个依赖 revision 的新通知触发器，再重建旧结构；迁移后要求两触发器自动恢复、旧复核/通知历史均不重复。不删除生产触发器、不跳过或弱化迁移测试。
+
+本地同名测试失败与 GitHub 日志一致；目标修复测试通过。此前定向通过不代表全量通过，当前需要完整 Go/race/vet 与最新提交 GitHub CI 成功才能关闭此回归。统计接口正在开发的未提交改动与此修复分开提交。

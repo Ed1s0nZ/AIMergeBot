@@ -122,11 +122,26 @@ func TestReviewRevisionMigratesLegacyDecisionWithoutChangingHistory(t *testing.T
 	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_review_history WHERE run_id=?`, id).Scan(&before); err != nil {
 		t.Fatal(err)
 	}
+	// A pre-revision database never had the notification triggers. Remove
+	// dependent modern schema before reconstructing that legacy fixture.
+	for _, name := range []string{"platform_notification_review_insert", "platform_notification_review_update"} {
+		if _, err := s.DB.Exec(`DROP TRIGGER ` + name); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if _, err := s.DB.Exec(`ALTER TABLE platform_reviews DROP COLUMN revision`); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.migrate(); err != nil {
 		t.Fatal(err)
+	}
+	var notificationTriggers int
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name IN ('platform_notification_review_insert','platform_notification_review_update')`).Scan(&notificationTriggers); err != nil || notificationTriggers != 2 {
+		t.Fatalf("notification triggers not restored: %d %v", notificationTriggers, err)
+	}
+	var migrationEvents int
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_notification_events WHERE kind='finding.reviewed' AND run_id=?`, id).Scan(&migrationEvents); err != nil || migrationEvents != 1 {
+		t.Fatalf("migration changed notification history: %d %v", migrationEvents, err)
 	}
 	got, err := s.Reviews(ctx, id)
 	if err != nil || len(got) != 1 || got[0].Revision != 1 || got[0].Reason != "legacy decision" {
