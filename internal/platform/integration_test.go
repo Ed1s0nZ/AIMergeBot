@@ -42,6 +42,9 @@ func TestHTTPAuthorizationAndSession(t *testing.T) {
 		r.ServeHTTP(w, req)
 		return w
 	}
+	if w := request("GET", "/api/v1/integrations", "", nil, ""); w.Code != 401 {
+		t.Fatal("unauthenticated integrations access")
+	}
 	if w := request("GET", "/api/v1/projects", "", nil, ""); w.Code != 401 {
 		t.Fatal("unauthenticated access")
 	}
@@ -54,6 +57,12 @@ func TestHTTPAuthorizationAndSession(t *testing.T) {
 		t.Fatal("unsafe cookie")
 	}
 	cookie := cookies[0]
+	if w := request("GET", "/api/v1/integrations", "", cookie, ""); w.Code != 403 {
+		t.Fatal("member integrations access allowed")
+	}
+	if w := request("POST", "/api/v1/integrations", `{}`, cookie, ""); w.Code != 403 {
+		t.Fatal("member integrations mutation allowed")
+	}
 	if w := request("POST", "/api/v1/projects", `{"id":1,"name":"test","enabled":true}`, cookie, ""); w.Code != 403 {
 		t.Fatal("member config allowed")
 	}

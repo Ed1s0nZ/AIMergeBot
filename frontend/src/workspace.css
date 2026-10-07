@@ -806,3 +806,8 @@ footer {
 .workspace-findings { min-width: 0; }
 
 .navigation-group { padding: 8px 12px 4px; font-size: 12px; color: #64748b; }
+
+.integration-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.integration-form fieldset { border: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.integration-form label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.integration-form input:not([type="checkbox"]), .integration-form textarea { max-width: 100%; min-width: 0; }

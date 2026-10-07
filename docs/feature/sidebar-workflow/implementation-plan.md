@@ -46,3 +46,13 @@ S1 补充：HTTP 分类与非法项目/筛选负例测试通过；具体发现�
 ### S4 协议基础（部分实现）
 
 新增飞书/钉钉/企业微信/Slack/Teams Workflows/Webhook 的纯请求构造与业务响应分类，签名/正文中不回传 secret，超长响应与未知业务状态不标送达，Webhook/Teams HTTP 接受和实际送达分离。当前没有持久集成配置、SMTP、发送 worker、汇总、页面或真实外部发送；协议测试仅为受控验证，不能认定 REQ-010–015 已交付。官方网页动态/读取限制已记录，后续继续核对协议。
+
+### S4 配置与队列切片（仍未全部完成）
+
+新增 platform_integrations 和 platform_notification_deliveries 表、迁移、管理员 GET/POST/PATCH /integrations，以及管理员集成页面。11 类配置类型包括邮件、各机器人/Webhook、GitLab/GitHub/Jira/Linear；类型支持配置不等同适配器或平台全链路已完成。查询只返回 has_endpoint/has_secret，地址/密钥/SMTP 收件人不回传；expected_revision 强制版本校验，凭据默认保留、可替换或明确清除。
+
+配置更新取消 pending/retry，sending 标 unknown 并撤销 lease，避免旧 sender 确认新配置结果。队列事件键唯一、同事务领取、随机 lease token fence、最多 5 次有界限流重试；过期发送标 unknown，不自动重发。新增测试覆盖普通用户拒绝、脱敏、保留/清除、版本冲突、关闭重开数据库、重复事件/双领/过期发送/修改渠道竞态和邮件换行注入。
+
+未实现：实际 HTTP/SMTP sender、自动事件采集、定时汇总、投递记录页面/主动测试/重试接口、工单和机器人交互、真实平台验证。仍需继续完整范围，不以配置菜单作为交付完成证据。
+
+本切片最终验证：集成/队列/协议/工作台定向 race 11.038s 通过；frontend typecheck+Vite build 通过；补充 HTTP 未登录与普通成员拒绝集成读写测试通过。实际 UI 验证与完整回归尚未完成。
