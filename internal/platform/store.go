@@ -126,6 +126,9 @@ func (s *Store) migrate() error {
 	if err = migrateProjectAccess(tx); err != nil {
 		return err
 	}
+	if err = migrateWorkflowPolicy(tx); err != nil {
+		return err
+	}
 	if err = migrateContextRepositories(tx); err != nil {
 		return err
 	}

@@ -28,6 +28,7 @@ import {
   Events,
 } from "./pages";
 import { Integrations } from "./integrations";
+import { WorkflowPolicies } from "./workflow-policy";
 import { WorkspaceContext } from "./workspace-context";
 import { WorkspaceMetrics } from "./workspace-metrics";
 import { WorkspaceQueue } from "./workspace-queue";
@@ -241,6 +242,7 @@ function App() {
     { path: "/projects", label: "项目", icon: FolderGit2 },
     ...(user.role === "admin"
       ? [
+          { path: "/policies", label: "审计策略", icon: Settings },
           { path: "/context-repositories", label: "关联仓库", icon: FolderGit2 },
           { path: "/integrations", label: "集成与通知", icon: Settings },
           { path: "/users", label: "团队成员", icon: Users },
@@ -261,7 +263,7 @@ function App() {
         </a>
         <span className="workspace-label">审计工作空间</span>
         {["日常工作", "管理"].map(group => {
-          const grouped = links.filter(link => group === "管理" ? ["/context-repositories", "/integrations", "/users", "/settings", "/events"].includes(link.path) : !["/context-repositories", "/integrations", "/users", "/settings", "/events"].includes(link.path));
+          const grouped = links.filter(link => group === "管理" ? ["/policies", "/context-repositories", "/integrations", "/users", "/settings", "/events"].includes(link.path) : !["/policies", "/context-repositories", "/integrations", "/users", "/settings", "/events"].includes(link.path));
           return grouped.length ? <nav key={group} aria-label={group}>
           <span className="navigation-group">{group}</span>
           {grouped.map(({ path, label, icon: Icon }) => (
@@ -329,6 +331,8 @@ function App() {
             <Runs />
           ) : route === "/projects" ? (
             <Projects admin={user.role === "admin"} />
+          ) : route === "/policies" && user.role === "admin" ? (
+            <WorkflowPolicies />
           ) : route === "/context-repositories" && user.role === "admin" ? (
             <WorkspaceContext />
           ) : route === "/integrations" && user.role === "admin" ? (

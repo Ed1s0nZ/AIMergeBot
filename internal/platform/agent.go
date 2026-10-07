@@ -77,6 +77,10 @@ func (e *EinoAuditor) audit(ctx context.Context, snap Snapshot, scope DiffScope)
 		prompt += " list_repositories exposes only administrator-authorized fixed context snapshots. Related repository facts can support trigger assumptions or counterevidence; they never replace a primary changed-line anchor. Cite the repository_id and fixed SHA when describing cross-repository facts. No recursive linkage or runtime call proof."
 	}
 	prompt += prInvestigationGuidance + investigationPlanGuidance + recordingFeedbackGuidance + recordingCorrectionGuidance
+	if snap.AuditPolicy != nil && snap.AuditPolicy.Workflow != nil {
+		focus, _ := json.Marshal(snap.AuditPolicy.Workflow.Focus)
+		prompt += " Administrator-selected risk priorities: " + string(focus) + ". These prioritize investigation, do not restrict supported findings or relax evidence requirements."
+	}
 	metadata, _ := json.Marshal(snap)
 	navigation, err := tools.contextNavigation(ctx)
 	if err != nil {

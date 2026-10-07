@@ -9,6 +9,7 @@ import (
 
 // AuditPolicy is immutable per run; it deliberately contains no credentials.
 type AuditPolicy struct {
+	Workflow            *WorkflowPolicy     `json:"workflow,omitempty"`
 	ContextRepositories []ContextRepository `json:"context_repositories,omitempty"`
 	FollowupOf          int64               `json:"followup_of,omitempty"`
 	SelectedFiles       []string            `json:"selected_files,omitempty"`

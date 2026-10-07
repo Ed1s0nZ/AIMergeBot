@@ -137,6 +137,17 @@ func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bo
 	if err != nil {
 		return 0, false, err
 	}
+	workflow, err := readWorkflowPolicy(ctx, r.Store.DB, pid)
+	if err != nil {
+		return 0, false, err
+	}
+	if workflow.Revision > 0 {
+		if policy == nil {
+			policy = &AuditPolicy{Excluded: append([]string{}, r.Excluded...)}
+		}
+		policy.Workflow = &workflow
+		policy.Excluded = append(policy.Excluded, workflow.ExcludedExtensions...)
+	}
 	snap.AuditPolicy = policy
 	if actor > 0 {
 		return r.Store.EnqueueUser(ctx, snap, actor, force)
@@ -224,6 +235,9 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	var gitConfig GitAuditSettings
 	timeout := r.Timeout
 	repo, auditor, excluded := r.Repository, r.Auditor, r.Excluded
+	if run.AuditPolicy != nil {
+		excluded = run.AuditPolicy.Excluded
+	}
 	if r.Settings != nil {
 		cfg := r.Settings.Snapshot()
 		if p := run.AuditPolicy; p != nil {
