@@ -27,6 +27,7 @@ type Integration struct {
 	MinimumSeverity string   `json:"minimum_severity"`
 	HasEndpoint     bool     `json:"has_endpoint"`
 	HasSecret       bool     `json:"has_secret"`
+	HasTeamMapping  bool     `json:"has_team_mapping"`
 	UpdatedAt       string   `json:"updated_at"`
 }
 type IntegrationCredentials struct {
@@ -190,6 +191,7 @@ func scanIntegration(row interface{ Scan(...any) error }) (Integration, Integrat
 	}
 	v.HasEndpoint = c.Endpoint != "" || c.SMTPHost != ""
 	v.HasSecret = c.Secret != "" || c.Token != "" || c.Password != ""
+	v.HasTeamMapping = v.Kind == "linear" && c.LinearTeamID != ""
 	return v, c, nil
 }
 
@@ -316,5 +318,6 @@ func (s *Store) SaveIntegration(ctx context.Context, id, actor int64, input Inte
 	v.UpdatedAt = updated
 	v.HasEndpoint = credentials.Endpoint != "" || credentials.SMTPHost != ""
 	v.HasSecret = credentials.Secret != "" || credentials.Token != "" || credentials.Password != ""
+	v.HasTeamMapping = v.Kind == "linear" && credentials.LinearTeamID != ""
 	return v, nil
 }

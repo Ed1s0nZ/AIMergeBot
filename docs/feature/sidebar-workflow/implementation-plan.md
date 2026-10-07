@@ -270,3 +270,11 @@ P8/F4，沿用 run/finding 明确身份操作，不要求历史发现必须属�
 P8/F4，确认工单操作范围：凭据加入可选 linear_team_id（UUID，服务器保存、不回传），消费者从持久记录读取该映射，不接受发起者覆盖团队。领取后预检，再由发送器 POST 前后复核；输出仅运行/发现 ID、提交和平台详情链接，不导出源码。Jira 未实现时记录明确 unsupported_provider，不虚构工单。没有 Runner 自动启动或 HTTP 创建入口，此阶段只消费显式预留记录，使用受控 HTTP 测试。
 
 消费者/预检/Linear 协议定向 race 13.892s、完整 Go（platform 88.862s）、vet 和 diff 检查通过。受控数据库 + HTTP transport 验证配置映射确实进入 variables、有效回执 created 落库、发送后版本变化保留回执但 unknown、缺团队/已禁用零 POST、传输未知和终态不重发，原始审计摘要不进入发送 body。已有可选字段保持旧配置可读；尚需管理页面团队输入、HTTP 创建/查询与调度入口，不声称可从产品 UI 创建工单。前一 a9f113e 的 CI 37598077800 仍运行，待其终态后推送。
+
+### S6 管理员 Linear 团队输入（开发验证中）
+
+P7/F4，复用已有完整凭据替换/默认保留契约：Linear 提供团队 UUID 输入，启用并写入凭据时要求团队和 API token；说明官方 endpoint。返回元数据仅 has_team_mapping，不回传 UUID 或凭据值。只修改凭据编辑分支，不重构原有集成表单。保存不会创建工单；待 API/详情页明确用户操作后触发。
+
+前端 build 通过。新团队元数据测试首次发现 SaveIntegration 的手工返回路径未设置 has_team_mapping，而列表扫描已设置；补齐后新建、仅改名称保留团队/token、列表仅返回存在标志的 targeted race 4.912s 通过。先前全量测试已用旧代码启动，为避免把旧版本结果当作修复验证，主动终止其具体 go test/platform.test 进程（退出 143）；修复后重新完整 Go/vet，非超时重启。a9f113e 的 CI 37598077800 completed/success；团队表单浏览器验证仍待完成。
+
+修复后完整 Go（platform 98.143s）、vet 和 diff 检查通过，前端静态产物同步提交。Linear/Jira 不参与通知事件收集，工单配置保存不会隐式自动创建；现有 notification collector 的支持类型过滤已核对。待推送消费者 7903241 与本配置入口一起推送，下一精确 HEAD 的远端 CI 待跟踪。
