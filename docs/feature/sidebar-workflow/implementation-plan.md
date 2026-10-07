@@ -336,3 +336,9 @@ P8/F4，TicketLink 查询增加 updated_at 与安全 error_code，SQL 仅投影�
 ### S6 工单实际数据库重开恢复（开发验证中）
 
 P9/F5，使用独立文件 SQLite，实际 Close/OpenStore（执行迁移），验证 created/带回执 unknown/过期 sending 三种状态。重开后原 ID/idempotency_key、有效远端回执持久化；过期 sending 恢复 unknown 与 creation_unacknowledged，即使没有 pending 查询也提交恢复。再次明确预留返回原记录，不重置状态；旧发送确认全部拒绝。测试不使用真实远端，sql.ErrNoRows 证明无可领取记录。定向 race 3.295s、vet/diff 通过。产品版本完整测试已通过，本提交只新增重开验证与记录。
+
+### S6 Jira v3 创建协议基础（开发验证中）
+
+P8/F4，参考官方 https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/ 与 v3 概览，新增纯协议模块。项目/问题类型使用明确数字 ID，summary JSON 编码且有界，description 构造 ADF doc/paragraph/text；不拼接用户 JSON。仅接受 HTTP 201、有界合法 JSON、合法 id/key、无 errors/errorMessages，self 必须精确属于配置 HTTPS 根地址的 /rest/api/3/issue/<id>，展示链接由受信 endpoint 与校验 key 生成。其余结果 unknown，无原始远端错误输出。Jira 尚未接入凭据映射、消费者、持久回执验证和 UI，现有可用渠道继续不提供 Jira。
+
+协议定向 race 1.679s 通过，覆盖字段映射/引号、安全 ID、伪造站点/key、错误响应、超限与非 201。官方大页直接 open 因内容过大失败，搜索官方源及概要核对，不以第三方替代官方协议依据。前一 9a80965 的 CI 37602358756 当前 in_progress，未追加推送。
