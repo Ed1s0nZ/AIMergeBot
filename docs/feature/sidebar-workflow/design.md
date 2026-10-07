@@ -73,3 +73,10 @@ Jira 使用 issue API；Linear 使用 GraphQL，处理成功 HTTP 中的 errors�
 ## 迁移、回滚与验证
 
 增量建表与索引，默认不启用集成/自动动作，保留老路由和历史数据；回滚二进制保留新表不删数据。跨项目/源项目/context ACL、撤权、分页一致性、revision 冲突、恢复/重复事件、各渠道请求协议、响应业务错误、网络未知结果、签名重放、凭据脱敏为必要测试。完整 Go/race/vet、前端 typecheck/build、嵌入资源同步、窄屏键盘 QA。真实服务验证需用户指定测试配置；缺失时明确未验证，不能假称全链路成功。
+
+## 通知协议参考（2026-10-07）
+
+- [Slack Incoming Webhooks](https://api.slack.com/messaging/webhooks)：文本请求与成功 ok 响应。
+- [Teams 官方文档](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook)：本次支持 Workflows 文本 webhook 契约，不以旧 Connector 为默认依赖；HTTP accepted 不证明工作流最终发布。
+- [飞书自定义机器人](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)、[钉钉自定义机器人](https://open.dingtalk.com/document/orgapp/custom-robot-access)：官方页面为动态内容，浏览器检索未返回正文；需继续检查签名及响应契约，当前受控协议测试不替代真实平台验证。
+- [企业微信群机器人](https://developer.work.weixin.qq.com/document/path/91770)：浏览工具无法读取，仍需进一步核对官方协议，不将当前实现标记全部平台验收完成。
