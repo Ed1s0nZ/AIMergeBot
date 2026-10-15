@@ -94,3 +94,8 @@ Go1.27.2、Git2.50.1，全部exit0，无race报告：
 ### 本轮提交追踪
 
 隔离对照与证据提交4eac0e11c190ce8b271e2b99f91744bd6199e88e已推送codex/sidebar-workflow。已查询精确HEAD的[CI 38778466286](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38778466286)：in_progress、conclusion为空；不得借用6460c06成功续期。当前应用CI不会执行nested module，其验证为上文显式命令。本条仅文档追踪，不改动受测代码。
+
+
+## 进程取消验证输入
+
+本轮沿用F2研究gate，先实测现有gitCommand而不改生产逻辑。临时package测试只初始化空bare仓库、请求回环httptest阻塞服务；服务收到discovery后取消调用ctx，分别观察命令返回与服务端请求context结束。1秒观察窗只作为反例判断，测试在失败前主动释放服务、等待命令退出并清理，避免留下helper。通过不意味着进程树取消在所有Git/helper/OS上均已证明；失败才进入独立修复方案。临时测试不提交，不向真实服务请求，也不把30秒逐命令timeout误认为全部后代进程已终止。Workflow phase=P6实验；production implementation=no；maintainability=narrow research，无Runner/GitRepository职责增加；验收为有界完成、明确命令/上游取消两项证据，且无遗留fixture进程。
