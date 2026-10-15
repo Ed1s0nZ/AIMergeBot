@@ -68,5 +68,6 @@ func (s *SettingsService) legacyOperationContext(ctx context.Context) (context.C
 		return ctx, Settings{}, ErrRepositoryUnavailable
 	}
 	ctx = withRepositoryFence(ctx, descriptor.validate)
+	ctx = withCapturedRepositoryCredential(ctx, descriptor)
 	return ctx, cloneSettings(descriptor.view.config), checkRepositoryFence(ctx)
 }

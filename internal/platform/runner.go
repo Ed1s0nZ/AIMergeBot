@@ -130,7 +130,12 @@ func (r *Runner) Submit(ctx context.Context, pid, iid int, actor int64, force bo
 	repository := r.Repository
 	var policy *AuditPolicy
 	if r.Settings != nil {
-		cfg := r.Settings.Snapshot()
+		var cfg Settings
+		var captureErr error
+		ctx, cfg, captureErr = r.Settings.legacyOperationContext(ctx)
+		if captureErr != nil {
+			return 0, false, captureErr
+		}
 		policy = capturePolicy(cfg)
 		pinned, e := NewGitLabRepository(cfg.GitLab.Token, cfg.GitLab.URL)
 		if e != nil {
@@ -190,7 +195,7 @@ func (r *Runner) loop(ctx context.Context) {
 		case <-ticker.C:
 		}
 		id, err := r.Store.ClaimOwned(ctx, r.owner)
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrRepositoryUnavailable) {
 			continue
 		}
 		if err != nil {
@@ -206,6 +211,12 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	leaseCtx, leaseCancel := context.WithCancel(parent)
 	defer leaseCancel()
 	parent = leaseCtx
+	finish := func(id int64, status, message string, result AuditResult, trace []ToolTrace) bool {
+		return r.finishWithContext(parent, id, status, message, result, trace)
+	}
+	failTransient := func(id int64, err error, result AuditResult, trace []ToolTrace) bool {
+		return r.failTransientWithContext(parent, id, err, result, trace)
+	}
 	r.mu.Lock()
 	if r.active == nil {
 		r.active = map[int64]context.CancelFunc{}
@@ -228,21 +239,21 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}()
 	run, err := r.Store.Run(parent, id)
 	if err != nil {
-		r.finish(id, "failed", "unable to load run", AuditResult{}, nil)
+		finish(id, "failed", "unable to load run", AuditResult{}, nil)
 		return
 	}
 	if run.RequestedBy > 0 {
 		if _, err = requireSnapshotRole(parent, r.Store.DB, run.Snapshot, run.RequestedBy, "operator"); err != nil {
 			if errors.Is(err, ErrCredentials) || errors.Is(err, ErrProjectPermission) || errors.Is(err, sql.ErrNoRows) {
-				r.finish(id, "cancelled", "requesting user's project execution access revoked", run.Result, run.Trace)
+				finish(id, "cancelled", "requesting user's project execution access revoked", run.Result, run.Trace)
 			} else {
-				r.finish(id, "failed", "unable to check project execution access", run.Result, run.Trace)
+				finish(id, "failed", "unable to check project execution access", run.Result, run.Trace)
 			}
 			return
 		}
 	}
 	if err := requireLegacyRepositorySnapshot(parent, r.Store.DB, run.Snapshot); err != nil {
-		r.finish(id, "failed", "repository identity execution unavailable; audit not started", run.Result, run.Trace)
+		finish(id, "failed", "repository identity execution unavailable; audit not started", run.Result, run.Trace)
 		return
 	}
 	var gitConfig GitAuditSettings
@@ -252,10 +263,18 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		excluded = run.AuditPolicy.Excluded
 	}
 	if r.Settings != nil {
-		cfg := r.Settings.Snapshot()
+		var cfg Settings
+		parent, cfg, err = r.Settings.legacyOperationContext(parent)
+		if err != nil {
+			finish(id, "failed", "repository credentials unavailable", run.Result, run.Trace)
+			return
+		}
+		if r.Settings.activation.Load() != nil {
+			parent = withRepositoryFence(parent, func(check context.Context) error { return r.authorizeContextRead(check, run) })
+		}
 		if p := run.AuditPolicy; p != nil {
 			if capturePolicy(cfg).RepositoryURL != p.RepositoryURL || cfg.OpenAI.URL != p.ModelURL {
-				r.finish(id, "failed", "service endpoint changed since enqueue; resubmit audit to bind current credentials", AuditResult{}, nil)
+				finish(id, "failed", "service endpoint changed since enqueue; resubmit audit to bind current credentials", AuditResult{}, nil)
 				return
 			}
 			cfg.GitLab.URL = p.RepositoryURL
@@ -277,7 +296,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		excluded = cfg.WhitelistExtensions
 		pinned, err := NewGitLabRepository(cfg.GitLab.Token, cfg.GitLab.URL)
 		if err != nil {
-			r.finish(id, "failed", "invalid repository configuration", AuditResult{}, nil)
+			finish(id, "failed", "invalid repository configuration", AuditResult{}, nil)
 			return
 		}
 		repo = pinned
@@ -292,6 +311,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		copy.Config.Progress = func(result AuditResult, trace []ToolTrace) error {
 			checkpointCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
 			defer stop()
+			checkpointCtx = copyRepositoryCredentials(checkpointCtx, parent)
 			return r.Store.CheckpointOwned(checkpointCtx, id, r.owner, result, trace)
 		}
 		auditor = &copy
@@ -300,19 +320,19 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	defer cancel()
 	run, err = r.Store.Run(ctx, id)
 	if err != nil {
-		r.finish(id, "failed", "unable to load run", AuditResult{}, nil)
+		finish(id, "failed", "unable to load run", AuditResult{}, nil)
 		return
 	}
 	if run.Status != "running" {
 		return
 	}
 	if run.PolicyVersion != PolicyVersion {
-		r.finish(id, "failed", "audit policy changed; submit a new audit", AuditResult{}, nil)
+		finish(id, "failed", "audit policy changed; submit a new audit", AuditResult{}, nil)
 		return
 	}
 	ctx, err = r.Store.seedRetryModelBudget(ctx, run)
 	if err != nil {
-		r.finish(id, "incomplete", "", budgetInterruptionResult(err), run.Trace)
+		finish(id, "incomplete", "", budgetInterruptionResult(err), run.Trace)
 		return
 	}
 	existingSources := map[int]ContextSource{}
@@ -321,7 +341,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	}
 	sources, contextNotes, contextCleanup, err := r.prepareContextSources(ctx, run, gitConfig, existingSources)
 	if err != nil {
-		r.finish(id, "incomplete", "", AuditResult{Summary: "Fixed context preparation interrupted", CoverageNotes: []string{"Fixed context preparation interrupted; check authorization, availability and task timeout before resubmitting"}}, run.Trace)
+		finish(id, "incomplete", "", AuditResult{Summary: "Fixed context preparation interrupted", CoverageNotes: []string{"Fixed context preparation interrupted; check authorization, availability and task timeout before resubmitting"}}, run.Trace)
 		return
 	}
 	defer contextCleanup()
@@ -330,13 +350,13 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		copy.ContextSources = sources
 		auditor = &copy
 	} else if len(sources) > 0 {
-		r.finish(id, "incomplete", "", AuditResult{Summary: "Context-aware auditor required", CoverageNotes: []string{"Configured context repositories could not be read by this auditor"}}, nil)
+		finish(id, "incomplete", "", AuditResult{Summary: "Context-aware auditor required", CoverageNotes: []string{"Configured context repositories could not be read by this auditor"}}, nil)
 		return
 	}
 	if gitConfig.Enabled {
 		remote, ok := repo.(*GitLabRepository)
 		if !ok {
-			r.finish(id, "failed", "native Git preparation requires GitLab repository metadata", AuditResult{}, nil)
+			finish(id, "failed", "native Git preparation requires GitLab repository metadata", AuditResult{}, nil)
 			return
 		}
 		local, cleanup, e := PrepareGitLab(ctx, remote, run.Snapshot, gitConfig)
@@ -344,10 +364,10 @@ func (r *Runner) execute(parent context.Context, id int64) {
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			if r.failTransient(id, e, AuditResult{}, nil) {
+			if failTransient(id, e, AuditResult{}, nil) {
 				return
 			}
-			r.finish(id, "failed", "cannot prepare pinned Git repository: "+e.Error(), AuditResult{}, nil)
+			finish(id, "failed", "cannot prepare pinned Git repository: "+e.Error(), AuditResult{}, nil)
 			return
 		}
 		defer cleanup()
@@ -363,17 +383,17 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if errors.Is(ctx.Err(), context.Canceled) {
 			return
 		}
-		if r.failTransient(id, err, AuditResult{}, nil) {
+		if failTransient(id, err, AuditResult{}, nil) {
 			return
 		}
-		r.finish(id, "failed", "cannot obtain pinned diff: "+err.Error(), AuditResult{}, nil)
+		finish(id, "failed", "cannot obtain pinned diff: "+err.Error(), AuditResult{}, nil)
 		return
 	}
 	notes = append(notes, contextNotes...)
 	if p := run.AuditPolicy; p != nil && len(p.SelectedFiles) > 0 {
 		changes, _, err = selectAuditChanges(changes, p.SelectedFiles)
 		if err != nil {
-			r.finish(id, "incomplete", "selected snapshot scope unavailable", AuditResult{CoverageNotes: []string{"Selected snapshot files unavailable"}}, nil)
+			finish(id, "incomplete", "selected snapshot scope unavailable", AuditResult{CoverageNotes: []string{"Selected snapshot files unavailable"}}, nil)
 			return
 		}
 		notes = append(notes, followupCoverageNote(p))
@@ -388,7 +408,7 @@ func (r *Runner) execute(parent context.Context, id int64) {
 		if len(scope.Excluded) > 0 && len(scope.Notes) == 0 {
 			status = "skipped"
 		}
-		r.finish(id, status, "", AuditResult{Summary: "No auditable textual changes in configured scope", CoverageNotes: scope.Notes, ExcludedFiles: scope.Excluded}, nil)
+		finish(id, status, "", AuditResult{Summary: "No auditable textual changes in configured scope", CoverageNotes: scope.Notes, ExcludedFiles: scope.Excluded}, nil)
 		return
 	}
 	var result AuditResult
@@ -420,23 +440,12 @@ func (r *Runner) execute(parent context.Context, id int64) {
 	if err == nil && len(result.CoverageNotes) > 0 {
 		status = "incomplete"
 	}
-	if status == "failed" && ctx.Err() == nil && r.failTransient(id, err, result, trace) {
+	if status == "failed" && ctx.Err() == nil && failTransient(id, err, result, trace) {
 		return
 	}
 	// Successful completion schedules publication in the same database write.
-	r.finish(id, status, message, result, trace)
+	finish(id, status, message, result, trace)
 }
 func (r *Runner) finish(id int64, status, message string, result AuditResult, trace []ToolTrace) bool {
-	if r.workerStopped() {
-		return false
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := r.Store.FinishOwned(ctx, id, r.owner, status, message, result, trace); err != nil {
-		if !errors.Is(err, ErrConflict) {
-			log.Printf("audit run %d persistence failed: %v", id, err)
-		}
-		return false
-	}
-	return true
+	return r.finishWithContext(context.Background(), id, status, message, result, trace)
 }

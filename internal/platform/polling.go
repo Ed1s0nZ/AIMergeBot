@@ -29,7 +29,11 @@ func (r *Runner) pollCycle(ctx context.Context, initialized map[int]bool) {
 		if err := r.Store.SyncProjectConfig(ctx, r.Settings); err != nil && ctx.Err() == nil {
 			log.Printf("project configuration synchronization pending; will retry")
 		}
-		cfg := r.Settings.Snapshot()
+		operationCtx, cfg, credentialErr := r.Settings.legacyOperationContext(ctx)
+		if credentialErr != nil {
+			return
+		}
+		ctx = operationCtx
 		if cfg.EnablePolling {
 			projects, err := r.Store.Projects(ctx)
 			if err != nil {

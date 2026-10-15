@@ -15,9 +15,10 @@ import (
 )
 
 type Store struct {
-	DB            *sql.DB
-	projectSyncMu sync.Mutex
-	quotaSettings atomic.Pointer[SettingsService]
+	DB                    *sql.DB
+	projectSyncMu         sync.Mutex
+	quotaSettings         atomic.Pointer[SettingsService]
+	repositoryCredentials atomic.Pointer[repositoryCredentialActivation]
 }
 
 func OpenStore(path string) (*Store, error) {

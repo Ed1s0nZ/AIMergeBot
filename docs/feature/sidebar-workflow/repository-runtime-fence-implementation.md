@@ -35,3 +35,7 @@ Go1.27.2，临时Settings/SQLite、httptest和临时受控Git脚本；未调用�
 Runner.Submit/execute、context准备、polling、followup的直接构造器尚未全部传递descriptor；入队须在同Tx检验generation，不能持单连接Store事务再次走Store.DB。模型返回到后续消费/持久化的最终边界仍须由这些实际运行消费者统一复查，不能把body检查当原子撤权保证。
 
 启动尚未取得owner后绑定激活器；check/comment旧nil scope缺凭据版本，不按当前token/时间戳猜授权。必须完成S3c2/c3具体交接、S4正式scope producer和S3d恢复入口后，才可绑定生产。尚未部署、合并main、发送外部内容或关闭UAR-001/002/004；完整REQ/AC保持。
+
+## S3c1精确HEAD CI
+
+[CI38757566129](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38757566129)已读取completed/success，headSha=7b46000a630a0d6ed8f3197c804d8ab8ef4c1faa。Go/race、Operations、漏洞扫描、Frontend build、Embedded build全部success，无skipped；不能代替后续S3c2或整体启用验收。

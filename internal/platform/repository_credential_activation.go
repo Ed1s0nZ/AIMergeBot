@@ -58,6 +58,10 @@ func (s *SettingsService) bindRepositoryCredentialActivation(ctx context.Context
 	}
 	a := &repositoryCredentialActivation{store: store, options: options}
 	a.view.Store(&legacyCredentialView{phase: "pending", epoch: 1})
+	previous := store.repositoryCredentials.Load()
+	if previous != nil && previous.active() || !store.repositoryCredentials.CompareAndSwap(previous, a) {
+		return errCredentialActivationUnavailable
+	}
 	s.activation.Store(a)
 	cfg := s.Snapshot()
 	material, err := newLegacyRepositoryMaterial(cfg.GitLab.Token, cfg.GitLab.URL, options.proxy)
@@ -68,6 +72,9 @@ func (s *SettingsService) bindRepositoryCredentialActivation(ctx context.Context
 }
 
 func (a *repositoryCredentialActivation) activateAndPublish(ctx context.Context, s *SettingsService, next Settings, material legacyRepositoryMaterial, epoch uint64, expected *legacyCredentialView) error {
+	if a.store.repositoryCredentials.Load() != a {
+		return errCredentialActivationPending
+	}
 	tx, err := a.store.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return errCredentialActivationPending
@@ -99,6 +106,9 @@ func (a *repositoryCredentialActivation) activateAndPublish(ctx context.Context,
 	if a.options.beforePublish != nil && a.options.beforePublish() != nil {
 		return errCredentialActivationPending
 	}
+	if a.store.repositoryCredentials.Load() != a {
+		return errCredentialActivationPending
+	}
 	next = cloneSettings(next)
 	s.current.Store(&next)
 	a.view.Store(&legacyCredentialView{phase: "active", epoch: epoch, generation: generation, material: material, config: next})
@@ -110,6 +120,9 @@ func (a *repositoryCredentialActivation) save(s *SettingsService, next Settings,
 	old := a.view.Load()
 	if old == nil || old.phase != "active" {
 		return errCredentialActivationPending
+	}
+	if a.store.repositoryCredentials.Load() != a {
+		return errCredentialActivationUnavailable
 	}
 	material, err := newLegacyRepositoryMaterial(next.GitLab.Token, next.GitLab.URL, a.options.proxy)
 	if err != nil {
@@ -176,14 +189,24 @@ func (s *SettingsService) captureLegacyCredential(ctx context.Context) (legacyCr
 }
 
 func (d legacyCredentialDescriptor) validate(ctx context.Context) error {
+	if d.activation == nil || d.activation.store == nil {
+		return errCredentialActivationUnavailable
+	}
+	return d.validateWithQuery(ctx, d.activation.store.DB)
+}
+
+func (d legacyCredentialDescriptor) validateWithQuery(ctx context.Context, q queryRower) error {
 	if d.activation == nil || d.view == nil || d.view.phase != "active" {
+		return errCredentialActivationUnavailable
+	}
+	if d.activation.store == nil || d.activation.store.repositoryCredentials.Load() != d.activation {
 		return errCredentialActivationUnavailable
 	}
 	current := d.activation.view.Load()
 	if current == nil || current.phase != "active" || current.epoch != d.view.epoch || current.generation != d.view.generation {
 		return errCredentialActivationPending
 	}
-	if err := validateLegacyRepositoryState(ctx, d.activation.store.DB, current.material, d.view.generation); err != nil {
+	if err := validateLegacyRepositoryState(ctx, q, current.material, d.view.generation); err != nil {
 		return errCredentialActivationUnavailable
 	}
 	after := d.activation.view.Load()

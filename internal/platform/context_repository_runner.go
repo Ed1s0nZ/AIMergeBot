@@ -59,8 +59,12 @@ func (r *Runner) prepareContextSources(ctx context.Context, run Run, gitConfig G
 	}
 	var remote *GitLabRepository
 	if r.Settings != nil {
-		cfg := r.Settings.Snapshot()
+		var cfg Settings
 		var err error
+		ctx, cfg, err = r.Settings.legacyOperationContext(ctx)
+		if err != nil {
+			return sources, notes, cleanup, err
+		}
 		remote, err = NewGitLabRepository(cfg.GitLab.Token, run.AuditPolicy.RepositoryURL)
 		if err != nil {
 			return sources, notes, cleanup, err
@@ -68,7 +72,12 @@ func (r *Runner) prepareContextSources(ctx context.Context, run Run, gitConfig G
 	}
 	for _, item := range contextPolicyItems(run.Snapshot) {
 		snap := Snapshot{ProjectID: item.ProjectID, SourceProjectID: item.ProjectID, BaseSHA: item.SHA, HeadSHA: item.SHA}
-		source := ContextSource{Snapshot: snap, Authorize: func(check context.Context) error { return r.authorizeContextRead(check, run) }}
+		source := ContextSource{Snapshot: snap, Authorize: func(check context.Context) error {
+			if err := checkRepositoryFence(ctx); err != nil {
+				return err
+			}
+			return r.authorizeContextRead(check, run)
+		}}
 		if remote != nil {
 			commit, _, err := remote.Client.Commits.GetCommit(item.ProjectID, item.SHA, nil, gitlab.WithContext(ctx))
 			if err == nil && commit != nil && commit.ID == item.SHA {
@@ -87,6 +96,9 @@ func (r *Runner) prepareContextSources(ctx context.Context, run Run, gitConfig G
 			source.Repository = prepared.Repository
 			previous := prepared.Authorize
 			source.Authorize = func(check context.Context) error {
+				if err := checkRepositoryFence(ctx); err != nil {
+					return err
+				}
 				if err := r.authorizeContextRead(check, run); err != nil {
 					return err
 				}
@@ -100,6 +112,10 @@ func (r *Runner) prepareContextSources(ctx context.Context, run Run, gitConfig G
 		if source.Repository == nil {
 			notes = append(notes, fmt.Sprintf("Fixed context repository unavailable: project %d at %s", item.ProjectID, item.SHA))
 		}
+	}
+	if err := checkRepositoryFence(ctx); err != nil {
+		cleanup()
+		return sources, notes, func() {}, err
 	}
 	if err := r.authorizeContextRead(ctx, run); err != nil {
 		cleanup()

@@ -180,7 +180,12 @@ func (r *Runner) pinnedScopeChanges(ctx context.Context, run Run) ([]Change, []s
 	repo := r.Repository
 	cleanup := func() {}
 	if r.Settings != nil {
-		cfg := r.Settings.Snapshot()
+		var cfg Settings
+		var err error
+		ctx, cfg, err = r.Settings.legacyOperationContext(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
 		if strings.TrimRight(cfg.GitLab.URL, "/") != run.AuditPolicy.RepositoryURL {
 			return nil, nil, ErrFollowupScope
 		}
@@ -202,7 +207,11 @@ func (r *Runner) pinnedScopeChanges(ctx context.Context, run Run) ([]Change, []s
 	if repo == nil {
 		return nil, nil, ErrFollowupScope
 	}
-	return repo.Changes(ctx, run.Snapshot)
+	changes, notes, err := repo.Changes(ctx, run.Snapshot)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return nil, nil, fenceErr
+	}
+	return changes, notes, err
 }
 func (r *Runner) Scope(ctx context.Context, id, actor int64) (RunScope, error) {
 	run, err := r.Store.Run(ctx, id)
@@ -211,6 +220,12 @@ func (r *Runner) Scope(ctx context.Context, id, actor int64) (RunScope, error) {
 	}
 	if _, err = requireSnapshotRole(ctx, r.Store.DB, run.Snapshot, actor, "viewer"); err != nil {
 		return RunScope{}, err
+	}
+	if r.Settings != nil {
+		ctx, _, err = r.Settings.legacyOperationContext(ctx)
+		if err != nil {
+			return RunScope{}, err
+		}
 	}
 	changes, notes, err := r.pinnedScopeChanges(ctx, run)
 	if err != nil {
@@ -245,6 +260,12 @@ func (r *Runner) SubmitFollowup(ctx context.Context, parentID, actor int64, file
 	}
 	if !enabled {
 		return 0, false, ErrConflict
+	}
+	if r.Settings != nil {
+		ctx, _, err = r.Settings.legacyOperationContext(ctx)
+		if err != nil {
+			return 0, false, err
+		}
 	}
 	changes, _, err := r.pinnedScopeChanges(ctx, parent)
 	if err != nil {

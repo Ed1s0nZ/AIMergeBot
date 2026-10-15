@@ -10,16 +10,7 @@ func snapshotUsesLegacyCredential(snap Snapshot, raw string) bool {
 	if json.Unmarshal([]byte(raw), &snap.AuditPolicy) != nil || validateRepositoryScopeSnapshot(snap) != nil || snap.AuditPolicy == nil || snap.AuditPolicy.RepositoryScope == nil {
 		return true
 	}
-	scope := snap.AuditPolicy.RepositoryScope
-	if scope.Target.Credential.Kind == "legacy_gitlab" || scope.Source.Credential.Kind == "legacy_gitlab" {
-		return true
-	}
-	for _, item := range scope.Context {
-		if item.Repository.Credential.Kind == "legacy_gitlab" {
-			return true
-		}
-	}
-	return false
+	return scopeUsesLegacyCredential(snap.AuditPolicy.RepositoryScope)
 }
 
 func cancelLegacyCredentialRunsTx(ctx context.Context, tx *sql.Tx) ([]int64, error) {

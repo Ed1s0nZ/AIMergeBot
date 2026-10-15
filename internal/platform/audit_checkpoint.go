@@ -28,7 +28,15 @@ func (s *Store) CheckpointOwned(ctx context.Context, id int64, owner string, res
 	if err != nil {
 		return err
 	}
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET result_json=?,trace_json=? WHERE id=? AND status='running'`+workerFenceSQL, string(data), string(tr), id, owner)
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = validateRunRepositoryCredentialsTx(ctx, s, tx, id); err != nil {
+		return err
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET result_json=?,trace_json=? WHERE id=? AND status='running'`+workerFenceSQL, string(data), string(tr), id, owner)
 	if err != nil {
 		return err
 	}
@@ -39,7 +47,7 @@ func (s *Store) CheckpointOwned(ctx context.Context, id int64, owner string, res
 	if n != 1 {
 		return ErrConflict
 	}
-	return nil
+	return tx.Commit()
 }
 func (t *auditTools) checkpoint() {
 	if t.progress == nil {

@@ -112,6 +112,9 @@ func (s *Store) failAndRetry(ctx context.Context, id int64, owner, message strin
 		}
 		return 0, err
 	}
+	if err = validateRunRepositoryCredentialsTx(ctx, s, tx, id); err != nil {
+		return 0, err
+	}
 	if recovery {
 		delay = retryDelay(attempt)
 	}
@@ -211,6 +214,10 @@ func retryDelay(attempt int) time.Duration {
 	return 20 * time.Second
 }
 func (r *Runner) failTransient(id int64, err error, result AuditResult, trace []ToolTrace) bool {
+	return r.failTransientWithContext(context.Background(), id, err, result, trace)
+}
+
+func (r *Runner) failTransientWithContext(source context.Context, id int64, err error, result AuditResult, trace []ToolTrace) bool {
 	if r.workerStopped() {
 		return true
 	}
@@ -220,6 +227,7 @@ func (r *Runner) failTransient(id int64, err error, result AuditResult, trace []
 	}
 	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer stop()
+	ctx = copyRepositoryCredentials(ctx, source)
 	run, e := r.Store.Run(ctx, id)
 	if e != nil {
 		return false

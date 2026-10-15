@@ -52,6 +52,9 @@ func (s *Store) recordLegacyPollSeen(ctx context.Context, snap Snapshot) error {
 		return err
 	}
 	defer tx.Rollback()
+	if err = validateRepositoryCredentialsTx(ctx, s, tx, snap); err != nil {
+		return err
+	}
 	if err = requireLegacyRepositorySnapshot(ctx, tx, snap); err != nil {
 		return err
 	}

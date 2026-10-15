@@ -23,6 +23,9 @@ func (s *Store) EnqueueUser(ctx context.Context, snap Snapshot, actor int64, for
 }
 
 func (s *Store) enqueue(ctx context.Context, snap Snapshot, actor int64, force, authorize bool) (int64, bool, error) {
+	if err := checkRepositoryFence(ctx); err != nil {
+		return 0, false, err
+	}
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, false, err
@@ -43,6 +46,9 @@ func (s *Store) enqueueTx(ctx context.Context, tx *sql.Tx, snap Snapshot, actor 
 	}
 	var err error
 	if err = validateRepositoryScopeSnapshot(snap); err != nil {
+		return 0, false, err
+	}
+	if err = validateRepositoryCredentialsTx(ctx, s, tx, snap); err != nil {
 		return 0, false, err
 	}
 	if err = validateContextAdmission(ctx, tx, snap); err != nil {
@@ -117,6 +123,9 @@ func (s *Store) claimRun(ctx context.Context, owner string) (int64, error) {
 	if err = tx.QueryRowContext(ctx, `SELECT r.id FROM platform_runs r WHERE r.status='pending' AND (r.retry_at='' OR julianday(r.retry_at)<=julianday('now'))`+predicate+` ORDER BY r.id LIMIT 1`, args...).Scan(&id); err != nil {
 		return 0, err
 	}
+	if err = validateRunRepositoryCredentialsTx(ctx, s, tx, id); err != nil {
+		return 0, err
+	}
 	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status='running',started_at=?,worker_owner=?,worker_lease_until=? WHERE id=? AND status='pending'`, now(), owner, until, id)
 	if err != nil {
 		return 0, err
@@ -155,7 +164,15 @@ func (s *Store) FinishOwned(ctx context.Context, id int64, owner, status, messag
 	if err != nil {
 		return err
 	}
-	res, err := s.DB.ExecContext(ctx, `UPDATE platform_runs SET status=?,error=?,result_json=?,trace_json=?,finished_at=? WHERE id=? AND status='running'`+workerFenceSQL, status, message, string(data), string(tr), now(), id, owner)
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = validateRunRepositoryCredentialsTx(ctx, s, tx, id); err != nil {
+		return err
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE platform_runs SET status=?,error=?,result_json=?,trace_json=?,finished_at=? WHERE id=? AND status='running'`+workerFenceSQL, status, message, string(data), string(tr), now(), id, owner)
 	if err != nil {
 		return err
 	}
@@ -166,7 +183,7 @@ func (s *Store) FinishOwned(ctx context.Context, id int64, owner, status, messag
 	if n != 1 {
 		return ErrConflict
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) Cancel(ctx context.Context, id, actor int64) error {
@@ -231,7 +248,13 @@ func (s *Store) Recover(ctx context.Context) error {
 		return err
 	}
 	for _, id := range ids {
-		if _, err = s.recoverAttempt(ctx, id); err != nil && !errors.Is(err, ErrConflict) {
+		if _, err = s.recoverAttempt(ctx, id); errors.Is(err, ErrRepositoryUnavailable) {
+			// Stop an orphan without replacing its checkpoint or starting a child.
+			// Pending credential activation is not a worker lease failure.
+			if _, err = s.DB.ExecContext(ctx, `UPDATE platform_runs SET status='failed',error='repository authorization unavailable; checkpoint retained',finished_at=? WHERE id=? AND status='running'`+expiredWorkerSQL, now(), id); err != nil {
+				return err
+			}
+		} else if err != nil && !errors.Is(err, ErrConflict) {
 			return err
 		}
 	}
