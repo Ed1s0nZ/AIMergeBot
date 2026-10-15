@@ -78,7 +78,19 @@ func upstreamHTTPClient(source string) *http.Client {
 }
 
 func (t upstreamTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if err := checkRepositoryFence(req.Context()); err != nil {
+		if req.Body != nil {
+			req.Body.Close()
+		}
+		return nil, err
+	}
 	response, err := t.base.RoundTrip(req)
+	if fenceErr := checkRepositoryFence(req.Context()); fenceErr != nil {
+		if response != nil && response.Body != nil {
+			response.Body.Close()
+		}
+		return nil, fenceErr
+	}
 	if err != nil {
 		var temporary net.Error
 		if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && errors.As(err, &temporary) && (temporary.Timeout() || temporary.Temporary()) {
@@ -89,6 +101,9 @@ func (t upstreamTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	status := response.StatusCode
 	permanentModel := t.source == "model" && status >= 400 && status <= 499 && status != http.StatusTooManyRequests
 	if !permanentModel && status != http.StatusTooManyRequests && (status < 500 || status > 599) {
+		if _, fenced := req.Context().Value(repositoryFenceContextKey{}).(repositoryOperationFence); fenced && response.Body != nil {
+			response.Body = &repositoryFencedBody{ReadCloser: response.Body, ctx: req.Context()}
+		}
 		return response, nil
 	}
 	until, headerState := parseRetryAfter(response.Header.Get("Retry-After"), time.Now())

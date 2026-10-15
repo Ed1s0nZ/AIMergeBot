@@ -46,3 +46,7 @@ main与Runner.Start未调用bind，实际legacy reader、模型派发、发布�
 启动assembly还须在激活前取得worker singleton所有权，并在激活事务核对该owner/租约；不能第二实例先改变generation/取消任务，随后才因Runner.Start租约冲突退出。当前bind为未暴露的协议入口，仅用于隔离测试；下一切片先明确Runner.Start acquire→激活→Recover→启动loop的顺序和失败release，不能直接在main的OpenSettings后调用。此约束保留到S3c的具体计划/复审，不在本切片猜测所有权。
 
 下一步S3c完整runtime/启动/公开错误传播，S3d同进程reload/配置反馈，以及S4–S6原生审计与恢复仍未完成。无main合并、真实部署或外部联调。
+
+## S3b精确HEAD CI
+
+[CI38755180041](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38755180041)已读取completed/success，headSha=8654211ff0faf3cb94f6912f084e19e9f638677c；Go/race、Operations、漏洞扫描、Frontend build、Embedded build全部success，无skipped。此证据不表示生产激活器或完整S3已启用。

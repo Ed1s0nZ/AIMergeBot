@@ -44,11 +44,15 @@ func (g *GitLabRepository) CodeOwnerDirectory(ctx context.Context, s Snapshot, d
 }
 func (d *DynamicRepository) CodeOwnersProvider() string { return "gitlab" }
 func (d *DynamicRepository) CodeOwnerDirectory(ctx context.Context, s Snapshot, dir string) ([]CodeOwnerEntry, error) {
-	r, err := d.repo()
+	r, ctx, err := d.repo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return r.CodeOwnerDirectory(ctx, s, dir)
+	entries, err := r.CodeOwnerDirectory(ctx, s, dir)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return nil, fenceErr
+	}
+	return entries, err
 }
 func (g *GitRepository) CodeOwnersProvider() string {
 	if source, ok := g.Metadata.(CodeOwnerDirectoryReader); ok {
@@ -109,7 +113,9 @@ func (g *GitRepository) validateCodeOwnerSnapshot(s Snapshot) error {
 }
 
 func (d *DynamicRepository) validateCodeOwnerSnapshot(s Snapshot) error {
-	r, err := d.repo()
+	// This interface validates metadata only; LoadCodeOwnerDocument freezes the
+	// actual reader with its caller context before invoking the validator.
+	r, _, err := d.repo(context.Background())
 	if err != nil {
 		return err
 	}

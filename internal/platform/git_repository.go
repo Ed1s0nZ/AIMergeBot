@@ -43,6 +43,9 @@ func (b *limitedBuffer) Write(p []byte) (int, error) {
 }
 
 func gitCommand(ctx context.Context, dir string, extraEnv []string, args ...string) (string, error) {
+	if err := checkRepositoryFence(ctx); err != nil {
+		return "", err
+	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	defaults := []string{"--no-pager", "--literal-pathspecs", "-c", "core.hooksPath=/dev/null", "-c", "core.attributesFile=/dev/null", "-c", "diff.external=", "-c", "protocol.allow=never", "-c", "protocol.https.allow=always", "-c", "protocol.http.allow=always", "-c", "http.followRedirects=false", "-c", "credential.helper=", "-c", "maintenance.auto=false", "-c", "gc.auto=0"}
@@ -56,6 +59,9 @@ func gitCommand(ctx context.Context, dir string, extraEnv []string, args ...stri
 	cmd.Stdout = out
 	cmd.Stderr = stderr
 	err := cmd.Run()
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return "", fenceErr
+	}
 	if ctx.Err() != nil {
 		return "", ctx.Err()
 	}

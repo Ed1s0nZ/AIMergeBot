@@ -26,16 +26,22 @@ type CodeOwnerDocument struct {
 	Rules        *CodeOwnerRules `json:"-"`
 }
 
-func LoadCodeOwnerDocument(ctx context.Context, repo Repository, snap Snapshot) (CodeOwnerDocument, error) {
+func LoadCodeOwnerDocument(ctx context.Context, repo Repository, snap Snapshot) (doc CodeOwnerDocument, err error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	doc := CodeOwnerDocument{RepositoryID: snap.SourceProjectID, SHA: snap.HeadSHA}
+	defer func() {
+		if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+			doc, err = CodeOwnerDocument{}, fenceErr
+		}
+	}()
+	doc = CodeOwnerDocument{RepositoryID: snap.SourceProjectID, SHA: snap.HeadSHA}
 	if dynamic, ok := repo.(*DynamicRepository); ok {
-		frozen, err := dynamic.repo()
+		frozen, frozenCtx, err := dynamic.repo(ctx)
 		if err != nil {
 			return doc, err
 		}
 		repo = frozen
+		ctx = frozenCtx
 	}
 	source, ok := repo.(CodeOwnerDirectoryReader)
 	if !ok || snap.SourceProjectID <= 0 || !validCodeOwnerSHA(snap.HeadSHA) {

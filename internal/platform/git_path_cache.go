@@ -16,16 +16,19 @@ type gitPathCacheEntry struct {
 }
 
 func (g *GitRepository) cachedPaths(ctx context.Context, sha string) ([]string, error) {
-	if err := ctx.Err(); err != nil {
+	if err := checkRepositoryFence(ctx); err != nil {
 		return nil, err
 	}
 	g.pathMu.Lock()
 	defer g.pathMu.Unlock()
-	if err := ctx.Err(); err != nil {
+	if err := checkRepositoryFence(ctx); err != nil {
 		return nil, err
 	}
 	for _, entry := range g.pathCache {
 		if entry.directory == g.Directory && entry.sha == sha {
+			if err := checkRepositoryFence(ctx); err != nil {
+				return nil, err
+			}
 			return append([]string{}, entry.paths...), nil
 		}
 	}
@@ -49,5 +52,8 @@ func (g *GitRepository) cachedPaths(ctx context.Context, sha string) ([]string, 
 	}
 	g.pathCache = append(g.pathCache, gitPathCacheEntry{directory: g.Directory, sha: sha, paths: paths, bytes: size})
 	g.pathCacheBytes += size
+	if err := checkRepositoryFence(ctx); err != nil {
+		return nil, err
+	}
 	return append([]string{}, paths...), nil
 }

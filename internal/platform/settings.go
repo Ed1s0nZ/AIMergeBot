@@ -316,37 +316,57 @@ func (s *SettingsService) DecodePublic(raw []byte) (Settings, error) {
 // DynamicRepository builds a client from the current persisted settings for each operation.
 type DynamicRepository struct{ Settings *SettingsService }
 
-func (d *DynamicRepository) repo() (*GitLabRepository, error) {
-	s := d.Settings.Snapshot()
-	return NewGitLabRepository(s.GitLab.Token, s.GitLab.URL)
+func (d *DynamicRepository) repo(ctx context.Context) (*GitLabRepository, context.Context, error) {
+	ctx, s, err := d.Settings.legacyOperationContext(ctx)
+	if err != nil {
+		return nil, ctx, err
+	}
+	r, err := NewGitLabRepository(s.GitLab.Token, s.GitLab.URL)
+	return r, ctx, err
 }
 func (d *DynamicRepository) Snapshot(ctx context.Context, p, i int) (Snapshot, error) {
-	r, e := d.repo()
+	r, ctx, e := d.repo(ctx)
 	if e != nil {
 		return Snapshot{}, e
 	}
-	return r.Snapshot(ctx, p, i)
+	snap, err := r.Snapshot(ctx, p, i)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return Snapshot{}, fenceErr
+	}
+	return snap, err
 }
 func (d *DynamicRepository) Changes(ctx context.Context, s Snapshot) ([]Change, []string, error) {
-	r, e := d.repo()
+	r, ctx, e := d.repo(ctx)
 	if e != nil {
 		return nil, nil, e
 	}
-	return r.Changes(ctx, s)
+	changes, notes, err := r.Changes(ctx, s)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return nil, nil, fenceErr
+	}
+	return changes, notes, err
 }
 func (d *DynamicRepository) ReadFile(ctx context.Context, s Snapshot, p string, b bool) (string, error) {
-	r, e := d.repo()
+	r, ctx, e := d.repo(ctx)
 	if e != nil {
 		return "", e
 	}
-	return r.ReadFile(ctx, s, p, b)
+	body, err := r.ReadFile(ctx, s, p, b)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return "", fenceErr
+	}
+	return body, err
 }
 func (d *DynamicRepository) ListFiles(ctx context.Context, s Snapshot, p int) ([]string, bool, error) {
-	r, e := d.repo()
+	r, ctx, e := d.repo(ctx)
 	if e != nil {
 		return nil, false, e
 	}
-	return r.ListFiles(ctx, s, p)
+	files, truncated, err := r.ListFiles(ctx, s, p)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return nil, false, fenceErr
+	}
+	return files, truncated, err
 }
 
 type DynamicAuditor struct {
@@ -355,7 +375,10 @@ type DynamicAuditor struct {
 }
 
 func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope) (AuditResult, []ToolTrace, error) {
-	cfg := d.Settings.Snapshot()
+	ctx, cfg, err := d.Settings.legacyOperationContext(ctx)
+	if err != nil {
+		return AuditResult{}, nil, err
+	}
 	repo, e := NewGitLabRepository(cfg.GitLab.Token, cfg.GitLab.URL)
 	if e != nil {
 		return AuditResult{}, nil, e
@@ -365,5 +388,9 @@ func (d *DynamicAuditor) Audit(ctx context.Context, s Snapshot, scope DiffScope)
 		model = cfg.OpenAI.Model
 	}
 	a := EinoAuditor{Repository: repo, Config: AgentConfig{APIKey: cfg.OpenAI.APIKey, BaseURL: cfg.OpenAI.URL, Model: model, MaxSteps: cfg.ReAct.MaxSteps, MaxTokens: cfg.ModelBudget.MaxTokens, VerificationModel: cfg.VerificationModel, Temperature: float32(cfg.ReAct.Temperature), MaxToolCalls: cfg.GitAudit.MaxToolCalls, GenerateDiagrams: cfg.GenerateSequenceDiagrams, VerifyFindings: cfg.VerifyFindings}}
-	return a.Audit(ctx, s, scope)
+	result, trace, err := a.Audit(ctx, s, scope)
+	if fenceErr := checkRepositoryFence(ctx); fenceErr != nil {
+		return AuditResult{}, nil, fenceErr
+	}
+	return result, trace, err
 }
