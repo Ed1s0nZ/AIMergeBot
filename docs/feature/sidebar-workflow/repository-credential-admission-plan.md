@@ -36,3 +36,7 @@ flowchart LR
   E -->|否| G[ROLLBACK 零run/event/seen/child]
   F --> H[COMMIT]
 ```
+
+## 私有服务绑定的所有者
+
+Store新增独立`atomic.Pointer[repositoryCredentialActivation]`，默认nil，由私有启动绑定设置；不能借用quotaSettings作为安全开关，修改配额绑定不得取消凭据保护。descriptor还须匹配该Store当前activation指针，防止同Store旧服务对象在重新绑定后继续授权。已有active绑定拒绝替换；仅结束操作后仍pending的隔离恢复可替换，失败保持不可用，不补key。激活事务开始及提交后发布前均核对当前绑定；写旧配置对象不得绕过新绑定。真正多进程/Runner所有权仍依S3c3 lease合同，不能把指针CAS当跨进程租约。

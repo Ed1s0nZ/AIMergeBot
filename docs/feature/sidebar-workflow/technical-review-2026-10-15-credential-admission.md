@@ -28,3 +28,7 @@ SQL串行化代次与取消保证写入在激活事务之前或之后；pending�
 ## Validation / Re-review
 
 必须真实单连接SQLite证明同Tx无死锁、旧metadata ctx零run/event/seen、pending零claim/checkpoint/finish/child、结果保留；实际Runner阻塞diff后变凭据模型0请求。完整Go/race/vet/build/typecheck及新精确HEAD CI另验收。改变公开字段、发布权限、scope/version或启动owner时重新审查对应合同；本Pass不是实现或部署验收。
+
+## 私有服务绑定补充复核
+
+C2实施前进一步对账确认：配额配置指针不是安全所有者。新增Store独立atomic activation绑定（nil仅未启用，私有启动所有，active不得替换）及descriptor当前指针核对，使BindQuotaSettings(nil)不能解除保护。该补充未改变generation/schema/public API或提前启用startup；当前同Store指针用于进程内一致性，不替代C3事务内owner/lease。限定Pass保持，须新增配额解绑/跨Store同值/旧绑定拒绝的实际反例。
