@@ -42,6 +42,9 @@ func (s *Store) enqueueTx(ctx context.Context, tx *sql.Tx, snap Snapshot, actor 
 		return 0, false, fmt.Errorf("invalid snapshot")
 	}
 	var err error
+	if err = validateRepositoryScopeSnapshot(snap); err != nil {
+		return 0, false, err
+	}
 	if err = validateContextAdmission(ctx, tx, snap); err != nil {
 		return 0, false, err
 	}

@@ -246,6 +246,9 @@ func (s *Store) readRun(ctx context.Context, id int64, includeTrace bool) (Run, 
 	if err = json.Unmarshal([]byte(policy), &r.AuditPolicy); err != nil {
 		return r, err
 	}
+	if err = validateRepositoryScopeSnapshot(r.Snapshot); err != nil {
+		return r, err
+	}
 	if err = json.Unmarshal([]byte(result), &r.Result); err != nil {
 		return r, err
 	}

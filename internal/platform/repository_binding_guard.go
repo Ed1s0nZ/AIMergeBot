@@ -17,6 +17,9 @@ func requireLegacyRepositoryProject(ctx context.Context, q queryRower, project i
 	return nil
 }
 func requireLegacyRepositorySnapshot(ctx context.Context, q queryRower, snap Snapshot) error {
+	if snap.AuditPolicy != nil && snap.AuditPolicy.RepositoryScope != nil {
+		return ErrRepositoryUnavailable
+	}
 	seen := map[int]bool{}
 	ids := []int{snap.ProjectID, snap.SourceProjectID}
 	for _, item := range contextPolicyItems(snap) {
@@ -35,7 +38,7 @@ func requireLegacyRepositorySnapshot(ctx context.Context, q queryRower, snap Sna
 }
 func requireLegacyRunRepository(ctx context.Context, q queryRower, run int64) error {
 	var bound bool
-	if err := q.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_project_repositories WHERE project_id IN (SELECT project_id FROM platform_runs WHERE id=? UNION SELECT source_project_id FROM platform_runs WHERE id=? UNION SELECT project_id FROM platform_run_context_repositories WHERE run_id=?))`, run, run, run).Scan(&bound); err != nil {
+	if err := q.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_project_repositories WHERE project_id IN (SELECT project_id FROM platform_runs WHERE id=? UNION SELECT source_project_id FROM platform_runs WHERE id=? UNION SELECT project_id FROM platform_run_context_repositories WHERE run_id=?)) OR COALESCE((SELECT CASE WHEN json_valid(audit_policy_json) THEN EXISTS(SELECT 1 FROM json_each(audit_policy_json) WHERE lower(key)='repository_scope') ELSE 1 END FROM platform_runs WHERE id=?),0)`, run, run, run, run).Scan(&bound); err != nil {
 		return err
 	}
 	if bound {

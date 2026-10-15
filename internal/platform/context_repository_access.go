@@ -51,12 +51,15 @@ func requireContextRoles(ctx context.Context, q queryRower, snap Snapshot, user 
 func snapshotForRun(ctx context.Context, q queryRower, id int64) (Snapshot, error) {
 	var snap Snapshot
 	var policy string
-	err := q.QueryRowContext(ctx, `SELECT project_id,source_project_id,audit_policy_json FROM platform_runs WHERE id=?`, id).Scan(&snap.ProjectID, &snap.SourceProjectID, &policy)
+	err := q.QueryRowContext(ctx, `SELECT project_id,source_project_id,mr_iid,diff_version_id,base_sha,head_sha,audit_policy_json FROM platform_runs WHERE id=?`, id).Scan(&snap.ProjectID, &snap.SourceProjectID, &snap.MRIID, &snap.DiffVersionID, &snap.BaseSHA, &snap.HeadSHA, &policy)
 	if err != nil {
 		return snap, err
 	}
 	err = json.Unmarshal([]byte(policy), &snap.AuditPolicy)
-	return snap, err
+	if err != nil {
+		return snap, err
+	}
+	return snap, validateRepositoryScopeContextIndex(ctx, q, id, snap)
 }
 
 const contextListACL = ` AND NOT EXISTS(SELECT 1 FROM platform_run_context_repositories ctx LEFT JOIN platform_project_members cm ON cm.project_id=ctx.project_id AND cm.user_id=? WHERE ctx.run_id=platform_runs.id AND cm.user_id IS NULL)`

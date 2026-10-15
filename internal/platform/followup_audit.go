@@ -260,6 +260,7 @@ func (r *Runner) SubmitFollowup(ctx context.Context, parentID, actor int64, file
 		}
 	}
 	policy := *parent.AuditPolicy
+	policy.RepositoryScope = parent.AuditPolicy.RepositoryScope.clone()
 	policy.FollowupOf = parentID
 	policy.SelectedFiles = selected
 	snapshot := parent.Snapshot
