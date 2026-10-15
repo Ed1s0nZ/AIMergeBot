@@ -44,3 +44,11 @@ narrow_fix/adapter_extraction：settings_file_decode.go提取原默认值并严�
 真实Go/SQLite/HTTP验证：pending后恢复；A→B→A；同文件不重复generation；旧fileRevision与>2^53精确CAS/MAX；空token不沿用内存密钥；项目不导入；响应丢失后409零写；file/DB/commit-before-publish失败与再次同key；admin在commit前撤权；坏key零文件写；未绑定、非管理员、跨域、重复/alias/尾随JSON、超限YAML/未知/重复/多文档/alias拒绝；所有响应不含秘密。仅临时配置与httptest，不外发。
 
 F4/F5需全Go/race/vet/build/typecheck与新精确HEAD CI。S3d2须接入既有设置页、丢弃草稿/手动恢复/未知响应锁定和SafeInteger门禁，不能先展示不能用的按钮。C3 singleton owner及S4 producer未就绪前main不绑定，用户所要求原范围继续保留。
+
+## 2026-10-16实现前补充
+
+公开settings与activation状态基于同一内存配置Revision；观察到view/配置Revision跨更新不匹配时返回unavailable/settings_changed/can_reload=false，要求重新读取，不把混合观察授予恢复。Public脱敏从同一快照构造has_*标记，避免多次Snapshot混合。
+
+公开readonly字段不能用于普通PUT授权；前端Settings类型同步声明status字段，普通保存payload显式移除它，后端仍拒绝activation/counter输入。此为必要契约传播，无新按钮；完整恢复UI属于S3d2，生产未绑定时状态字段省略。若修改前端payload源，正常生成资源并验证embed，不能留下旧bundle。
+
+恢复的admin先在读取/文件替换前核对，再在激活事务核对；SQL错误不猜成权限撤销，统一不可用。role改变时不提交代次/取消/event；文件若已替换仍保持pending，由当前管理员处理。成功DB事件名为settings.reload.committed，只表示该版本提交，不冒充发布内存成功。
