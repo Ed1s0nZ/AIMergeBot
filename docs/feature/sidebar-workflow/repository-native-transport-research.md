@@ -31,3 +31,25 @@
 - [GitHub compare commits](https://docs.github.com/en/rest/commits/commits#compare-two-commits)：只把merge-base等固定观察用于快照，不能从受限files字段证明完整覆盖。
 
 记录实际探针结果后再决定是否采用。无main合并/部署；完整目标保持进行中。
+
+## 2026-10-16协议探针结果
+
+实际执行`GOTOOLCHAIN=go1.27.2 go run -race scripts/probes/git_http_bridge.go`，exit0，无race报告；Git 2.50.1 (Apple Git-155)。最终JSON保存在/tmp/aim-git-bridge-probe.json；可复现代码与边界见scripts/probes/README.md。
+
+两个独立仓库的v2 fetch和一个v0 fetch共7次上游请求，读取到各自实际blob；另一次header过滤请求后累计8次。不是只看请求header：探针还观察实际v2 advertisement。逐仓凭据错误0；caller Cookie/Proxy-Authorization不向上游透传，Set-Cookie不回传；无效本地凭证、push/未知/dumb路由零上游请求；耗尽同一ledger后换仓库仍零新增上游请求；重定向目标请求0；discovery期间撤权后无下一请求；16字节实验上限使fetch失败。审计侧Git环境/临时工作区无上游合成token。CGI夹具验证HTTP凭据后也去除Authorization，再运行本地git-http-backend。
+
+首次夹具seed本地push被隔离的file协议规则拒绝，只对创建合成源仓库的那次fixture复制显式允许file；审计侧fetch不继承此例外。探针不是生产实现，未调用或更改原有gitCommand/factory/Runner。race通过只覆盖本次实际HTTP/进程场景，不代表已证明并发边界预算。
+
+### 不能从探针推导出的结论
+
+- byte ledger是实验性的读取后记账，不能证明并发读取硬上限；未来必须明确原子预留/退款、超限导致的覆盖不足和所有API/Git消费者共享语义。
+- 禁止HTTP redirect不等于禁止Git协议中所有其他URI出口。还需验证[Git v2扩展](https://git-scm.com/docs/gitprotocol-v2)的packfile/bundle URI等行为；[bundle配置](https://git-scm.com/docs/git-config)可能触发额外对象下载。普通CGI夹具未覆盖恶意扩展，不把“Git只经过桥”当已证明的全称断言。
+- 仍未证明宿主进程内存/磁盘/CPU硬限额、真实DNS/CIDR/代理策略、GitHub/GitLab服务端兼容及fork固定观察；也未闭合API双树diff或正式scope装配。保持生产guard。
+
+## 成熟实现替代方案：尚不选型
+
+不能因为CLI桥探针可行就默认自建桥。已查阅[go-git扩展文档](https://github.com/go-git/go-git/blob/main/EXTENDING.md)与[options定义](https://github.com/go-git/go-git/blob/main/options.go)，main/v6已有自定义HTTP与逐操作ClientOptions，且文档描述SHA-256支持；应对“库负责受控fetch→现有Git仅做本地工具”做同夹具比较。不能沿用“go-git只支持SHA-1/只能全局注册transport”的旧印象来排除它。
+
+[官方release列表](https://github.com/go-git/go-git/releases)本次查到v6.0.0-beta.1为Pre-release、v5.19.3为稳定线；main文档不能直接等同已选定版本的API。下一步固定候选tag，比较逐操作HTTP/取消/预算、shallow/fixed SHA、对象格式及现有本地工具兼容，再评估依赖与维护成本。不在主go.mod中试装依赖或先上线未经比较的方案。这是新增证据改变后的下一动作，不构成S4 F3 Pass。
+
+上一代码59005b1的CI 38772237718已实际completed/success。此轮只有研究文档和隔离probe，不宣称新增生产能力；后续仍按完整S4–S6推进。
