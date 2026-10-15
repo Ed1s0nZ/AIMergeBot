@@ -53,6 +53,10 @@ func (s *Store) migrate() error {
 	if err = requireCurrentPlatformSchema(tx); err != nil {
 		return err
 	}
+	originalVersion, err := inspectPlatformSchema(tx)
+	if err != nil {
+		return err
+	}
 	statements := []string{
 		`CREATE TABLE IF NOT EXISTS platform_project_sync (id INTEGER PRIMARY KEY CHECK(id=1),generation INTEGER NOT NULL DEFAULT 0,dirty INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL)`,
 		`INSERT OR IGNORE INTO platform_project_sync(id,updated_at) VALUES(1,'')`,
@@ -176,11 +180,16 @@ func (s *Store) migrate() error {
 			return err
 		}
 	}
+	if originalVersion != platformSchemaVersion {
+		if err = migrateRepositoryIdentities(tx); err != nil {
+			return err
+		}
+	}
 	var version int
 	if err = tx.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil {
 		return err
 	}
-	if version != 1 {
+	if version != platformSchemaVersion {
 		return fmt.Errorf("unsupported platform schema %d", version)
 	}
 	return tx.Commit()

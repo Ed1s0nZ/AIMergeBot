@@ -12,7 +12,7 @@ func TestWorkflowPolicyRevisionAndValidation(t *testing.T) {
 	if err := s.Bootstrap(ctx, "admin", "a-long-password"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.DB.Exec(`INSERT INTO platform_projects(id,name,enabled) VALUES(1,'fixture',1)`); err != nil {
+	if err := s.SaveProject(ctx, Project{ID: 1, Name: "fixture", Enabled: true}); err != nil {
 		t.Fatal(err)
 	}
 	u, err := s.CreateUser(ctx, "reader", "a-long-password", "member")

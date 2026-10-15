@@ -60,7 +60,7 @@ func TestWorkspaceMetricsSnapshotACLAndPolicyGroups(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, project := range []int{1, 2} {
-		if _, err = s.DB.Exec(`INSERT INTO platform_projects(id,name,enabled) VALUES(?,'fixture',1)`, project); err != nil {
+		if err = s.SaveProject(ctx, Project{ID: project, Name: "fixture", Enabled: true}); err != nil {
 			t.Fatal(err)
 		}
 	}

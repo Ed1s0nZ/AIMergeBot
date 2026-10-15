@@ -258,7 +258,7 @@ func TestRepositoryProjectCapacityAndActorIsolation(t *testing.T) {
 	t.Run("ID overflow", func(t *testing.T) {
 		s, admin, _ := accessFixture(t)
 		v := repositoryProfile(t, s, admin.ID, "gitlab")
-		if _, err := s.DB.Exec(`INSERT INTO platform_projects(id,name,enabled) VALUES(9223372036854775807,'highest',1)`); err != nil {
+		if err := s.SaveProject(context.Background(), Project{ID: 9223372036854775807, Name: "highest", Enabled: true}); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := s.CreateRepositoryProject(context.Background(), admin.ID, repositoryProjectInput(v, "66666666-6666-6666-6666-666666666666")); !errors.Is(err, ErrConflict) {

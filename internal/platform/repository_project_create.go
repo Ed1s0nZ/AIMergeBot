@@ -98,15 +98,12 @@ func (s *Store) CreateRepositoryProject(ctx context.Context, actor int64, input 
 	if integration.Revision != *input.ExpectedIntegrationRevision || integration.Kind != binding.Provider || !integration.Enabled || strings.TrimSpace(credentials.Token) == "" || originErr != nil || origin != binding.APIOrigin || len(integration.ProjectIDs) >= 100 {
 		return RepositoryProjectReceipt{}, ErrConflict
 	}
-	var highest int64
-	if err = tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0) FROM platform_projects`).Scan(&highest); err != nil {
+	projectID, err := nextRepositoryProjectID(ctx, tx)
+	if err != nil {
 		return RepositoryProjectReceipt{}, err
 	}
-	if highest < 0 || highest == 1<<63-1 || int64(int(highest+1)) != highest+1 {
-		return RepositoryProjectReceipt{}, ErrConflict
-	}
-	project := Project{ID: int(highest + 1), Name: input.Name, Enabled: true}
-	if err = saveProjectTx(ctx, tx, project); err != nil {
+	project := Project{ID: projectID, Name: input.Name, Enabled: true}
+	if err = saveProjectWithKindTx(ctx, tx, project, "internal"); err != nil {
 		return RepositoryProjectReceipt{}, err
 	}
 	integration.ProjectIDs = append(integration.ProjectIDs, project.ID)
@@ -114,7 +111,7 @@ func (s *Store) CreateRepositoryProject(ctx context.Context, actor int64, input 
 	if err != nil {
 		return RepositoryProjectReceipt{}, err
 	}
-	savedBinding, err := saveRepositoryBindingTx(ctx, tx, project.ID, actor, 0, binding)
+	savedBinding, err := saveRepositoryBindingWithIdentityTx(ctx, tx, project.ID, actor, 0, binding, true)
 	if err != nil {
 		return RepositoryProjectReceipt{}, err
 	}

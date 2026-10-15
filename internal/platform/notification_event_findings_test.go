@@ -20,7 +20,7 @@ func notificationFindingFixture(t *testing.T, path string) (*Store, int64, strin
 	if err = s.Bootstrap(ctx, "admin", "a-long-password"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.DB.Exec(`INSERT INTO platform_projects(id,name,enabled) VALUES(1,'fixture',1)`); err != nil {
+	if err = s.SaveProject(ctx, Project{ID: 1, Name: "fixture", Enabled: true}); err != nil {
 		t.Fatal(err)
 	}
 	head := strings.Repeat("b", 40)

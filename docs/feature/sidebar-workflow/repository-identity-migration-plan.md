@@ -27,6 +27,10 @@ P6→P7/P8、F3→F4/S2。原永久kind/schema2设计不变，补明确存储写
 
 registry/state/receipt使用带typeof和范围的CHECK。旧坏记录的健康检查读取有限JSON（binding4KiB、create receipt8KiB），超限标repair，不输出原内容。revision非法类型/负数/溢出保持不可恢复状态，不静默归零；修复仍等待S5。私有legacy state首次crypto/rand32byte key、generation0/fingerprint NULL，S3激活前不冒充已经冻结凭据；schema2重开校验持久key而不重建。
 
+实施中补充身份保留规则：新内部ID的上界必须包含projects/永久登记及所有历史run目标、来源和context索引ID，不能只看当前项目表。main.go在ImportLegacy完成后才注册HTTP，原始旧结果已先变成run引用；不按远端ID重新赋予历史任务归属。新增回归以原始分配器先证明旧报告可因新项目成员权限被读取，再验证修正后拒绝。ID仍是内部不透明值，无新公共字段或用户配置推断。
+
+若schema1已存在原生创建receipt与legacy run目标/来源/context同ID，升级整体拒绝并保留旧库，要求离线核对，不自动重编号/移动报告或沿用新成员权限。schema1原生项目从未开放审计，故这种引用不是应继承给新项目的合法native运行证据；仅有普通bind history而无create receipt的既有项目改绑不按此规则误报。此为不猜测历史归属的明确失败边界，不表示已实现旧混合数据的自动修复。
+
 ## 验证计划
 
 新真实SQLite测试：旧legacy/bound/native、正常改绑与rename、坏JSON/历史缺失/当前行丢失/receipt矛盾、永久kind重开、schema重复/未知版本零写、升级中故障全回滚、活worker拒绝、旧pending保留结果并停止；创建/导入/绑定CAS并发、MAX_INT64、无授权增量。捕获旧Store二进制打开升级DB拒绝且无schema/数据变化。配置同步失败/重启不可把internal导回legacy，原业务回归必须继续。

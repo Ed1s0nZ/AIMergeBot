@@ -18,7 +18,7 @@ func TestDigestAccessRevocationAndLegacyReceipt(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []int{1, 2, 3} {
-		if _, err = s.DB.Exec(`INSERT INTO platform_projects(id,name,enabled) VALUES(?,'fixture',1)`, id); err != nil {
+		if err = s.SaveProject(ctx, Project{ID: id, Name: "fixture", Enabled: true}); err != nil {
 			t.Fatal(err)
 		}
 		if _, err = s.DB.Exec(`INSERT INTO platform_project_members(project_id,user_id,role) VALUES(?,?,'viewer')`, id, u.ID); err != nil {

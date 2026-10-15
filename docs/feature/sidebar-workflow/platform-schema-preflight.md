@@ -1,5 +1,7 @@
 # S2前置：迁移前格式检查
 
+> 以下为c3be483早期schema1预检切片的历史记录。当前S2实现已推进schema2，最新行为、证明与发布限制以[永久身份迁移实施记录](repository-identity-migration-implementation.md)为准；本文的“当前schema1”仅指当时快照。
+
 2026-10-15；codex/sidebar-workflow。基于已推repository-identity-migration-plan.md先落实early version guard；不是S2永久身份/schema2迁移完成。schema仍1、当前有效数据库行为保持，未碰真实用户DB。
 
 ## F4 实现

@@ -16,6 +16,13 @@ func inspectPlatformSchema(tx *sql.Tx) (int64, error) {
 		return 0, err
 	}
 	if !exists {
+		var future bool
+		if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE lower(name) IN ('platform_repository_identities','platform_repository_recovery_receipts','platform_legacy_repository_state'))`).Scan(&future); err != nil {
+			return 0, err
+		}
+		if future {
+			return 0, errPlatformSchemaMetadata
+		}
 		return 0, nil
 	}
 	var kind string
@@ -51,11 +58,14 @@ func requireCurrentPlatformSchema(tx *sql.Tx) error {
 			return err
 		}
 		if !exists {
-			return nil
+			return requireStoppedSchemaUpgrade(tx)
 		}
+	}
+	if version == platformSchemaVersion {
+		return validateRepositorySchemaTables(tx)
 	}
 	if version != 1 {
 		return fmt.Errorf("unsupported platform schema %d", version)
 	}
-	return nil
+	return requireStoppedSchemaUpgrade(tx)
 }

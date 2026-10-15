@@ -29,3 +29,7 @@ F2 af102c9已推后规划。上游v0.60.0的go.mod仍要求Go1.26.0；最低Go�
 `GOTOOLCHAIN=go1.27.2 go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...` exit0，可达漏洞0、导入package漏洞0。追加一次-show verbose核实唯一依赖级条目为[GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932)：x/crypto/openpgp全版本不再维护，无已知修复，但当前程序不导入此package；不把必要的bcrypt等x/crypto使用误当OpenPGP使用，也不声称整个依赖树无任何条目。verbose日志在/tmp/aimangebot-patched-govulncheck.log，未抑制或忽略扫描结果。
 
 同一最终工作树专项race已exit0（platform51.411s），覆盖新scope/guard、schema元数据、identity、GitHub读取、HTTP通知、工单/检查dispatcher及上游传输。补丁后的完整go test ./...现已exit0（platform164.443s，其余通过/无测试），Go1.27.2下vet/build均exit0。`npm audit --json`在原前端锁文件上exit0，total0，报告/tmp/aimangebot-current-npm-audit.json；前端源/锁文件未改变，不重新生成dist。所有本地网络业务验证只使用现有受控fixture。独立新HEAD CI尚待生产提交推送后验收，不把本地通过称作远端整体成功。
+
+## 精确 HEAD 远端验收
+
+2026-10-15 再次读取 [CI 38744219483](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38744219483)：headSha=5575c9cd841695d81637e3c489a845369d49f984，status=completed，conclusion=success。Go tests and race checks、Operations tooling tests、Reachable Go dependency vulnerabilities、Frontend build、Embedded application build 全部 success，没有 skipped。该证据只属于5575c9c，不代替后续S2新HEAD验证。

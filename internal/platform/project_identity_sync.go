@@ -8,8 +8,19 @@ import (
 )
 
 func saveProjectTx(ctx context.Context, tx *sql.Tx, p Project) error {
+	return saveProjectWithKindTx(ctx, tx, p, "legacy")
+}
+
+func saveProjectWithKindTx(ctx context.Context, tx *sql.Tx, p Project, kind string) error {
+	var existed bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_projects WHERE id=?)`, p.ID).Scan(&existed); err != nil {
+		return err
+	}
 	_, err := tx.ExecContext(ctx, `INSERT INTO platform_projects(id,name,enabled) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,enabled=excluded.enabled`, p.ID, p.Name, p.Enabled)
 	if err != nil {
+		return err
+	}
+	if err = ensureProjectIdentityTx(ctx, tx, p.ID, existed, kind); err != nil {
 		return err
 	}
 	if !p.Enabled {
@@ -62,7 +73,8 @@ func (s *Store) ImportConfiguredProjects(ctx context.Context, projects []legacy.
 			return nil, err
 		}
 		if p.InternalProject {
-			if binding.Revision == 0 {
+			identity, err := readRepositoryIdentity(ctx, tx, p.ID)
+			if err != nil || identity.Kind != "internal" {
 				return nil, ErrConflict
 			}
 			var exists int
@@ -72,6 +84,9 @@ func (s *Store) ImportConfiguredProjects(ctx context.Context, projects []legacy.
 			continue
 		}
 		if binding.Revision != 0 || len(p.Name) == 0 || len(p.Name) > 200 {
+			return nil, ErrConflict
+		}
+		if err = requireLegacyRepositoryProject(ctx, tx, p.ID); err != nil {
 			return nil, ErrConflict
 		}
 		enabled := true
@@ -133,7 +148,14 @@ func (s *Store) projectConfiguration(ctx context.Context) ([]legacy.ProjectConfi
 			if err != nil {
 				return nil, 0, false, err
 			}
-			p.InternalProject = binding.Revision != 0
+			identity, err := readRepositoryIdentity(ctx, tx, p.ID)
+			if err != nil {
+				return nil, 0, false, err
+			}
+			p.InternalProject = identity.Kind == "internal"
+			if !p.InternalProject && binding.Revision != 0 {
+				return nil, 0, false, ErrConflict
+			}
 			rows, err := tx.QueryContext(ctx, `SELECT context_project_id,sha FROM platform_context_repositories WHERE project_id=? ORDER BY context_project_id`, p.ID)
 			if err != nil {
 				return nil, 0, false, err

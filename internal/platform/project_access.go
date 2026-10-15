@@ -137,14 +137,27 @@ func (s *Store) ProjectsForUser(ctx context.Context, user User) ([]Project, erro
 		return nil, err
 	}
 	for i := range items {
+		identity, err := readRepositoryIdentity(ctx, tx, items[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		if identity.Health != "valid" {
+			return nil, ErrRepositoryUnavailable
+		}
 		binding, err := readRepositoryBinding(ctx, tx, items[i].ID)
 		if err != nil {
 			return nil, err
 		}
 		if binding.Revision > 0 {
+			if identity.Kind != "internal" {
+				return nil, ErrConflict
+			}
 			available := false
 			items[i].Repository = &binding
 			items[i].RepositoryExecutionAvailable = &available
+		}
+		if identity.Kind == "internal" && binding.Revision == 0 {
+			return nil, ErrRepositoryUnavailable
 		}
 	}
 	if err = tx.Commit(); err != nil {

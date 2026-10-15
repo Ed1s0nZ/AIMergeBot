@@ -124,6 +124,16 @@ func (s *Store) RepositoryBinding(ctx context.Context, project int, actor int64)
 	if err != nil {
 		return RepositoryBinding{}, err
 	}
+	identity, err := readRepositoryIdentity(ctx, tx, project)
+	if err != nil {
+		return p, err
+	}
+	if identity.Health != "valid" {
+		return p, ErrRepositoryUnavailable
+	}
+	if identity.Kind == "internal" && p.Revision == 0 {
+		return p, ErrRepositoryUnavailable
+	}
 	return p, tx.Commit()
 }
 
@@ -150,6 +160,10 @@ func (s *Store) SaveRepositoryBinding(ctx context.Context, project int, actor, e
 }
 
 func saveRepositoryBindingTx(ctx context.Context, tx *sql.Tx, project int, actor, expected int64, p RepositoryBinding) (RepositoryBinding, error) {
+	return saveRepositoryBindingWithIdentityTx(ctx, tx, project, actor, expected, p, false)
+}
+
+func saveRepositoryBindingWithIdentityTx(ctx context.Context, tx *sql.Tx, project int, actor, expected int64, p RepositoryBinding, initial bool) (RepositoryBinding, error) {
 	if project <= 0 || expected < 0 || expected == 1<<63-1 {
 		return RepositoryBinding{}, ErrConflict
 	}
@@ -167,11 +181,18 @@ func saveRepositoryBindingTx(ctx context.Context, tx *sql.Tx, project int, actor
 	if !enabled {
 		return RepositoryBinding{}, ErrConflict
 	}
+	identity, err := readRepositoryIdentity(ctx, tx, project)
+	if err != nil || identity.Health != "valid" {
+		return RepositoryBinding{}, ErrConflict
+	}
 	current, err := readRepositoryBinding(ctx, tx, project)
 	if err != nil {
 		return RepositoryBinding{}, err
 	}
 	if current.Revision != expected {
+		return RepositoryBinding{}, ErrConflict
+	}
+	if initial && current.Revision != 0 || !initial && identity.Kind == "internal" && current.Revision == 0 {
 		return RepositoryBinding{}, ErrConflict
 	}
 	var other int
@@ -212,6 +233,9 @@ func saveRepositoryBindingTx(ctx context.Context, tx *sql.Tx, project int, actor
 		return RepositoryBinding{}, err
 	}
 	if err = markProjectSync(tx); err != nil {
+		return RepositoryBinding{}, err
+	}
+	if err = advanceRepositoryIdentityTx(ctx, tx, project, identity, initial); err != nil {
 		return RepositoryBinding{}, err
 	}
 	return p, nil
