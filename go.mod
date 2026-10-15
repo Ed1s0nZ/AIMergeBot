@@ -48,10 +48,10 @@ require (
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	golang.org/x/arch v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )
@@ -64,5 +64,5 @@ require (
 	github.com/hmarr/codeowners v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/meguminnnnnnnnn/go-openai v0.1.2
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.57.0
 )

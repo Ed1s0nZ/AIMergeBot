@@ -25,3 +25,5 @@
 ## 待完成与交付边界
 
 全Go终态已确认，可提交生产变更后按固定HEAD复核及独立精确HEAD CI。新scope字段目前只用于防止旧消费者误执行，完整provider factory、schema2/永久身份登记、私有凭据激活、恢复回执/取消和现有页面闭环仍未完成。UAR-001/002/004保持open；没有main合并或发布。后续审查如暴露问题，修复后重新验证，不用本记录替代代码审查。
+
+精确生产提交949c13aee2055820130d80ced2e1934702c23c9e已推。CI38740692571现已completed/failure：Go tests and race checks（包含vet）及Operations tooling tests均success；Reachable Go dependency vulnerabilities在x/net0.57检出5个可达项失败，frontend/embed步骤skipped。不是S1测试失败，也不是CI整体通过。根因与最小版本修复/后续验证见ci-http2-security-update.md，不重跑旧脆弱依赖冒充修复，不用文档HEAD替代精确生产验收。
