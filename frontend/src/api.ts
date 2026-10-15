@@ -27,6 +27,13 @@ export async function api<T>(
       context_repository_unavailable:
         "关联仓库授权已变更或不可用，请联系管理员后重新提交。",
       worker_unavailable: "审计服务正在恢复，请稍后重试。",
+      credential_activation_pending: "已保存的配置尚未生效，请重新加载后核对恢复状态。",
+      credential_activation_unavailable: "当前无法核对配置生效状态，请重新加载后检查。",
+      activation_version_exhausted: "配置版本已达上限，请联系管理员处理。",
+      settings_changed: "配置版本已变化，请重新加载后核对。",
+      invalid_activation_request: "恢复请求无效，请重新加载后操作。",
+      invalid_configuration: "配置不符合要求，请核对后再操作。",
+      permission_changed: "操作权限已变化，请重新加载后核对。",
       project_permission_required: "当前项目权限不足，请联系管理员。",
       not_found: "资源不存在或没有访问权限。",
       audit_quota_exceeded:
@@ -248,6 +255,11 @@ export type Review = {
   updated_at: string;
 };
 export type Settings = {
+  repository_activation?: {
+    state: "active" | "pending" | "unavailable";
+    code: "" | "credential_activation_pending" | "credential_activation_unavailable" | "settings_changed";
+    can_reload: boolean;
+  };
   config_revision: number;
   audit_quotas: {
     outstanding_global: number;

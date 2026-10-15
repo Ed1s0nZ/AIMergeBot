@@ -455,7 +455,7 @@ func (h *HTTP) getSettings(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	public := h.publicSettings()
+	public := h.publicSettingsWithContext(c.Request.Context())
 	public["project_config_sync"] = status
 	c.JSON(200, public)
 }
@@ -479,6 +479,9 @@ func (h *HTTP) saveSettings(c *gin.Context) {
 		return
 	}
 	if err = h.Settings.Save(cfg); err != nil {
+		if repositoryActivationError(c, err) {
+			return
+		}
 		status := 400
 		if errors.Is(err, ErrAuditQuotas) {
 			c.JSON(status, gin.H{"error": err.Error(), "code": "invalid_audit_quotas"})
@@ -488,12 +491,10 @@ func (h *HTTP) saveSettings(c *gin.Context) {
 			c.JSON(status, gin.H{"error": err.Error(), "code": "invalid_trusted_proxies"})
 			return
 		}
-		if errors.Is(err, ErrSettingsConflict) {
-			status = 409
-		}
 		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	h.Store.Event(c.Request.Context(), currentUser(c).ID, "settings.saved", "config.yaml")
-	c.JSON(200, gin.H{"settings": h.publicSettings(), "restart_required": h.settingsRequireRestart(h.Settings.Snapshot()), "message": "saved; listen, worker count and trusted proxies require restart, model settings apply to new audits"})
+	public := h.publicSettingsWithContext(c.Request.Context())
+	c.JSON(200, gin.H{"settings": public, "restart_required": public["restart_required"], "message": "saved; listen, worker count and trusted proxies require restart, model settings apply to new audits"})
 }

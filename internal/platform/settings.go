@@ -90,27 +90,11 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg := Settings{GitAudit: GitAuditSettings{Enabled: true}, GenerateSequenceDiagrams: true, VerifyFindings: true}
+	cfg := initialSettingsFile()
 	if err = yaml.Unmarshal(raw, &cfg); err != nil {
 		return nil, err
 	}
-	if cfg.Revision == 0 {
-		cfg.Revision = 1
-	}
-	defaultGitAudit(&cfg.GitAudit)
-	defaultAuditQuotas(&cfg.AuditQuotas)
-	if cfg.Listen == "" {
-		cfg.Listen = ":8080"
-	}
-	if cfg.AuditWorkers == 0 {
-		cfg.AuditWorkers = 2
-	}
-	if cfg.AuditTimeoutSeconds == 0 {
-		cfg.AuditTimeoutSeconds = 300
-	}
-	if cfg.ReAct.MaxSteps == 0 {
-		cfg.ReAct.MaxSteps = 16
-	}
+	applySettingsFileDefaults(&cfg)
 	if err = validateSettings(cfg); err != nil {
 		return nil, err
 	}
@@ -270,7 +254,11 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	return nil
 }
 func (s *SettingsService) Public() map[string]any {
-	cfg := s.Snapshot()
+	return publicSettingsSnapshot(s.Snapshot())
+}
+
+func publicSettingsSnapshot(cfg Settings) map[string]any {
+	real := cfg
 	cfg.GitLab.Token = ""
 	cfg.OpenAI.APIKey = ""
 	cfg.WebhookToken = ""
@@ -278,7 +266,6 @@ func (s *SettingsService) Public() map[string]any {
 	raw, _ := yaml.Marshal(cfg)
 	var out map[string]any
 	_ = yaml.Unmarshal(raw, &out)
-	real := s.Snapshot()
 	out["has_gitlab_token"] = real.GitLab.Token != ""
 	out["has_api_key"] = real.OpenAI.APIKey != ""
 	out["has_webhook_token"] = real.WebhookToken != ""

@@ -57,7 +57,7 @@ func (s *SettingsService) bindRepositoryCredentialActivation(ctx context.Context
 		options.persist = func(path string, raw []byte) (bool, error) { return persistSettingsFile(path, raw, true) }
 	}
 	a := &repositoryCredentialActivation{store: store, options: options}
-	a.view.Store(&legacyCredentialView{phase: "pending", epoch: 1})
+	a.view.Store(&legacyCredentialView{phase: "pending", epoch: 1, config: s.Snapshot()})
 	previous := store.repositoryCredentials.Load()
 	if previous != nil && previous.active() || !store.repositoryCredentials.CompareAndSwap(previous, a) {
 		return errCredentialActivationUnavailable
@@ -80,6 +80,9 @@ func (a *repositoryCredentialActivation) activateAndPublish(ctx context.Context,
 		return errCredentialActivationPending
 	}
 	defer tx.Rollback()
+	if err = authorizeRepositoryReloadTx(ctx, tx); err != nil {
+		return err
+	}
 	if expected != nil && validateLegacyRepositoryState(ctx, tx, expected.material, expected.generation) != nil {
 		return errCredentialActivationPending
 	}
@@ -96,6 +99,9 @@ func (a *repositoryCredentialActivation) activateAndPublish(ctx context.Context,
 		if err != nil {
 			return errCredentialActivationPending
 		}
+	}
+	if err = recordRepositoryReloadTx(ctx, tx); err != nil {
+		return err
 	}
 	if err = tx.Commit(); err != nil {
 		return errCredentialActivationPending

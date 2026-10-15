@@ -189,6 +189,7 @@ func (h *HTTP) Register(r *gin.Engine) {
 	api.PATCH("/integrations/:id", admin, h.saveIntegration)
 	api.GET("/settings", admin, h.getSettings)
 	api.PUT("/settings", admin, h.saveSettings)
+	api.POST("/settings/repository-activation/reload", admin, h.reloadRepositoryActivation)
 	api.GET("/projects", h.projects)
 	api.POST("/projects", admin, h.saveProject)
 	api.POST("/repository-projects", admin, h.createRepositoryProject)

@@ -148,10 +148,12 @@ export function SystemSettings() {
             setError("");
             setSaved("");
             try {
+              const payload = { ...s };
+              delete payload.repository_activation;
               const r = await api<{
                 settings: Settings;
                 restart_required: boolean;
-              }>("/settings", write("PUT", s));
+              }>("/settings", write("PUT", payload));
               setSettings(r.settings);
               setTrustedProxyDraft(
                 (r.settings.trusted_proxies || []).join(", "),

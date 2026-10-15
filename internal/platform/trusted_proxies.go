@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -40,8 +41,12 @@ func (h *HTTP) settingsRequireRestart(cfg Settings) bool {
 	return active.Listen != cfg.Listen || active.AuditWorkers != cfg.AuditWorkers || !sameTrustedProxies(active.TrustedProxies, cfg.TrustedProxies)
 }
 
-func (h *HTTP) publicSettings() map[string]any {
-	public := h.Settings.Public()
-	public["restart_required"] = h.settingsRequireRestart(h.Settings.Snapshot())
+func (h *HTTP) publicSettingsWithContext(ctx context.Context) map[string]any {
+	cfg := h.Settings.Snapshot()
+	public := publicSettingsSnapshot(cfg)
+	public["restart_required"] = h.settingsRequireRestart(cfg)
+	if status := h.Settings.repositoryActivationStatus(ctx, cfg.Revision); status != nil {
+		public["repository_activation"] = status
+	}
 	return public
 }
