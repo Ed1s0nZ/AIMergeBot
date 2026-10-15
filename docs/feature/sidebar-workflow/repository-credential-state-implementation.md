@@ -28,3 +28,7 @@ legacy_repository_state.go从单条SQL同时读取singleton数量、generation/k
 ## 尚未完成与后续
 
 S3b配置文件/DB/内存的pending激活、同事务取消与启动；S3c全部legacy reader/模型请求/发布消费者的运行fence；S3d同进程reload及现有配置页恢复反馈仍未实现。S4原生provider及S5/S6恢复闭环、UAR-001/002/004及完整原需求继续保留。当前没有main合并、部署或真实服务联调。
+
+## S3a精确HEAD CI
+
+[CI38753126892](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38753126892)已完成success，headSha=d70ddf1c844215a0d7761f15df4cf11b7f161a57；Go/race、漏洞扫描和前端构建步骤已逐项读取success。此证据只属于S3a，不能替代后续S3b或完整S3验收。

@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,9 +56,10 @@ type Settings struct {
 }
 
 type SettingsService struct {
-	path    string
-	mu      sync.Mutex
-	current atomic.Pointer[Settings]
+	path       string
+	mu         sync.Mutex
+	current    atomic.Pointer[Settings]
+	activation atomic.Pointer[repositoryCredentialActivation]
 }
 
 func OpenSettings(path, example string) (*SettingsService, error) {
@@ -119,7 +119,9 @@ func OpenSettings(path, example string) (*SettingsService, error) {
 	return svc, nil
 }
 func (s *SettingsService) Snapshot() Settings {
-	cfg := *s.current.Load()
+	return cloneSettings(*s.current.Load())
+}
+func cloneSettings(cfg Settings) Settings {
 	cfg.TrustedProxies = append([]string{}, cfg.TrustedProxies...)
 	cfg.WhitelistExtensions = append([]string{}, cfg.WhitelistExtensions...)
 	cfg.Projects = append(cfg.Projects[:0:0], cfg.Projects...)
@@ -215,6 +217,10 @@ func (s *SettingsService) syncProjectConfigs(projects []legacy.ProjectConfig) er
 func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	activation := s.activation.Load()
+	if activation != nil && !activation.active() {
+		return errCredentialActivationPending
+	}
 	old := s.Snapshot()
 	if !replaceProjects && next.Revision != old.Revision {
 		return ErrSettingsConflict
@@ -245,34 +251,21 @@ func (s *SettingsService) save(next Settings, replaceProjects bool) error {
 	if err := validateSettings(next); err != nil {
 		return err
 	}
+	if old.Revision == ^uint64(0) {
+		return ErrSettingsConflict
+	}
 	next.Revision = old.Revision + 1
 	raw, err := yaml.Marshal(next)
 	if err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(filepath.Dir(s.path), ".aim-config-*")
-	if err != nil {
+	if activation != nil {
+		return activation.save(s, next, raw)
+	}
+	if _, err = persistSettingsFile(s.path, raw, false); err != nil {
 		return err
 	}
-	tmp := f.Name()
-	defer os.Remove(tmp)
-	if err = f.Chmod(0600); err == nil {
-		_, err = f.Write(raw)
-	}
-	if err == nil {
-		err = f.Sync()
-	}
-	closeErr := f.Close()
-	if err != nil {
-		return err
-	}
-	if closeErr != nil {
-		return closeErr
-	}
-	if err = os.Rename(tmp, s.path); err != nil {
-		return err
-	}
-	next.TrustedProxies = append([]string{}, next.TrustedProxies...)
+	next = cloneSettings(next)
 	s.current.Store(&next)
 	return nil
 }
