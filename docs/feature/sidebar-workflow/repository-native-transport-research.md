@@ -53,3 +53,7 @@
 [官方release列表](https://github.com/go-git/go-git/releases)本次查到v6.0.0-beta.1为Pre-release、v5.19.3为稳定线；main文档不能直接等同已选定版本的API。下一步固定候选tag，比较逐操作HTTP/取消/预算、shallow/fixed SHA、对象格式及现有本地工具兼容，再评估依赖与维护成本。不在主go.mod中试装依赖或先上线未经比较的方案。这是新增证据改变后的下一动作，不构成S4 F3 Pass。
 
 上一代码59005b1的CI 38772237718已实际completed/success。此轮只有研究文档和隔离probe，不宣称新增生产能力；后续仍按完整S4–S6推进。
+
+## 提交和验证追踪
+
+研究入口dddb479、探针与结果6460c069f56712d2cba35b2c5d55469b3abefe1a均已推送。`go list ./...`实际确认probe未进入任何正常Go package；本轮未重跑未变化的生产代码全量测试。探针代码对应[CI 38774775279](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38774775279)实际为in_progress/conclusion为空，不用前次成功替代。后续仍观察同一handle；本条后续提交只更新文档，不变更受测代码。

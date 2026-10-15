@@ -57,6 +57,6 @@ macOS；后端Go1.27.2；本轮无Go生产源码变更。前端最终资源index
 
 ## 提交与远端验证
 
-F4/F5代码59005b16c60bdad5796a8ee16873bc97cd97fb0d已推送codex/sidebar-workflow。对应[CI 38772237718](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38772237718)实际查询为in_progress/conclusion为空；后续继续观察同一handle，不将本地通过或前一CI成功当本次远端通过。此记录的后续提交仅文档变化，不更改受测源码/资源。
+F4/F5代码59005b16c60bdad5796a8ee16873bc97cd97fb0d已推送codex/sidebar-workflow。对应[CI 38772237718](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38772237718)首次查询为in_progress/conclusion为空；2026-10-16后续复查已completed/success，全部步骤完成。此结论仅对应该代码HEAD，不替代后续变更的CI。此记录的后续提交仅文档变化，不更改受测源码/资源。
 
 临时浏览器页已关闭，合成服务已停止，viewport已恢复默认。最终截图/tmp/aim-settings-recovery-pending.png与移动截图保留；合成测试服务源码已随本片提交，后续可按frontend/tests/README.md复现。全目标继续进行，无main合并/发布/部署。
