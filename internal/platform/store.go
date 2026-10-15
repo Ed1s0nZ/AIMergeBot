@@ -50,6 +50,9 @@ func (s *Store) migrate() error {
 		return err
 	}
 	defer tx.Rollback()
+	if err = requireCurrentPlatformSchema(tx); err != nil {
+		return err
+	}
 	statements := []string{
 		`CREATE TABLE IF NOT EXISTS platform_project_sync (id INTEGER PRIMARY KEY CHECK(id=1),generation INTEGER NOT NULL DEFAULT 0,dirty INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL)`,
 		`INSERT OR IGNORE INTO platform_project_sync(id,updated_at) VALUES(1,'')`,
