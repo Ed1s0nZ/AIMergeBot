@@ -1,0 +1,25 @@
+# S3c2：主运行与事务边界实施计划
+
+2026-10-15；codex/sidebar-workflow；输入Confirmed requirements、已通过S3合同及S3c1共用检查实现@7b46000。仅P7/P8内部接入，不启用main/Runner启动绑定，不修改PolicyVersion、scope producer或发布授权。完整REQ/AC、S3c3/S3d及S4–S6保留。
+
+## Workflow / Maintainability Gate
+
+允许adapter_extraction/narrow_fix。runner.execute已承担多项编排责任，本片仅捕获operation ctx/config、委托既有授权和带context的finish；事务校验与私有descriptor传播另建模块。Checkpoint/Finish只在自身事务核对，不在持单连接SQLite tx时调用Store.DB。F3推送、审查后实施；不增加用户菜单或未确定产品操作。
+
+## 私有数据与流程
+
+ctx增加包私有descriptor集合，仅记录本次操作实际捕获的activation/view；按activation+epoch+generation去重，继承父集合，不对外序列化，不写旧任务policy/DB。Settings legacyOperationContext在组合网络fence时同时携带集合。不同Store的descriptor拒绝用于当前Store事务，不能仅凭两个库恰好相同counter/material授权。
+
+网络和模型前后继续使用完整ctx fence（descriptor+运行所有权/当前ACL）；写入事务只使用descriptor集合的queryRower版本校验及原有同Tx权限/lease条件。若服务已绑定Settings激活器但可信系统操作没有显式descriptor，则在该事务内观察当前view并校验私有state，不能捕获一个未经DB核对的counter；pure integration scope不受无关legacy gate阻断。未知scope仍由现有准入拒绝。
+
+Submit在首次仓库访问前捕获cfg/descriptor，同一ctx贯穿元数据、策略与Enqueue。execute在读取固定任务及原权限后捕获一次，parent ctx组合authorizeContextRead用于后续Git/API、主审/复核/压缩；context sources不得换token。poll每轮、Scope/SubmitFollowup每次操作各捕获一次，内层可增检查但不能覆盖父集合。followup外层ctx必须保留到最终Enqueue，不能只在返回的Changes内保护。
+
+Enqueue、Claim、poll seen、Checkpoint、Finish及自动重试的相关写入，在同一BEGIN IMMEDIATE事务检查代次/phase再写。Claim仅对选中任务的credential scope检查；native多provider公平调度依S4具体factory接入，当前不宣称队列混合provider验收完成。自动重试恢复若pending则不创建child，不把旧记录补当前generation。
+
+执行的checkpoint/final persistence使用新的有界background ctx时只复制私有descriptor集合，不复制网络fence回调去调用Store.DB。校验失败不覆盖历史result/trace；现有FailWorker仅更新终态/固定错误、保持checkpoint，并受原worker lease CAS约束，作为旧epoch失败且仍running时的收尾；取消/租约已变则不再写。没有新增重试或外部发布授权。
+
+## 文件与反例
+
+生产：repository_credential_context.go、activation descriptor query helper、runner/settings operation委托、runs_store/audit_checkpoint/audit_retry/binding_guard事务边界、context_repository_runner/polling/followup。反例：旧descriptor元数据后旋转→零run/event/seen；同Tx校验在单连接5s内完成；pending→零claim/checkpoint/finish/child且原结果保留；无ctx可信入口的当前服务状态；跨Store即使material/generation相同也拒绝；原配置/模型修改descriptor仍有效；实际Runner阻塞diff后旋转→模型0请求、历史checkpoint不覆写。
+
+先专项与race，再完整Go/vet/build/typecheck。仅httptest/临时SQLite/合成模型，无真实外发或部署。main仍未绑定激活器，check/comment旧nil scope与startup owner属于S3c3/S4，不用本片测试通过声称所有入口已启用。
