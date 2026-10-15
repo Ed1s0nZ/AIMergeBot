@@ -23,3 +23,16 @@ Enqueue、Claim、poll seen、Checkpoint、Finish及自动重试的相关写入�
 生产：repository_credential_context.go、activation descriptor query helper、runner/settings operation委托、runs_store/audit_checkpoint/audit_retry/binding_guard事务边界、context_repository_runner/polling/followup。反例：旧descriptor元数据后旋转→零run/event/seen；同Tx校验在单连接5s内完成；pending→零claim/checkpoint/finish/child且原结果保留；无ctx可信入口的当前服务状态；跨Store即使material/generation相同也拒绝；原配置/模型修改descriptor仍有效；实际Runner阻塞diff后旋转→模型0请求、历史checkpoint不覆写。
 
 先专项与race，再完整Go/vet/build/typecheck。仅httptest/临时SQLite/合成模型，无真实外发或部署。main仍未绑定激活器，check/comment旧nil scope与startup owner属于S3c3/S4，不用本片测试通过声称所有入口已启用。
+
+## 事务路径
+
+```mermaid
+flowchart LR
+  A[捕获descriptor与配置] --> B[固定元数据读取]
+  B --> C[携带同一ctx入队]
+  C --> D[BEGIN IMMEDIATE]
+  D --> E{同Store/phase/epoch/generation与私有指纹有效}
+  E -->|是| F[原同事务ACL/lease校验与写入]
+  E -->|否| G[ROLLBACK 零run/event/seen/child]
+  F --> H[COMMIT]
+```
