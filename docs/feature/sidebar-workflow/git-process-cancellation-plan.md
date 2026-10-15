@@ -89,3 +89,8 @@ Cmd为每次调用创建的内存对象，Run拥有启动/Wait；没有跨调用
 ## F6本窄修复复核
 
 复核范围仅本方案涉及的进程生命周期文件与新测试，不是完整分支批准。命令在独立组启动后才会接受组kill，PID空值有守卫；成功读取未改变；取消保持fence/ctx优先；stderr仍受限且不公开。测试同时验证真实helper请求结束及等待输出管道有界，反向overlay证明原实现失败。其他OS编译通过与未验收树取消分开陈述。全部本地必要检查已通过；Linux运行时需精确代码CI证明。CHANGELOG已记录行为及限制。UAR-001/002/004、S4–S6及完整REQ/AC保持未完成，不合并main/发布。
+
+
+### 提交与远端验证
+
+修复18409c04e59e9cfe1c7493e0401f65de1a36417b已推送codex/sidebar-workflow。[精确代码CI 38780235612](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38780235612)已查询queued/conclusion为空，尚不计为通过，也不借前一4eac0e1成功替代。后续观察同一handle，无重复重启。本条为文档追踪；无main合并、部署或真实外部写入。

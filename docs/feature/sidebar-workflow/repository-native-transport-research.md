@@ -117,3 +117,8 @@ Go1.27.2、Git2.50.1，全部exit0，无race报告：
 ### 额外URI出口的官方依据
 
 [Git packfile-uri设计](https://git-scm.com/docs/packfile-uri)说明fetch.uriprotocols默认空；[Git2.50配置文档](https://git-scm.com/docs/git-config/2.50.0)说明transfer.bundleURI默认false，但fetch.bundleURI可在fetch前引入额外对象下载。这支持未来显式固定禁用策略和受控反例测试，不能由“默认关闭”推出所有版本/配置下无额外出口。当前隔离仓库未继承全局配置，但普通CGI夹具仍未覆盖主动恶意URI广告；本轮不据文档就把该验收标为完成，也不在进程修复中混入协议配置变更。
+
+
+### 现有Git取消实测与修复去向
+
+原实现真实fetch取消反例已复现（1秒和最终测试3秒观察窗内命令/上游均未结束）；独立修复方案与评审见git-process-cancellation-plan.md及technical-review-2026-10-16-git-process.md。代码18409c0已推送：Linux/macOS独立进程组取消，所有平台WaitDelay有界；macOS真实HTTP取消、原实现反向overlay、全Go110.592s/platform race362.423s、vet/build及Windows交叉编译完成。精确Linux CI38780235612当前queued，未声称Linux已运行通过。该修复解决现有路径问题，不是进程沙箱/整次资源配额，不关闭native factory或UAR-001。
