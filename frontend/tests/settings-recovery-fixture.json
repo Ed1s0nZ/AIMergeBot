@@ -1,0 +1,75 @@
+{
+  "config_revision": 42,
+  "listen": ":8080",
+  "public_url": "",
+  "trusted_proxies": [],
+  "gitlab": {
+    "url": "https://gitlab.example",
+    "token": ""
+  },
+  "openai": {
+    "url": "https://model.example/v1",
+    "model": "fixture-model",
+    "api_key": ""
+  },
+  "react": {
+    "enabled": true,
+    "model": "",
+    "temperature": 0.1,
+    "max_retries": 3,
+    "max_steps": 16
+  },
+  "mcp": {
+    "enabled": false,
+    "mode": "simplified",
+    "verbose_logging": false
+  },
+  "enable_polling": false,
+  "enable_webhook": false,
+  "enable_mr_comment": false,
+  "scan_existing_mrs": false,
+  "webhook_token": "",
+  "audit_workers": 2,
+  "audit_timeout_seconds": 300,
+  "whitelist_extensions": [
+    "txt",
+    "md"
+  ],
+  "verify_findings": true,
+  "generate_sequence_diagrams": false,
+  "verification_model": "",
+  "model_budget": {
+    "max_tokens": 0,
+    "input_price_per_million": 0,
+    "output_price_per_million": 0,
+    "currency": "",
+    "verification_pricing_configured": false,
+    "verification_input_price_per_million": 0,
+    "verification_output_price_per_million": 0
+  },
+  "git_audit": {
+    "enabled": true,
+    "history_depth": 200,
+    "max_pack_mib": 256,
+    "max_tool_calls": 80
+  },
+  "audit_quotas": {
+    "outstanding_global": 200,
+    "outstanding_project": 50,
+    "outstanding_user": 20,
+    "running_project": 2,
+    "running_user": 2,
+    "daily_global": 1000,
+    "daily_project": 200,
+    "daily_user": 100
+  },
+  "has_api_key": true,
+  "has_gitlab_token": true,
+  "has_webhook_token": false,
+  "project_config_sync": {
+    "pending": false,
+    "generation": 1,
+    "error": ""
+  },
+  "restart_required": false
+}

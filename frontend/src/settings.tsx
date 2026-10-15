@@ -1,7 +1,9 @@
 import { ModelBudgetSettingsFields } from "./model-budget-settings";
 import { AuditQuotaSettingsFields } from "./audit-quota-settings";
 import { GitAuditSettingsFields } from "./git-audit-settings";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSystemSettings } from "./use-system-settings";
+import { SettingsRecovery } from "./settings-recovery";
 import {
   Save,
   KeyRound,
@@ -12,41 +14,18 @@ import {
   ChevronRight,
   Gauge,
 } from "lucide-react";
-import { api, write, APIError, type Settings } from "./api";
 import { ErrorBox, Empty } from "./components";
 export function SystemSettings() {
-  const [trustedProxyDraft, setTrustedProxyDraft] = useState("");
-  const [conflict, setConflict] = useState(false);
   const [section, setSection] = useState("model");
-  const [baseline, setBaseline] = useState("");
-  const [settings, setSettings] = useState<Settings | null>(null),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [saved, setSaved] = useState("");
-  const load = () =>
-    api<Settings>("/settings")
-      .then((s) => {
-        setConflict(false);
-        setError("");
-        setSettings(s);
-        setTrustedProxyDraft((s.trusted_proxies || []).join(", "));
-        setBaseline(JSON.stringify(s));
-      })
-      .catch((e) => setError(e.message));
-  useEffect(() => {
-    void load();
-  }, []);
+  const editor = useSystemSettings();
+  const { settings, trustedProxyDraft, setTrustedProxyDraft, setSettings,
+    error, saved, busy, dirty, load, canEdit, canSave } = editor;
   if (!settings)
-    return (
-      <>
-        <ErrorBox error={error} />
-        <Empty>
-          加载系统设置…<button onClick={load}>重试</button>
-        </Empty>
-      </>
-    );
+    return <><ErrorBox error={error} /><Empty>
+      {busy ? "加载系统设置…" : "尚未读取到系统设置。"}
+      <button disabled={busy} onClick={() => void load()}>重新读取设置</button>
+    </Empty></>;
   const s = settings;
-  const dirty = JSON.stringify(s) !== baseline;
   const groups = [
     {
       id: "model",
@@ -92,11 +71,7 @@ export function SystemSettings() {
           服务配置待重启：监听地址、并发数或可信代理与当前运行配置不同。重启前继续使用原来的服务配置。
         </div>
       )}
-      {conflict && (
-        <button type="button" onClick={load}>
-          重新加载最新设置（放弃当前修改）
-        </button>
-      )}
+      <SettingsRecovery {...editor} />
       {s.project_config_sync?.pending && (
         <div className="error" role="status">
           项目配置尚未同步到 config.yaml，服务会自动重试。数据库中的修改已保留。
@@ -142,42 +117,10 @@ export function SystemSettings() {
               ?.getAttribute("data-group");
             if (group) setSection(group);
           }}
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setBusy(true);
-            setError("");
-            setSaved("");
-            try {
-              const payload = { ...s };
-              delete payload.repository_activation;
-              const r = await api<{
-                settings: Settings;
-                restart_required: boolean;
-              }>("/settings", write("PUT", payload));
-              setSettings(r.settings);
-              setTrustedProxyDraft(
-                (r.settings.trusted_proxies || []).join(", "),
-              );
-              setBaseline(JSON.stringify(r.settings));
-              setSaved(
-                r.restart_required
-                  ? "设置已保存。监听地址、并发数或可信代理配置已变更，请重启服务使其生效。"
-                  : "设置已保存，新审计将使用更新后的配置。",
-              );
-            } catch (e) {
-              setError(
-                e instanceof APIError && e.code === "invalid_trusted_proxies"
-                  ? "可信代理最多填写 32 个 IP 或 CIDR，不能使用全网范围、域名或未指定地址。"
-                  : e instanceof APIError && e.status === 409
-                    ? "配置已被其他操作更新，请重新加载后再保存。"
-                    : (e as Error).message,
-              );
-              setConflict(e instanceof APIError && e.status === 409);
-            } finally {
-              setBusy(false);
-            }
-          }}
+          onSubmit={(e) => { e.preventDefault(); void editor.save(); }}
+          aria-busy={busy}
         >
+          <fieldset className="settings-fields" disabled={!canEdit}>
           <section
             className="panel settings-section"
             data-group="model"
@@ -540,11 +483,12 @@ export function SystemSettings() {
               {dirty ? "有未保存的更改" : "没有未保存的更改"}
               <small>保存到 config.yaml</small>
             </span>
-            <button className="primary" disabled={busy || !dirty}>
+            <button className="primary" disabled={!canSave}>
               <Save size={16} />
               {busy ? "保存中…" : "保存设置"}
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </>
