@@ -79,19 +79,33 @@ Save先完成旧配置CAS、默认值/空token保留、完整校验和序列化�
 | S3a | legacy_repository_state.go + repository_credential_material.go + SQLite/纯函数tests | 私有state严格读取、规范material/HMAC、原子activate/validate，ABA/双连接同值/溢出/缺行/畸形类型/零秘密输出；不接启动、不旋转生产generation |
 | S3b | repository_credential_activation.go + settings_persistence.go抽出原子写 + Settings薄hook + 启动assembly | pending与文件/DB/内存故障矩阵，目录持久性检查，完整快照一次发布；model/outbox不旋转；启动前激活；现有Settings保存CAS不退化 |
 | S3c | activated_legacy_repository.go + runner/直接client消费者薄委托 + interruption + HTTP/settings消费者 | 无绕过reader；未激活/pending/撤权时下一网络请求与模型输入次数0；同进程和双连接变更都fence；公开错误/当前配置状态传播 |
-| S3d | 同进程reload恢复/已有配置页反馈 + 浏览器/协议tests + docs | 下列reload兼容决策明确、实现并验收；unknown持久化状态不被覆盖；完整Go/race/vet/typecheck/embed/精确HEAD CI |
+| S3d | 同进程reload恢复/已有配置页反馈 + 浏览器/协议tests + docs | 按下方reload合同实现并验收；unknown持久化状态不被覆盖；完整Go/race/vet/typecheck/embed/精确HEAD CI |
 
 S3a只是内部前置，不能用它宣称凭据撤权已接通。S3b/c/d的锁/消费者/恢复必须在各片开始前证明合同完备；S3整体完成需要所有行，不跳过难点。技术复审可只批准S3a明确边界，但须保留本完整目标并单独标出不能批准的部分。
 
 验证需在合成配置和SQLite上故障注入：rename前失败、rename后DB失败、commit后发布前中断、重启重算、恢复旧文件、两个连接同配置/不同配置、MAXgeneration、缺key/坏row、模型/outbox同步不变、真实阻塞HTTP响应期间改token后结果不能进模型。外部发送次数与模型输入次数必须断言，不能只检查error。真实部署仍需配对备份演练；当前不调用真实模型/发送服务。
 
-## 开放决定与实施限制
+## 同进程reload恢复合同（拟议API，尚未实现）
 
-1. 同进程reload的global config_revision：真实文件可能比内存旧，不能直接发布低Revision使旧客户端CAS复活；必须确定读文件后Revision如何保持单调并落盘、请求丢失后重放如何处理。DB凭据generation解决不了Settings全局CAS。需要专门合同/测试，未确定前不写reload接口或UI。
-2. 旧HTTP/path前缀与新HTTPS origin scope的衔接：S3保持旧reader兼容，S4不得假称这些endpoint可进入当前新scope；需明确支持范围/迁移诊断，不能通过去路径或改协议解决。
-3. S4默认Git及API共享预算/网络限制需与指纹material同源；本计划不定义尚未落实的CIDR设置或把旧DefaultTransport伪装成受限transport。
+在已有配置页内增加状态和恢复操作，不新增侧边栏入口。GET现有settings响应增加`repository_activation:{state,code}`，state只允许active/pending/unavailable；code是有限白名单，不暴露generation、epoch、HMAC、文件内容或路径。UI仅在pending/unavailable展示恢复说明，操作需明确点击；不能在保存503后自动reload/重发。
 
-上述不是要求用户再次批准已确认需求，而是实现前需补齐的工程合同。S3a前置可以先审查；其余不成熟部分先不实现。恢复、native执行及完整原需求不因切片而缩减。
+拟议 `POST /api/v1/settings/repository-activation/reload` 使用现有admin/session/CSRF要求，body严格为`{expected_config_revision:"正uint64十进制字符串"}`，不接受文件路径、凭据或generation。固定读取SettingsService初始化时绑定的文件；最大1MiB、UTF8、严格单文档YAML、拒绝重复key/未知字段、配置完整校验；不以当前Settings.Save的空token保留语义填补被恢复文件的凭据。加载文件即管理员明确选择将该文件作为下一有效配置；直接编辑文件尚未点击reload之前不影响当前内存授权。
+
+reload锁顺序保持Settings.mu→gate→短Store事务。先核对请求Revision恰等于当前有效内存Revision，拒绝不规范/溢出/无前导零；读取文件Revision按现有OpenSettings规则缺失/0规范为1，但拒绝类型错误。计算新Revision=`max(current.Revision,file.Revision)+1`，达到MAX_UINT64拒绝，不能回绕或发布旧版本。忽略文件Projects并保留当前Settings的项目快照（项目/上下文权限由DB与原outbox负责，不通过reload导入）。通过与Save同一原子文件替换及激活流程写回这个新Revision；整个内存配置仅激活成功后一次发布。项目outbox在pending期间保持dirty，恢复后按原版本对账同步，不因reload清除dirty或更改DB成员。
+
+这使还原旧文件得到新的全局Revision和新的凭据generation；旧客户端不能因Revision回退重新获得CAS。reload不调用外部服务，不清除任何成功回执。响应丢失后，同expectedRevision重放若上次已发布，返回409 settings_changed，客户端GET核实当前状态；不得自动换expectedRevision重新执行。若上次仍pending，内存Revision未变，可同请求再次尝试；重复文件替换可能推进文件Revision，但相同有效凭据HMAC不得再次推进generation。不承诺每次失败后文件Revision不变，UI须区分“文件已落盘/激活未完成”与“未保存”。
+
+HTTP结果：200返回`{settings:脱敏公开配置,repository_activation:{state:"active",code:""}}`；400 invalid_activation_request/invalid_configuration；401/403原权限；409 settings_changed（客户端GET，不自动重试）；503 credential_activation_pending/credential_activation_unavailable；代次或全局Revision耗尽以409 activation_version_exhausted返回，保留旧state或pending且说明需维护。文件/SQL底层错误不能原样透传。普通Settings.Save在pending时返回503且不触碰文件；公开DecodePublic拒绝counter/activation输入，不静默接受。
+
+恢复证明：旧fileRevision低于current、超2^53精确请求、MAX_UINT64、零/负/浮点/重复key/多文档YAML、空token、路径参数注入、pending时普通保存及outbox同步、发布前/后响应丢失、连续reload generation保持、旧CAS始终409，需真实HTTP路由和SQLite断言。前端409/503保留当前错误说明与重读入口，不使用旧GET数据自动授权操作。
+
+## 尚待验证的工程边界
+
+1. 上述reload单调Revision与文件/DB故障合同需要独立技术复审及实际Go故障注入，未经通过不实施。没有用户产品语义待猜，仍有工程正确性待证明。
+2. 旧HTTP/path前缀继续供旧reader使用，新scope当前仅表示HTTPS origin。S4必须显式诊断不可表达的旧endpoint，保留历史查看；不得通过去路径或改协议伪造兼容。若要支持这些endpoint的native scope，需单独修订scope版本和迁移合同；本S3不悄悄扩大协议。
+3. S4默认Git及API共享预算/网络限制须与指纹material同源；本计划不定义尚未落实的CIDR设置，也不把旧DefaultTransport伪装成受限transport。S3只记录实际有效HTTP传输策略与代理，对未来Git模式不提前作授权声明。
+
+这些限制不缩减原目标。完整S3尚待审查，不用内部持久化helper冒充完整撤权能力。
 
 ## 提交与回滚
 
