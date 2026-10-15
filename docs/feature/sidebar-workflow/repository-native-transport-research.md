@@ -57,3 +57,9 @@
 ## 提交和验证追踪
 
 研究入口dddb479、探针与结果6460c069f56712d2cba35b2c5d55469b3abefe1a均已推送。`go list ./...`实际确认probe未进入任何正常Go package；本轮未重跑未变化的生产代码全量测试。探针代码对应[CI 38774775279](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38774775279)实际为in_progress/conclusion为空，不用前次成功替代。后续仍观察同一handle；本条后续提交只更新文档，不变更受测代码。
+
+## 固定版本库方案对照：实验输入
+
+2026-10-16，继续F2研究。固定go-git v6.0.0-beta.1，不以main文档代替该tag源码。比较取数层，不替换语言无关审计或现有本地Git工具：库通过每操作HTTP client下载到临时bare对象库，之后由实际Git读取/历史/差异工具验证兼容。脚本放独立probe module，主go.mod/go.sum、生产Runner/factory均不改变。生产实施仍不允许，隔离研究允许。
+
+同样使用合成TLS git-http-backend及不同仓库的不同token，验证准确SHA、shallow、并发逐操作client隔离；禁重定向、取消/撤权后结果不交付、共享请求/字节限制、SHA-1及SHA-256对象与本地Git互操作。记录真实不支持/失败，不靠换成默认分支或移除认证来跑通。HTTP包装器是实验的策略适配，不把它冒充已经接入平台ACL/lease/代次。beta依赖不因协议测试通过而自动成为生产选型；仍需稳定性/漏洞/额外URI出口和完整S4设计审查。实验只用公开包下载和本地合成服务，无真实平台凭据、仓库内容或模型请求。
