@@ -40,3 +40,11 @@ macOS，Go1.27.2，真实临时SQLite/配置文件、httptest与合成秘密，�
 ## 剩余验收
 
 本片无视觉变化，不需要宣称浏览器恢复流程已验收；真正恢复界面留S3d2。没有远端服务联调、完整provider审计或生产撤权验收。旧审计报告固定旧HEAD，不因本片通过而变成全分支批准。
+
+## 提交、局部复核与远端验证
+
+F3合同/审查9cb58a5已推送后实施；F4/F5代码e7e0a77d76dac94fb6367fcf6948f458c3c5e7df已推送。局部复核沿producer→readonly字段→前端payload→HTTP→服务→事务事件/取消检查；严格解析与错误投影独立，不新增普通PUT可写状态或调用main绑定。此为同一作者复核，不替代独立全分支审查。
+
+精确代码HEAD的CI：[38768825356](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38768825356)，当前实际查询为in_progress、conclusion为空；尚未确认通过。上次生产HEAD 3bd883c 的CI 38764101241已completed/success，但不能用来替代本次证据。后续观察同一handle，不因等待超时或首次列表为空重启任务。本记录提交仅文档变化，不更改受测代码或构建资源。
+
+F6完整合并/发布验收仍未达成，main未变更；全目标保持进行中。
