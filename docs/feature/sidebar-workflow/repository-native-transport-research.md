@@ -99,3 +99,21 @@ Go1.27.2、Git2.50.1，全部exit0，无race报告：
 ## 进程取消验证输入
 
 本轮沿用F2研究gate，先实测现有gitCommand而不改生产逻辑。临时package测试只初始化空bare仓库、请求回环httptest阻塞服务；服务收到discovery后取消调用ctx，分别观察命令返回与服务端请求context结束。1秒观察窗只作为反例判断，测试在失败前主动释放服务、等待命令退出并清理，避免留下helper。通过不意味着进程树取消在所有Git/helper/OS上均已证明；失败才进入独立修复方案。临时测试不提交，不向真实服务请求，也不把30秒逐命令timeout误认为全部后代进程已终止。Workflow phase=P6实验；production implementation=no；maintainability=narrow research，无Runner/GitRepository职责增加；验收为有界完成、明确命令/上游取消两项证据，且无遗留fixture进程。
+
+
+## S4预算计量与失败规则：当前可确定的约束
+
+以下为F2设计输入，不是已实施的ledger或F3许可。现有API client已采用请求前整份byte allowance预留/refund；桥probe仍是读取后记账。正式实现必须统一API/Git/主仓/source/context/CODEOWNERS/模型工具读数，不能每个adapter新建额度，也不能通过重试重置消耗。
+
+- 请求计数在实际dispatch前原子扣减；已dispatch的失败/取消/拒绝也算请求，额度耗尽后零下一上游请求。本地路由/ACL拒绝不发送，不能把校验本身算远端访问。
+- byte维度明确为应用实际读取的HTTP实体payload，而非TCP/TLS线上总字节；不能声称限制了已进入内核/transport缓冲的所有字节。关闭自动解压并明确拒绝/有界处理Content-Encoding；gzip小输入不能被当作小输出来绕过实体上限。
+- 并发读取前先原子预留可读取的最大长度，Read的slice不得超过预留；完成后只退还未读部分，错误与丢弃内容的已读字节不退款。HTTP请求体写入亦独立计量，upload-pack POST不免费。
+- 单响应/单对象上限与整次余额同时检查；用于探测超限的第1字节也计入已读，不能把limit+1绕过总预算。只获得部分tree/blob/pack或无法证明EOF时返回明确覆盖不足，不能返回部分成功或“无发现”。
+- 时间、请求/字节、工具输出、pack解压后的disk/memory/CPU是不同维度；网络byte上限不能代替工作区或进程资源约束。已读取压缩pack不代表其展开体积已受限。
+- 余额耗尽与权限撤销均停止继续读取和结果消费；已dispatch不能声称从未发生。原始HTTP/Git错误正文不进入用户文案、trace或通知。
+
+仍待明确的实施阻塞：各维度准确值与配置/PolicyVersion冻结字段；准入snapshot与worker执行的额度归属；lease重领、进程重启及同run续跑的持久消耗继承；跨consumer的一次性reservation所有权与关闭；宿主资源限制能力。没有这些不能把“共享指针”或当前client里的128次/32MiB直接说成整次审计预算。下一正式设计需给字段矩阵、生命周期、事务/故障恢复及并发反例，不能先写半套ledger。
+
+### 额外URI出口的官方依据
+
+[Git packfile-uri设计](https://git-scm.com/docs/packfile-uri)说明fetch.uriprotocols默认空；[Git2.50配置文档](https://git-scm.com/docs/git-config/2.50.0)说明transfer.bundleURI默认false，但fetch.bundleURI可在fetch前引入额外对象下载。这支持未来显式固定禁用策略和受控反例测试，不能由“默认关闭”推出所有版本/配置下无额外出口。当前隔离仓库未继承全局配置，但普通CGI夹具仍未覆盖主动恶意URI广告；本轮不据文档就把该验收标为完成，也不在进程修复中混入协议配置变更。
