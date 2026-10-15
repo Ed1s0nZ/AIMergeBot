@@ -52,3 +52,5 @@ F4/F5需全Go/race/vet/build/typecheck与新精确HEAD CI。S3d2须接入既有�
 公开readonly字段不能用于普通PUT授权；前端Settings类型同步声明status字段，普通保存payload显式移除它，后端仍拒绝activation/counter输入。此为必要契约传播，无新按钮；完整恢复UI属于S3d2，生产未绑定时状态字段省略。若修改前端payload源，正常生成资源并验证embed，不能留下旧bundle。
 
 恢复的admin先在读取/文件替换前核对，再在激活事务核对；SQL错误不猜成权限撤销，统一不可用。role改变时不提交代次/取消/event；文件若已替换仍保持pending，由当前管理员处理。成功DB事件名为settings.reload.committed，只表示该版本提交，不冒充发布内存成功。
+
+状态code枚举：active为空字符串；pending为credential_activation_pending；unavailable为credential_activation_unavailable或settings_changed。无新增持久对象或schema，状态由现有view/DB即时投影，reload事件沿既有保留规则。子请求10秒上限，状态观察2秒上限；文件YAML最多64层/100000节点。回滚保持旧二进制/配置/数据库的既有配对约束，不由reload恢复schema。
