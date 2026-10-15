@@ -89,3 +89,8 @@ Go1.27.2、Git2.50.1，全部exit0，无race报告：
 3. 独立module中`go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -show verbose ./...`：显式x/net0.60.0后0 reachable、0 imported-package，剩1条required-module advisory GO-2026-5932（未import的OpenPGP包），无忽略规则。扫描时点结果不保证未来漏洞状态。
 
 正常根module不执行这两个probe；本轮没有以应用全量CI替代隔离实验检查，也没有重跑未变更的生产全量。研究结果不关闭原生执行UAR-001；下一步仍为共享预算/额外URI出口/进程资源及API双树diff的完整设计与反例验证。无main合并、发布或真实外部发送。
+
+
+### 本轮提交追踪
+
+隔离对照与证据提交4eac0e11c190ce8b271e2b99f91744bd6199e88e已推送codex/sidebar-workflow。已查询精确HEAD的[CI 38778466286](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38778466286)：in_progress、conclusion为空；不得借用6460c06成功续期。当前应用CI不会执行nested module，其验证为上文显式命令。本条仅文档追踪，不改动受测代码。
