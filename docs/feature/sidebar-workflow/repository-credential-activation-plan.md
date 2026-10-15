@@ -72,6 +72,16 @@ Save先完成旧配置CAS、默认值/空token保留、完整校验和序列化�
 - 含纯integration凭据且无需legacy的未来运行不因legacy变更停用；身份、integration revision、ACL和lease继续逐仓校验。旧global配置不代表所有仓库共用token。
 - HTTP配置查询只展示active/pending/unavailable及有限code；不新增菜单。pending恢复必须在已有配置页有下一步，不能只实现错误码。
 
+### 消费边界的具体落实
+
+只在repository方法返回时检查不足：凭据可能在内容返回后、模型HTTP派发前改变。S3c须将同一个只读fence传入AgentConfig和所有主审/复核/压缩model builder；使用现有modelStartCallback与checkpoint作失败传播，同时在实际模型HTTP RoundTripper派发前检查，并在模型Generate返回/结果提交前复查。model_usage.go、primary_finalization_model.go、verification_agent.go、claim_verification_agent.go及agent_compression.go属于检查范围；不能只检查首次prompt或主审，遗漏独立复核/压缩。实际HTTP客户端与合成模型server断言撤权后新模型请求0；已发请求按合同不能撤回，但响应不能成为有效新证据。checkpoint是持久记录，不能冒充凭据授权。
+
+material变更的持久generation更新与旧legacy pending/running取消必须在同一事务完成，提交后发布新完整配置、最后清pending，再调用同进程Cancel。不能先清pending再异步取消数据库旧任务，否则旧nil scope队列可捕获新descriptor继续。事务内不调用Settings或Runner；只收集取消ID，提交后通知Runner。文件成功但激活/取消事务失败保持pending；未变material不取消现有任务。pending开始时epoch fence立刻生效；失败回到原凭据时旧进行中操作仍因旧epoch被拒绝，不承诺失败保存不会中断正在读取的请求。
+
+S3a material producer先以现有NewGitLabRepository构造客户端（构造本身零网络），取SDK Client.BaseURL().String()作为真实有效API前缀，再用相同endpoint求实际proxy。这样保留SDK既有斜杠/path行为，不另造一套URL规范化。仅支持现行legacy_http_default_v1传输策略、空CIDR列表；将来S4受限策略需新producer与policy版本，不通过函数参数伪装已经支持。token/proxy按UTF8精确编码固定struct JSON；非法UTF8拒绝，防止encoding/json替换字节导致凭据碰撞。S3a的Tx helper供S3b在同一事务追加旧任务取消；不强制调用无法组合事务的独立提交接口。私有material/state不得实现公开JSON导出，fmt诊断固定脱敏标签，错误不包装SDK或SQL原始正文。
+
+服务以外的standalone一次性模式没有配置热更新/Store，不伪造generation；保留不可变配置单次执行，明确不属于平台多运行激活协议。测试替身仅通过显式构造注入，不允许生产启动缺激活器时静默使用旧client。
+
 ## 实施切片与证明
 
 | Slice | 文件/责任 | 通过条件 |
