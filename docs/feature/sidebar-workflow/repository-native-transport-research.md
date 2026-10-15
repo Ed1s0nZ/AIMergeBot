@@ -122,3 +122,14 @@ Go1.27.2、Git2.50.1，全部exit0，无race报告：
 ### 现有Git取消实测与修复去向
 
 原实现真实fetch取消反例已复现（1秒和最终测试3秒观察窗内命令/上游均未结束）；独立修复方案与评审见git-process-cancellation-plan.md及technical-review-2026-10-16-git-process.md。代码18409c0已推送：Linux/macOS独立进程组取消，所有平台WaitDelay有界；macOS真实HTTP取消、原实现反向overlay、全Go110.592s/platform race362.423s、vet/build及Windows交叉编译完成。精确Linux CI38780235612当前queued，未声称Linux已运行通过。该修复解决现有路径问题，不是进程沙箱/整次资源配额，不关闭native factory或UAR-001。
+
+
+## 额外URI出口实验输入
+
+2026-10-16，F2/P6研究继续；Confirmed REQ与用户“没想清楚先不实现”不变。Workflow Gate：已有固定Git/混合对象/取消证据，缺恶意URI广告与显式禁用反例；允许隔离probe，不允许生产factory。Maintainability Gate：新独立git_uri_egress.go，单一客户端协议研究职责；不向Runner/GitRepository或既有bridge继续塞实验状态。无公共API/依赖/配置/持久schema变化，主module通过ignore tag排除。
+
+实验仅合成仓库与回环CGI服务，额外URI捕获端为另一回环HTTP origin。参考[Git v2.50.1自己的packfile-URI测试](https://github.com/git/git/blob/v2.50.1/t/t5702-protocol-v2.sh)，用实际pack-objects和uploadpack.blobpackfileuri生成可取对象URI，而非只搜索header。需要正对照：主动启用URI时捕获端必须收到请求，证明检测不是恒为零。再验证默认/显式关闭、local config污染被命令级配置覆盖，以及未经协商的URI响应；有效fetch需实际读取预定blob。
+
+bundle URI独立验证fetch.bundleURI配置的正/负对照；transfer.bundleURI只作为clone相关选项，不能仅凭fetch不发bundle-uri命令证明clone安全。只测试本机Git版本的有限协议情况，不把零捕获请求称为所有额外出口均被阻断。禁用候选需确认空配置值的实际行为及内容成功后，才进入未来生产设计。
+
+脚本不读取真实配置/凭据/代码、不访问外部托管服务；只输出类别/次数，不输出raw Git/provider错误。失败主动清理临时文件和server。正常root CI不运行独立probe，需显式-race复现。上一生产18409c0对应CI38780235612仍in_progress，研究代码等待其终态后推送，不能取消它。
