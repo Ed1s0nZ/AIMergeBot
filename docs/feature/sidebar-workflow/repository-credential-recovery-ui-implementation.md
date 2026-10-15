@@ -54,3 +54,9 @@ macOS；后端Go1.27.2；本轮无Go生产源码变更。前端最终资源index
 本片无新增后端可写状态/版本或远端副作用；错误/超时不调用第二次mutation；恢复动作仍由服务端核对权限/CAS/state。缺少原生factory、正式scope消费者/发布、worker owner受控启动与实际生产绑定，不因UI通过而关闭UAR-001。未实现用户暂缓的自动修复验证、人工误报自动放行、unknown工单重发。完整目标与合并/发布验收仍未完成；本片不合并main或部署。
 
 本轮未重复运行无源码变化的后端全Go/race；已有e7e0a77全量CI及本次HTTP回归分别限定证据范围。git diff --check通过；完整新HEAD CI与提交信息在后续记录，不将前端合成API证明扩大为生产端到端。
+
+## 提交与远端验证
+
+F4/F5代码59005b16c60bdad5796a8ee16873bc97cd97fb0d已推送codex/sidebar-workflow。对应[CI 38772237718](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38772237718)实际查询为in_progress/conclusion为空；后续继续观察同一handle，不将本地通过或前一CI成功当本次远端通过。此记录的后续提交仅文档变化，不更改受测源码/资源。
+
+临时浏览器页已关闭，合成服务已停止，viewport已恢复默认。最终截图/tmp/aim-settings-recovery-pending.png与移动截图保留；合成测试服务源码已随本片提交，后续可按frontend/tests/README.md复现。全目标继续进行，无main合并/发布/部署。
