@@ -162,12 +162,15 @@ func (a *repositoryCredentialActivation) save(s *SettingsService, next Settings,
 		}
 		return errCredentialActivationUnavailable
 	}
-	// Even an unchanged credential needs a gate during DB validation and full
-	// config publication. Pending is also retained on commit uncertainty.
-	pending := *old
-	pending.phase, pending.epoch = "pending", epoch
-	a.view.Store(&pending)
-	return a.activateAndPublish(ctx, s, next, material, epoch, old)
+	// Unchanged repository credentials stay active on the old immutable config
+	// until publication. Model/project saves must not interrupt valid readers.
+	if err = a.activateAndPublish(ctx, s, next, material, epoch, old); err != nil {
+		pending := *old
+		pending.phase, pending.epoch = "pending", epoch
+		a.view.Store(&pending)
+		return err
+	}
+	return nil
 }
 
 type legacyCredentialDescriptor struct {

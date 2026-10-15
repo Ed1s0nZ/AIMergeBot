@@ -26,3 +26,13 @@ flowchart LR
 ```
 
 验证：保留上述已证明会失败的回归；补充纯模型保存的替换前失败、替换后失败、commit后发布失败，分别确认旧有效性/不覆盖文件/不半发布/代次不变。再跑activation/实际Runner/descriptor专项及race、完整Go、vet/build/typecheck。测试只用合成配置、临时库和httptest；旧CI终态后才推新生产提交。修正没有新增用户审批或不确定语义，按原已批准消费者合同实施。
+
+## F4/F5修正与验证
+
+未变material的正常保存保持旧active view，继续按原冻结配置读取；activateAndPublish成功后一次切换完整cfg/view。该函数返回任何错误时再设置pending；已改变material仍在写文件前pending，替换结果不明仍立即pending。没有删除DB事务核验或放宽失效descriptor检查。
+
+同一回归修正后专项exit0（platform2.280s，/tmp/aimangebot-model-only-after.log）；补充纯模型替换前明确失败仍可读、替换后失败/commit后发布失败保持pending、generation不变、内存不半更新、后续Save不覆盖落盘文件。修复前失败日志与原断言保留，未改断言让实现通过。
+
+Go1.27.2：完整go test ./... exit0（platform103.222s，其余cached/无测试，/tmp/aimangebot-model-only-full.log）；activation/入队/epoch/实际Runner/HTTP及模型专项race exit0（3.705s，/tmp/aimangebot-model-only-race.log）；go vet ./...、go build ./...、frontend typecheck和diff --check均exit0。没有前端源/资产变更，无真实外部服务或模型调用。
+
+当前生产启动尚未绑定激活器，本修正针对候选执行链缺陷，不声称发生过线上事故或完整S3已可用。启动/固定scope发布、显式reload/界面恢复、原生多平台factory及原确认其余REQ继续推进；没有main合并或部署。
