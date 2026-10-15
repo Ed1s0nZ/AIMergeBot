@@ -46,3 +46,7 @@ macOS，所有新验证选择GOTOOLCHAIN=go1.27.2；合成凭据与受控fixture
 ## 交付边界与后续
 
 当前可核验身份隔离和迁移，不代表“仓库绑定后可审计”。UAR-001仍open；S3凭据激活、S4原生provider全部消费者、S5恢复API/UI与S6部署/真实联调尚待完成。UAR-002/004及完整REQ/AC不从范围消失；没想清楚的操作先补合同，不能猜实现。此切片提交推送仅工作分支，精确新HEAD CI及代码检视另记录。
+
+## S2精确HEAD远端验收
+
+[CI38750868382](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38750868382)已读取终态：headSha=edf563f9f38187c480e7014cb7689fe7e5a7dbed，completed/success。Go tests and race checks、Operations tooling tests、Reachable Go dependency vulnerabilities、Frontend build、Embedded application build全部success，无skipped。仅关闭S2该提交CI待验，不关闭UAR-001、不表示S3/S4已完成或生产部署。
