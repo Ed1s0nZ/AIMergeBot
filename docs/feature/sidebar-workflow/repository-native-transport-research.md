@@ -56,10 +56,36 @@
 
 ## 提交和验证追踪
 
-研究入口dddb479、探针与结果6460c069f56712d2cba35b2c5d55469b3abefe1a均已推送。`go list ./...`实际确认probe未进入任何正常Go package；本轮未重跑未变化的生产代码全量测试。探针代码对应[CI 38774775279](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38774775279)实际为in_progress/conclusion为空，不用前次成功替代。后续仍观察同一handle；本条后续提交只更新文档，不变更受测代码。
+研究入口dddb479、探针与结果6460c069f56712d2cba35b2c5d55469b3abefe1a均已推送。`go list ./...`实际确认probe未进入任何正常Go package；本轮未重跑未变化的生产代码全量测试。探针代码对应[CI 38774775279](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38774775279)本轮重新查询已为completed/success，headSha精确匹配6460c069f56712d2cba35b2c5d55469b3abefe1a；此结果不覆盖后续扩展探针。
 
 ## 固定版本库方案对照：实验输入
 
 2026-10-16，继续F2研究。固定go-git v6.0.0-beta.1，不以main文档代替该tag源码。比较取数层，不替换语言无关审计或现有本地Git工具：库通过每操作HTTP client下载到临时bare对象库，之后由实际Git读取/历史/差异工具验证兼容。脚本放独立probe module，主go.mod/go.sum、生产Runner/factory均不改变。生产实施仍不允许，隔离研究允许。
 
 同样使用合成TLS git-http-backend及不同仓库的不同token，验证准确SHA、shallow、并发逐操作client隔离；禁重定向、取消/撤权后结果不交付、共享请求/字节限制、SHA-1及SHA-256对象与本地Git互操作。记录真实不支持/失败，不靠换成默认分支或移除认证来跑通。HTTP包装器是实验的策略适配，不把它冒充已经接入平台ACL/lease/代次。beta依赖不因协议测试通过而自动成为生产选型；仍需稳定性/漏洞/额外URI出口和完整S4设计审查。实验只用公开包下载和本地合成服务，无真实平台凭据、仓库内容或模型请求。
+
+
+## 固定版本对照结果与选型边界
+
+本轮F2研究与F5证据整理，用户目标/确认需求不变；Workflow Gate沿用本文件上游和范围：仅隔离实验允许，生产factory仍不允许。新增probe独立module与受控夹具，未改动主go.mod/go.sum或生产执行文件。维护边界为研究脚本，不往Runner/GitRepository增加协议职责。分支codex/sidebar-workflow；本轮代码/文档按显式文件提交推送，不包含其他未跟踪审计报告。
+
+- 扩展CLI桥：3仓（2个SHA-1、1个SHA-256）并发拉取固定非tip提交，实际读取各自blob；v0/v2均可，凭据错误0。4次fetch共9次HTTP请求，加header过滤探针累计10次；禁止路由/无效capability、耗尽共享请求预算、redirect目标零请求、撤权与小body限制仍通过。
+- 固定go-git v6.0.0-beta.1：逐操作独立HTTP client，3仓并发固定非tip SHA、depth1、CLI shallow标记/ref/show/fsck连接性检查通过；共享请求耗尽零新增上游，redirect目标0，discovery撤权停止下一请求，body上限失败，阻塞HTTP的context取消传递至服务端。取消实测毫秒值仅记录观测，不作为SLA。
+- 第一轮库探针的race来自夹具误用httptest.Server.Client()共享指针并修改Transport/CheckRedirect；修正为每操作新http.Client后-race通过。这不是库缺陷。
+- 注入含合成token的500正文后，库原始error确实包含该正文；未来adapter必须规范化错误，不能直接对外返回。该库尚未生产接入，不构成现有应用已泄露凭据的证据。
+- 稳定v5.19.3的缓存源码hash_sha1.go/hash_sha256.go显示对象格式由全局sha256 build tag选择；不是“不支持SHA-256”，但不直接满足同一进程逐仓混合格式。v5可经全局安装一次context委托transport实现隔离，不能仅因FetchOptions没有ClientOptions就断言做不到。本轮未运行v5 fetch。
+
+最初独立库依赖图的govulncheck@v1.8.0 verbose结果：0 reachable、0 imported-package、6 required-module advisories；其中5个x/net由0.60.0修复，另1个为未import的旧OpenPGP包。主项目已使用x/net0.60.0，不能声称加库会必然降级；提交的隔离module也显式保持0.60.0。后续扫描结果独立记录，不忽略仍存在的module提示。
+
+阶段结论：两条取数候选均具备局部可行性。优先继续设计“现有Git负责对象/本地工具、Go负责受限HTTP”的方案，以复用已依赖工具链并避免立即引入beta对象解析栈；v6保持备选。不是完整架构批准，也不是认为自建桥已安全。两者的实验ledger均为读取后记账，不能证明并发硬字节限额；CLI桥尚未验收进程树取消/额外URI出口，库实验也不证明恶意pack资源边界。必须完成共享原子预算、网络出口、进程/工作区资源、API双树diff及身份/正式scope消费者设计后，才能进入生产实施。UAR-001仍open。
+
+
+### 本轮最终复现记录
+
+Go1.27.2、Git2.50.1，全部exit0，无race报告：
+
+1. 根目录`go run -race scripts/probes/git_http_bridge.go`：3仓并发、固定旧SHA、SHA-256及原错误路径通过；成功fetch请求9次，header检查后10次。
+2. 独立module中`go run -mod=readonly -race .`：混合格式/固定SHA/浅历史/取消均通过；取消实测4ms；原始错误含合成token的分类为true（只输出布尔值，不输出正文）。
+3. 独立module中`go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -show verbose ./...`：显式x/net0.60.0后0 reachable、0 imported-package，剩1条required-module advisory GO-2026-5932（未import的OpenPGP包），无忽略规则。扫描时点结果不保证未来漏洞状态。
+
+正常根module不执行这两个probe；本轮没有以应用全量CI替代隔离实验检查，也没有重跑未变更的生产全量。研究结果不关闭原生执行UAR-001；下一步仍为共享预算/额外URI出口/进程资源及API双树diff的完整设计与反例验证。无main合并、发布或真实外部发送。

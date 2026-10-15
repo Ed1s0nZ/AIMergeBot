@@ -193,21 +193,30 @@ func run() map[string]any {
 	serverRoot := filepath.Join(root, "upstream")
 	need(os.Mkdir(serverRoot, 0700) == nil, "fixture root")
 	ids := map[string]string{}
-	tokens := map[string]string{"a": "SYNTHETIC-UPSTREAM-A", "b": "SYNTHETIC-UPSTREAM-B"}
-	for _, name := range []string{"a", "b"} {
+	tokens := map[string]string{"a": "SYNTHETIC-UPSTREAM-A", "b": "SYNTHETIC-UPSTREAM-B", "c": "SYNTHETIC-UPSTREAM-C"}
+	for _, name := range []string{"a", "b", "c"} {
+		objectFormat := "sha1"
+		if name == "c" {
+			objectFormat = "sha256"
+		}
 		seed := filepath.Join(root, "seed-"+name)
 		need(os.Mkdir(seed, 0700) == nil, "seed")
-		mustGit(seed, "init", "--bare", "--template=", filepath.Join(serverRoot, name+".git"))
-		mustGit(seed, "init", "--template=", seed)
+		mustGit(seed, "init", "--bare", "--template=", "--object-format="+objectFormat, filepath.Join(serverRoot, name+".git"))
+		mustGit(seed, "init", "--template=", "--object-format="+objectFormat, seed)
 		mustGit(seed, "config", "user.name", "Fixture")
 		mustGit(seed, "config", "user.email", "fixture@example.invalid")
-		need(os.WriteFile(filepath.Join(seed, "evidence.txt"), []byte("synthetic-object-"+name+"\n"), 0600) == nil, "fixture blob")
-		mustGit(seed, "add", "--", "evidence.txt")
-		mustGit(seed, "commit", "-m", "synthetic fixture")
-		ids[name] = mustGit(seed, "rev-parse", "HEAD")
+		for _, version := range []string{"base", "pinned", "new"} {
+			need(os.WriteFile(filepath.Join(seed, "evidence.txt"), []byte("synthetic-object-"+name+"-"+version+"\n"), 0600) == nil, "fixture blob")
+			mustGit(seed, "add", "--", "evidence.txt")
+			mustGit(seed, "commit", "-m", version)
+			if version == "pinned" {
+				ids[name] = mustGit(seed, "rev-parse", "HEAD")
+			}
+		}
 		mustGit(seed, "-c", "protocol.file.allow=always", "push", filepath.Join(serverRoot, name+".git"), "HEAD:refs/heads/main")
 		mustGit(filepath.Join(serverRoot, name+".git"), "config", "http.receivepack", "false")
 		mustGit(filepath.Join(serverRoot, name+".git"), "config", "http.getanyfile", "false")
+		mustGit(filepath.Join(serverRoot, name+".git"), "config", "uploadpack.allowReachableSHA1InWant", "true")
 	}
 	gitDir := mustGit(root, "--exec-path")
 	var upstreamCalls, protocol2, wrongCredential, trapCalls, leakedCallerHeader atomic.Int64
@@ -267,7 +276,11 @@ func run() map[string]any {
 	fetch := func(name, version string) (string, error) {
 		dir, e := os.MkdirTemp(root, "consumer-*")
 		need(e == nil, "consumer directory")
-		mustGit(dir, "init", "--bare", "--template=", dir)
+		objectFormat := "sha1"
+		if name == "c" {
+			objectFormat = "sha256"
+		}
+		mustGit(dir, "init", "--bare", "--template=", "--object-format="+objectFormat, dir)
 		_, e = command(dir, gitEnv, "-c", "protocol.version="+version, "fetch", "--no-tags", "--no-recurse-submodules", "--depth=1", local.URL+"/"+name, ids[name])
 		if !b.allowed.Load() {
 			e = fmt.Errorf("operation authorization changed")
@@ -281,13 +294,21 @@ func run() map[string]any {
 		}
 		return "", e
 	}
-	for _, name := range []string{"a", "b"} {
-		content, e := fetch(name, "2")
-		need(e == nil && content == "synthetic-object-"+name, "real Git fetch through bridge")
+	type fetchOutcome struct {
+		name, content string
+		err           error
+	}
+	results := make(chan fetchOutcome, 3)
+	for _, name := range []string{"a", "b", "c"} {
+		go func(name string) { content, err := fetch(name, "2"); results <- fetchOutcome{name, content, err} }(name)
+	}
+	for range 3 {
+		result := <-results
+		need(result.err == nil && result.content == "synthetic-object-"+result.name+"-pinned", "concurrent fixed SHA Git fetch through bridge")
 	}
 	need(wrongCredential.Load() == 0 && !b.badLocalAuth.Load() && protocol2.Load() > 0 && v2Advertisement.Load(), "credential isolation and negotiated v2")
 	legacyContent, legacyErr := fetch("a", "0")
-	need(legacyErr == nil && legacyContent == "synthetic-object-a", "smart HTTP v0 compatibility")
+	need(legacyErr == nil && legacyContent == "synthetic-object-a-pinned", "smart HTTP v0 compatibility")
 	gitFetchRequests := upstreamCalls.Load()
 	check, _ := http.NewRequest("GET", local.URL+"/a/info/refs?service=git-upload-pack", nil)
 	check.Header.Set("Authorization", "Bearer "+b.capability)
@@ -379,7 +400,7 @@ func run() map[string]any {
 		}
 		return nil
 	}) == nil, "upstream secret persisted in workspace")
-	return map[string]any{"synthetic_only": true, "git_version": mustGit(root, "--version"), "two_repository_fetches": true, "successful_git_fetch_requests": gitFetchRequests, "header_filtering": true, "upstream_requests_before_faults": successes, "v2_observed": protocol2.Load() > 0 && v2Advertisement.Load(), "smart_http_v0_fetch": true, "wrong_credentials": wrongCredential.Load(), "shared_request_budget": true, "invalid_routes_and_capability_zero_upstream": true, "redirect_target_requests": trapCalls.Load(), "revoke_stops_next_request": true, "body_limit_stops_fetch": true, "upstream_secrets_absent_from_git_env_and_workspace": true, "production_transport_tested": false}
+	return map[string]any{"synthetic_only": true, "git_version": mustGit(root, "--version"), "three_repository_fetches": true, "sha256_fetch": true, "non_tip_sha_fetch": true, "concurrent_credentials": true, "successful_git_fetch_requests": gitFetchRequests, "header_filtering": true, "upstream_requests_before_faults": successes, "v2_observed": protocol2.Load() > 0 && v2Advertisement.Load(), "smart_http_v0_fetch": true, "wrong_credentials": wrongCredential.Load(), "shared_request_budget": true, "invalid_routes_and_capability_zero_upstream": true, "redirect_target_requests": trapCalls.Load(), "revoke_stops_next_request": true, "body_limit_stops_fetch": true, "upstream_secrets_absent_from_git_env_and_workspace": true, "production_transport_tested": false}
 }
 func main() {
 	defer func() {
