@@ -50,6 +50,7 @@ func gitCommand(ctx context.Context, dir string, extraEnv []string, args ...stri
 	defer cancel()
 	defaults := []string{"--no-pager", "--literal-pathspecs", "-c", "core.hooksPath=/dev/null", "-c", "core.attributesFile=/dev/null", "-c", "diff.external=", "-c", "protocol.allow=never", "-c", "protocol.https.allow=always", "-c", "protocol.http.allow=always", "-c", "http.followRedirects=false", "-c", "credential.helper=", "-c", "maintenance.auto=false", "-c", "gc.auto=0"}
 	cmd := exec.CommandContext(ctx, "git", append(defaults, args...)...)
+	configureGitProcess(cmd)
 	cmd.Dir = dir
 	// Do not inherit caller Git configuration, tokens, SSH agents or helpers.
 	cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + dir, "LANG=C.UTF-8", "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null", "GIT_TERMINAL_PROMPT=0", "GIT_PAGER=cat", "GIT_NO_REPLACE_OBJECTS=1"}

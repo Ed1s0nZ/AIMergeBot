@@ -70,3 +70,22 @@ Cmd为每次调用创建的内存对象，Run拥有启动/Wait；没有跨调用
 5. CHANGELOG和本方案记录真实结果。等待前一代码4eac0e1的CI终态后，才能推本代码，避免取消旧CI。
 
 回滚为撤回本窄修复，保留测试反例与已知取消局限；无数据迁移。发布范围仅功能分支，不合并main、不部署。进程内存/CPU/disk配额、额外URI出口、共享预算和完整native流水线仍未完成，不受本方案批准。
+
+
+## F4/F5实施与阶段证据
+
+现已按技术评审bf2c731实现：git_repository.go仅加委托；共享helper设置2s WaitDelay，Linux/macOS平台helper独立进程组+组SIGKILL，其他平台保留直接kill。没有公共字段、依赖或数据变更。临时research fixture已转为正式git_process_test.go并移除原路径。
+
+- 原临时反例exit1：取消后1s命令/上游均未结束；夹具主动断开后完成清理。
+- 最终正式测试的反向验证：Go overlay仅在构建输入中移除configureGitProcess委托，运行TestGitCommandCancellationStopsHTTPHelper，exit1、3.04s，command_returned=false/upstream_canceled=false。未修改实际生产工作区；证明新测试能识别原缺陷。
+- 修复版目标race（实际取消、预取消、继承管道、安全无Process、正常内容工具/固定提交fetch/既有取消预算）exit0、platform3.733s；真实Git取消用例0.02s，命令与上游同时结束。毫秒值是本机观测，不是SLA。
+- go vet ./...、go build ./...均exit0。
+- GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go test -c -o /tmp/aim-git-process-windows.test.exe ./internal/platform：exit0，仅证明其他平台路径可编译，未运行Windows测试，不证明树取消。
+- 完整go test ./...已exit0，platform110.592s；完整go test -race ./internal/platform同一handle83500已exit0、362.423s。前一4eac0e1的CI38778466286已查询completed/success、headSha精确匹配；可按顺序推本代码，精确代码CI仍须独立记录。
+
+安全/范围复核：取消错误仍由原ctx/fence分类；原始stderr不返回；不执行仓库代码，不改变Git读取/推送协议，不触及main或部署。WaitDelay约束的是管道等待，不是内存/CPU/disk沙箱；正常退出后主动脱离进程组的后代、其他OS树取消仍不在保证内。
+
+
+## F6本窄修复复核
+
+复核范围仅本方案涉及的进程生命周期文件与新测试，不是完整分支批准。命令在独立组启动后才会接受组kill，PID空值有守卫；成功读取未改变；取消保持fence/ctx优先；stderr仍受限且不公开。测试同时验证真实helper请求结束及等待输出管道有界，反向overlay证明原实现失败。其他OS编译通过与未验收树取消分开陈述。全部本地必要检查已通过；Linux运行时需精确代码CI证明。CHANGELOG已记录行为及限制。UAR-001/002/004、S4–S6及完整REQ/AC保持未完成，不合并main/发布。
