@@ -12,11 +12,13 @@ P6→P7/P8；已经取得固定scope、身份schema2、凭据激活/运行时fen
 
 ## 版本、历史与开放条件
 
-现有PolicyVersion为eino-audit-contract-v50；不能只改常量就把旧nil policy当成有scope/账本。提案保留该legacy版本，新增NativePolicyVersion=eino-audit-contract-v51。服务端从已验证准入种类决定版本，HTTP不得传version/actor/账本ID。v51严格必有RepositoryScope和RepositoryBudget、预算映射及合法digest；v50不得借新scope或绑定进入旧GitLab路径。
+NTR-006作者修订以[普通GitLab切换合同](repository-legacy-transition-contract.md)为准，**取代本节旧的“切换后legacy仍v50”规则**：正式切换后的全部平台新任务统一v51/scope v2/共享预算，普通未绑定GitLab也必须经过工厂。v50仅指历史与C3启用前阶段；其自动retry不跨正式切换，新人工复审重新观察为v51，不能回填旧scope。scope v2的legacy endpoint联合类型保留HTTP/path-prefix，native binding仍保持原HTTPS语法。新准入、endpoint key、发布和startup readiness以补充合同为实现依据。
+
+现有PolicyVersion为eino-audit-contract-v50；不能只改常量就把旧nil policy当成有scope/账本。提案保留该历史版本，新增固定合同版本eino-audit-contract-v51；切换后的所有平台producer统一使用新版本。HTTP不得传version/actor/账本ID。v51严格必有RepositoryScope和RepositoryBudget、预算映射及合法digest；v50不得借新scope或绑定进入旧GitLab路径。
 
 native准入只走专用EnqueueRepositoryAdmission内部接口，持有完整admission receipt且同事务recheck/attach；现有Enqueue/EnqueueUser保留legacy拒绝，不能简单删除requireLegacyRepositorySnapshot。v50历史报告不改写；已绑定项目的v50旧任务不自动复活。新binding恢复仍由S5显式身份变更产生新任务，不能克隆旧任务补造scope。
 
-需要传播的版本检查逐点包括runs_store.go的查重/INSERT、runner.execute、audit_retry的策略判断与child INSERT、slack_reaudit固定旧HEAD准入、followup、standalone和导出。native retry保留父版本/完整policy/digest/同预算，legacy retry仍走原规则；不使用“版本字符串合法”替代身份授权。standalone没有服务端scope时仍使用原路径，不假装加入平台native账本。
+需要传播的版本检查逐点包括runs_store.go的查重/INSERT、runner.execute、audit_retry的策略判断与child INSERT、slack_reaudit固定旧HEAD准入、followup、standalone和导出。v51 retry保留父版本/完整policy/digest/同预算，切换后v50不再自动生成无证明child；不使用“版本字符串合法”替代身份授权。standalone没有服务端scope时仍使用原路径，不假装加入平台native账本。
 
 ## 内部对象与调用契约（全部拟议）
 
@@ -43,7 +45,7 @@ NTR-001修订：预算持久化principal_kind/user actor或service source证明�
 5. 原Snapshot.BaseSHA=merge-base，HeadSHA=head，MRIID兼容承载PR号；GitHub DiffVersionID=0，GitLab保留验证过的版本ID。RepositoryScope.Observation保存base tip/merge-base/head与provider/number。target/source同origin/provider及SHA格式严格验证，context可以其他provider/origin。
 6. Capture当前context配置/精确SHA、workflow、模型配置、limits，normalize只用于producer；入队事务重新校验全部reference/角色/凭据代次/配额/context索引，插入run及同预算映射、事件原子提交。失败关闭admission保留消耗，不产生半个run或poll已见状态。
 
-legacy_global credential reference只适用于身份登记能证明的legacy项目、冻结origin与active generation。未知历史origin不通过当前全局URL猜测，需S5明确恢复。普通未绑定legacy v50路径在过渡期仍按现有guard和配置运行，不因新原生入口未开放而全部停用。
+legacy_gitlab reference只适用于身份登记能证明的legacy项目、当前prospective远端验证和active generation。未知历史origin不通过当前全局URL猜测；新观察只证明新任务。C3未启用的过渡期普通legacy v50保持当前行为；正式切换后全部新任务统一scope v2/账本，旧HTTP/path-prefix用专用endpoint union，不改写成native origin。
 
 ## 双模式执行与工具
 
@@ -84,6 +86,12 @@ AuditPolicy.RepositoryBudget仍只接受audit公式；辅助profile不写回历�
 ### Native轮询持久基线（NTR-005修订）
 
 不复用legacy platform_poll_seen。schema3新增platform_native_poll_baselines，以(project_id,provider,api_origin,remote_id)为复合PK，字段initialized BOOL必填初始false、scan_existing BOOL在新baseline创建时冻结当前选项、next_page INTEGER必填初始1（1..10000）、revision正int64初始1、updated_at UTC。同远端换凭据/绑定revision不会重置进度；换provider/origin/remote ID得到独立baseline，不能沿旧数字项目ID继承。每次cycle仍校验当前绑定/集成revision，changed时零seen/init/cursor写。
+
+NTR-006规范修订：上述PK中的api_origin改为切换合同EndpointKeyV1的endpoint_key，覆盖HTTP/path-prefix普通GitLab；PR state同改，scope v2不得以空api_origin当仓库键。其余准入/seen不变量不变；新v51普通项目不复用旧platform_poll_seen。
+
+NTR-005跨轮错误补充：新增census_generation INTEGER正int64初始1、census_had_error BOOL初始false，随baseline revision CAS持久化。initialized=false时，解析/枚举/授权/应准入失败（含配额）在cycle返回前置flag=true；DB写失败不得推进cursor/init。后续cycle/重启不能清flag。到明确终页且本代flag=false、所有hint已处理才可initialized=true；本代flag=true则只令next_page=1、generation+1、flag=false开始下一代，保留PR seen，不能同时设initialized。失败页保持cursor，其后成功不能清本代旧错误。终页转换同事务CAS，generation溢出停止并诊断。initialized=true后错误不撤销既有初始化，但保留partial诊断、失败hint不记seen。增加测试：前cycle错误→重启→终页成功仍未初始化→下一代完整无错才初始化；并发cycle不能清掉对方已记录错误。
+
+poll枚举沿既有Runner.Poll串行loop，不新增每页/每项目异步cycle；Runner提供私有非重入guard，重复启动返回busy且不发请求。所有baseline提交核对当前worker instance owner/lease，第二实例不能成为并行枚举者；hook只能更新PR state、不写census/cursor/initialized。失去owner后旧cycle所有CAS拒绝，重启由新owner继续持久进度；不能只靠内存initialized map。测试同时验证非重入与旧owner终页回调不能初始化。
 
 platform_native_pr_states的相同远端复合身份再加number构成PK；新增seen_head TEXT可NULL、seen_source_remote_id INTEGER可NULL、seen_reason TEXT可NULL（initial/admitted）、seen_run_id FK可NULL、revision正int64初始1。seen三项同时NULL或同时有效；initial必须seen_run_id=NULL，admitted必须有精确run ID且source remote ID正值。initial允许source ID=0仅表示列表的未知source元数据，不能作为RepositoryReference授权。HEAD按provider校验完整格式。observed_head/state/observed_at仍只表达观察，不是seen或成功审计证明；不能因hook读取过HEAD而跳过未入队的审计。
 

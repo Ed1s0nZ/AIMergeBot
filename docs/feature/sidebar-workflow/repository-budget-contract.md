@@ -18,7 +18,7 @@ GitHub client现有每client128次请求、32MiB，单响应8MiB；本地Git默�
 
 ## Proposed limits：准确值及来源
 
-新原生v51 policy冻结以下数字；均为int64字节/计数，不用浮点。不新增第一版设置页控制项：采用版本化固定常量，已有Git字段继续冻结。后续调参必须改变新policy版本，不热改进行中账本。
+正式切换后的全部平台新v51 policy（含普通legacy GitLab）冻结以下数字；scope v2及旧endpoint兼容见[切换合同](repository-legacy-transition-contract.md)。均为int64字节/计数，不用浮点。不新增第一版设置页控制项：采用版本化固定常量，已有Git字段继续冻结。后续调参必须改变新policy版本，不热改进行中账本。
 
 | 字段 | 提案值 | 理由与验证 |
 | --- | --- | --- |
@@ -72,6 +72,8 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 严格union，无未知/重复key；IDs采用规范正int64十进制字符串，version为整数1。user对象仅{version,kind:"user",actor_id}，必须与列actor_id相等；每次操作按其真实账号当前角色/disabled与全部snapshot范围验证，查不到actor拒绝，不降service。
 
 service对象仅{version,kind:"service",source,project_id,binding_revision,integration_revision,receipt_id?,run_id?}。source有限hook/poll/automatic_comment；hook必须且仅带receipt_id，验证已验签receipt的project/provider/冻结版本、预算关联，准入阶段需其processing claim，执行阶段需admitted且run_id为该预算根run；自动child通过同预算祖先证明。poll不得带receipt_id/run_id，准入需当前EnablePolling和绑定/集成project scope，之后以已验证根预算与scope、项目启用/凭据scope为授权；automatic_comment必须且仅带run_id，限publication purpose，原run.requested_by=0且能追溯其有效hook/poll根principal、当前发布opt-in，不能把已撤权的普通user run转换为service发布。
+
+NTR-006规范修订：上述service对象的顶层binding_revision/integration_revision替换为严格repository_authority联合对象，具体integration/legacy字段与原webhook receipt传播见[切换合同](repository-legacy-transition-contract.md)。版本仍1（尚未生产），其余source/receipt用途及SQL CHECK不变；缺integration字段仅在完整legacy union合法，不是免校验。
 
 所有service构造只允许对应已验证内部入口、当前worker实例和冻结配置；actor_id=NULL不单独授予权限。绑定/凭据/关联集合/项目权限撤销仍立即fence；Webhook/Poll触发开关关闭阻止新准入，不凭此改写已授权run的历史主体。模型或无关outbox配置变化不改变principal身份。purpose/source不兼容、无关联receipt、伪造HTTP service字段、缺原principal或版本矛盾均零远端dispatch/入队。保存的digest只检查结构一致性，不冒称签名或替代授权。旧v50 actor=0不回填service证明。
 

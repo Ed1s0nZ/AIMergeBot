@@ -4,6 +4,8 @@
 
 以下初稿由末尾“审查修订合同”补全；发生冲突以修订合同为准。technical-review-2026-10-08-repository-recovery.md 的 Fail 结论仍有效，作者补文不等于审查通过。
 
+2026-10-16 NTR-006作者补充：[普通GitLab切换合同](repository-legacy-transition-contract.md)提出scope v2 endpoint union及所有新任务统一v51，用于保持旧HTTP/path-prefix的真实执行/发布；v1历史语义不变，不能去前缀或改协议伪造兼容。下文v1精确字段表仍描述现有内部实现；v2尚待复审/实现，不能视为已有能力。
+
 ## Workflow Gate / 本次结论
 
 P5–P6 / F2。已具备绑定存储、原生项目创建、配置 outbox、GitHub 固定对象客户端及网络实验；缺完整 factory、冻结多仓身份和恢复迁移。允许写设计，不允许据此直接添加解除绑定接口。前一轮完成当前 head 审计和专项证据，属于 progress；本轮进一步确定恢复不能采用删除绑定后的 legacy fallback。
