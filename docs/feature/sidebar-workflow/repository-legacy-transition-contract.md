@@ -27,7 +27,7 @@ scope v1 保持原校验、原字节语义和历史查看，不能重新解释�
 | reference.legacy_endpoint | nullable object，新字段 | integration 必须不存在；legacy_gitlab 必须存在 | consumer 不从当前 Settings 修复缺字段 |
 | legacy_endpoint.config_url | UTF8 string，必须，≤2048 bytes，无默认 | descriptor 固定 Settings.GitLab.URL，validURL；无 userinfo/query/fragment，HTTP/HTTPS，保留有效 path/escaping | 无 token/proxy；来自管理员现有配置，不来自 PR/模型 |
 | legacy_endpoint.api_base_url | UTF8 string，必须，≤4096 bytes，无默认 | 用固定 config_url 调同版 NewGitLabRepository 构造 SDK（零网络）取得 Client.BaseURL().String()，精确相等 | 不拼猜 `/api/v4`，不丢前缀/改协议 |
-| legacy_endpoint.transport_policy | string，必须 | 固定 `legacy_http_default_v1`；未知值拒绝 | 其真实网络属性单独显示，不能宣传 native allowlist |
+| legacy_endpoint.transport_policy | string，必须 | 固定 `legacy_fixed_session_v2`；未知值拒绝 | 其真实网络属性单独显示，不能宣传 native allowlist |
 | credential.legacy_repository_revision | 正 int64，必须 | 当前 active descriptor 的持久 generation；其余 integration 字段为零 | epoch 不代替持久 generation；切换不回填旧任务 |
 
 legacy reference 仍要求登记 kind=legacy/health=valid、identity_revision 一致、binding_revision=0、provider=gitlab、remote_id=内部项目 ID；project API 返回 ID 与真实 path_with_namespace 必须匹配。本次 prospective 远端验证可以证明新任务，不依赖不存在的历史 origin 登记。full_name 仅路由元数据，不代替 ID。internal/repair_required/已有绑定的项目不能借 legacy union 逃回全局凭据。
@@ -44,7 +44,17 @@ OpenRun/Auxiliary 对 legacy v2 逐项比较 descriptor generation、config_url/
 
 Git 子进程仍只访问本地 reverse bridge，经强制 forward proxy 与完整白名单环境，零上游 token。legacy bridge 的远端 clone URL 来源于已验证 project API 的 HTTPURLToRepo；无 userinfo/query/fragment，只接受固定 API base 的相同 scheme/Host，逐 reference 固定路由，不从 api path 推导 clone path。无重定向或任意外部 helper。该来源与当前 PrepareGitLab 同一身份约束，不能因 HTTP 改用 HTTPS 或删路径来通过校验。
 
-Go 侧 legacy transport 保留管理员配置的 HTTP/HTTPS 和其已激活代理策略；有效 proxy（含秘密）仅在 descriptor 私有内存，不写 scope/key/日志；请求使用同一固定代理选择，不能继承 Git 子进程或读取变化后的环境。material 检查必须覆盖实际 API 与 clone route 的代理结果；有差异则拒绝该 session 并提示重新加载，不发 token。其 DNS/私网行为属于 legacy_http_default_v1，不伪称受 native CIDR 限制；新增 integration 仍采用原受限 HTTPS/DNS/CIDR transport。两者均在实际 dispatch/stream 扣同账本、复查 fence，无重定向。不会将不兼容地址静默切换到另一 profile；明确失败与真实兼容回归测试进入发布前验收。
+Go 侧 legacy transport 保留管理员配置的 HTTP/HTTPS 和其已激活代理选择；有效 proxy（含秘密）仅在 descriptor 私有内存，不写 scope/key/日志；请求使用同一固定代理，不能继承 Git 子进程或读取变化后的环境。material 检查必须覆盖实际 API 与 clone route 的代理结果；有差异则拒绝该 session 并提示重新加载，不发 token。此为新的legacy_fixed_session_v2；其DNS/私网授权范围沿管理员legacy配置，不伪称受native CIDR限制；新增integration仍采用原受限HTTPS/DNS/CIDR transport。两者均在实际dispatch/stream扣同账本、复查fence，无重定向。不会将不兼容地址静默切换到另一profile；明确失败与真实兼容回归测试进入发布前验收。
+
+### NTR-007：material 与实际 transport 同版本切换
+
+`legacy_http_default_v1`只表示现有旧reader及旧material；新scope/会话禁止使用该值。新增私有material producer `newLegacyFixedSessionMaterial`，严格固定struct字段顺序：Version整数2、TransportPolicy=`legacy_fixed_session_v2`、BaseURL=实际SDK base、Token=精确UTF8、Networks=[]、Proxy=对该base解析的有效代理字符串或空。token/proxy只参与原HMAC私有material，不存scope/公开DTO。沿既有32-byte安装HMAC key与generation CAS；不能复用旧producer再只改scope文案。
+
+新profile语义同时包含：SDK固定API base、捕获proxy供API与clone使用、禁止重定向、每次dispatch/stream和缓存复查fence、Git仅访问本地受控bridge且上游token只在Go内存。header/预算/资源限制仍沿对应合同。选择profile来自已验证服务端readiness/程序版本，非用户或HTTP参数；scope、descriptor、material与实际client任一profile不一致都零dispatch，不fallback v1。
+
+C3首次启用、Settings.Save、显式Reload及启动重建descriptor统一调用新producer；不能startup用v2、之后Save又写回v1。旧→新profile在URL/token完全相同时仍改变material，事务推进generation并隔离旧任务/outbox；generation耗尽按既有exhausted错误停止，不复位。新profile同实际输入重启/非凭据保存不推进generation。旧指纹仅作为迁移前状态比较，不作为v51授权；回滚须恢复一致程序/DB备份，不让v2降级v1继续旧任务。代理差异检查使用相同捕获resolver和实际route，clone需不同代理时拒绝，而不是借新代理重派旧token。
+
+新增验收：v1→v2同URL/token只推进一次，v2重启/模型保存不推进；Save/Reload不降级；API/clone记录的proxy确实相同、302零跟随、错误scope/material profile零dispatch、代理变化/耗尽/事务未知保持既有pending与恢复语义。现有v1测试不作为这些测试的替代。
 
 所有新 v51 run 的 comment/check 消费完整 v2 scope。legacy_gitlab 通过固定 generation/config 使用 GitLab publisher，integration 逐 reference 取集成凭据；不再通过 outbox native 字段 NULL 选择旧全局客户端。新任务共用 target/claim/未知回执协议。publication target 的唯一键以及 OwnedContentV1 的仓库字段使用 endpoint_key 替代 api_origin，版本1尚未生产启用，无需伪造线上投影迁移。旧 v50 outbox 新字段仍 NULL且仅历史协议，不能拿来授权新的外部写。
 

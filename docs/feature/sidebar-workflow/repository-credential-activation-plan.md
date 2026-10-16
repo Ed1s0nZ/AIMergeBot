@@ -6,6 +6,8 @@
 
 2026-10-16 NTR-006作者补充：[普通GitLab切换合同](repository-legacy-transition-contract.md)显式提出scope v2以表达旧HTTP/path-prefix及legacy transport，替代“不可表达时仅诊断”的最终交付策略；v1和native HTTPS binding语法不放松。C3须等全部新producer与publisher采用固定v2证明后启用，不能只接显式绑定项目。此为待复审合同，不是当前实现。
 
+NTR-007修订同见切换合同：正式C3使用新的material版本2/legacy_fixed_session_v2，固定proxy和无重定向的实际transport必须同时交付；旧legacy_http_default_v1仅历史/过渡期。startup/Save/Reload统一producer，profile变化推进generation，新profile无变化不推进，不能只改scope字符串而保留旧material。
+
 P6→P7/P8，F3细化；使用technical-plan-write和feature-lifecycle。目标为仓库凭据变更时，旧运行不会借新凭据继续读取/发布，配置回退不会复活旧凭据版本。保持配置兼容：不引入客户端/YAML counter，不用全局Settings.Revision作为凭据版本。单独Store协议只是S3依赖，直到Settings/启动/旧reader全部消费后才可称S3完成。
 
 实现前需按本计划复审。当前允许docs与隔离探针；不根据研究脚本直接开放恢复或native执行。新scope正式producer与PolicyVersion切换仍在S4。

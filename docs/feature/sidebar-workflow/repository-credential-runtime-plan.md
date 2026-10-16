@@ -14,6 +14,8 @@ Runner.Start先AcquireWorkerInstance再Recover/启动loop；这是激活器绑�
 
 NTR-006修订见[普通GitLab切换合同](repository-legacy-transition-contract.md)：C3 readiness必须包含普通未绑定GitLab的新任务producer，而非只有显式绑定项目；切换后的所有平台新任务统一v51/scope v2，legacy HTTP/path-prefix由专用endpoint union保持，不丢协议/前缀。旧v50不回填。此为待评审作者方案，不表示当前已启用。
 
+NTR-007要求C3选用material version2/legacy_fixed_session_v2及对应实际transport，startup/Save/Reload不混用旧producer；scope/descriptor/material profile不一致即拒绝，旧→新profile同URL/token也旋转代次。具体字段与验收见切换合同。
+
 | Slice | 模块/行为 | 必须证明 |
 | --- | --- | --- |
 | S3c1 | 私有context fence、upstreamTransport派发与响应body消费检查；DynamicRepository/DynamicAuditor捕获同一个激活descriptor；Git命令/cache检查 | 无ctx fence旧行为保持；pending/撤权时HTTP请求0、已发响应丢弃、buffer清除；真实动态读适配器不切新凭据继续旧操作；主审/复核/压缩实际HTTP共用检查 |
