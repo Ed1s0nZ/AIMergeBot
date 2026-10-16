@@ -59,6 +59,7 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | state | TEXT，必须 | admitting / active / closed / abandoned | 仅规定迁移可变更 |
 | session_epoch | INTEGER，必须 | 初始0；OpenSession条件递增、溢出拒绝 | 旧session无法退款或继续取额 |
 | admission_owner, admission_lease_until | TEXT，必须 | 随机owner/合法UTC时间，准入独占lease30s、每5s续期，且不超过准入deadline | 绑定根run后清空，不作为worker owner |
+| admission_seed_json, admission_seed_digest | TEXT可NULL，成对出现 | 仅已验证native hook job需恢复时，由服务端冻结非秘密AdmissionSeed；严格版本/64KiB/hash，不能含凭据 | 不给普通HTTP caller恢复handle；详细字段/回执关联见native publication合同 |
 | api_charged, git_charged, upload_charged, download_charged, requests_charged, match_cells_charged | INTEGER，必须 | 初始0，CHECK非负且不超过对应冻结limit；SQL条件扣减/CAS | 已消费或仍不确定的预留均保留计费；cells不是bytes |
 | created_at, updated_at | TEXT，必须 | 服务端UTC | 不用客户端时钟 |
 
@@ -82,6 +83,8 @@ run_id INTEGER PK/FK、budget_id TEXT FK，二者必须；根run绑定与INSERT�
 receipt不保存token、URL、响应或源码。终态receipt保留以拒绝矛盾重放，不能删除后再次退款。新增固定max_reservations=8192（required int64，v1只允许该值，纳入limits_json/digest和policy严格解码）；每次预留前同事务检查该预算累计行数，不能用1字节反复预留/退款制造无限行。正常byte grant必须等于min(1MiB、分类/整体可用余额、单响应剩余含探测字节)，不能由调用者任意缩小；只在耗尽或EOF时结算后再取下一grant。加入text_match receipt后，高端字节额度与大量小文件、多次retry组合可能先用尽receipt行数；各limit是独立上限，不保证能同时用满，必须明确输出accounting/coverage缺口，不能重置账本规避。是否需要调整8192须以完整S4压力数据决定，当前不宣称所有最大组合均能容纳。保留策略随run历史；abandoned且root_run_id为NULL的账本在所有lease/请求结束至少7天后可整组清理，不能只删receipt后复用counter。未结算receipt和counter必须事务一致。
 
 ## 准入→运行→重试生命周期
+
+N5的持久hook job是准入恢复的受限例外：同receipt、同seed/root/limits，原绝对deadline未到且旧admission lease已失效时，Store可CAS新owner并递增session_epoch，保留所有charged和unknown reservation；最多3次claim。只有private RecoverHookAdmission经job/worker实例/配置/全部权限验证可执行，不能凭budget ID通用重领。普通同步HTTP超时的admission仍不由客户端续租；旧owner永远不可Attach或退款。到绝对期限、配置变化、次数满或root已有run时禁止重领，不延长时钟/重置计量。该例外、seed和hook receipt原子Attach必须一起实施测试，不单改状态放宽准入。
 
 ```mermaid
 flowchart TD

@@ -2,6 +2,8 @@
 
 状态：F2/F3作者稿，待技术评审；不是生产许可。2026-10-16，codex/sidebar-workflow。输入为Confirmed requirements.md、repository-recovery-contract.md及S4、budget/API diff/resource三个具体合同、d8a0047网络反例。REQ-001–023/AC-001–021保持原范围；本文实现GitHub/GitLab与跨仓执行，不把邮件、工单、人工处置剩余工作抹除。
 
+最新N5细化见[repository-native-publication-contract.md](repository-native-publication-contract.md)：hook原body/delivery双键去重、异步队列及同budget恢复、跨run发布目标和未知回执、GitHub状态映射与context内容边界。GitLab固定对象probe已完成局部SDK/wire验证，见API diff合同；不是生产adapter或真实GitLab服务验收。后文“待补N5细节”的原作者记录以该补充为准，完整评审仍未执行。
+
 ## Workflow / Maintainability / Lifecycle Gate
 
 P6→P7/P8；已经取得固定scope、身份schema2、凭据激活/运行时fence、GitHub对象reader、网络协议/URI反例、有界matcher与资源边界。主要缺口是把准入、执行、工具、后台和发布全部接线。允许本轮写交接方案；代码仍须正式评审通过后实施，所有管理写入口保持现有501/只读到S5/S6验收。
@@ -145,4 +147,4 @@ schema3需要停止旧worker/HTTP并备份DB；旧程序应拒绝新schema。回
 
 ## 正式审查前尚需补齐
 
-本稿已把工厂、版本、消费者及失败矩阵列成可执行路径，但还不是完整批准：N5的hook receipt字段/外部协议细节及GitLab原始对象/分页协议受控证据仍需补齐。评审应对这些明确给出Pass/Fail，不凭现有局部探针或本文件长度批准开发。Linux逐进程增强暂缓，基础profile的真实能力不能被文案夸大。
+本稿和N5补充已定义工厂、版本、消费者、错误矩阵、receipt/发布目标字段与协议；GitLab局部wire证据已取得。完整方案仍需技术评审，特别检查admission seed跨崩溃恢复、两个outbox与目标generation、context内容边界、schema3和v50/v51的完整传播；评审明确Pass/Fail，不凭局部探针或本文件长度批准开发。Linux逐进程增强暂缓，基础profile不能被文案夸大。真实GitLab版本和外部写账号验收在后续验证阶段单列，不能拿fixture代替。
