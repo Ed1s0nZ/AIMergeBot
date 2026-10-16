@@ -110,8 +110,9 @@ func run() map[string]any {
 	backend := filepath.Join(mustGit(root, "--exec-path"), "git-http-backend")
 	var advertised, unsolicited atomic.Bool
 	var validURIResponse atomic.Value
-	var wrongAuth, fetchCommands atomic.Int64
+	var wrongAuth, fetchCommands, remoteRequests atomic.Int64
 	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteRequests.Add(1)
 		if r.Header.Get("Authorization") != "Bearer SYNTHETIC-LOCAL-CAPABILITY" {
 			wrongAuth.Add(1)
 			w.WriteHeader(http.StatusForbidden)
@@ -153,7 +154,7 @@ func run() map[string]any {
 	}))
 	defer remote.Close()
 	extra := []string{"GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=http." + remote.URL + "/.extraHeader", "GIT_CONFIG_VALUE_0=Authorization: Bearer SYNTHETIC-LOCAL-CAPABILITY"}
-	fetch := func(configure bool, options ...string) error {
+	fetchWithEnv := func(configure bool, environment []string, options ...string) error {
 		dir, mkdirErr := os.MkdirTemp(root, "consumer-*")
 		need(mkdirErr == nil, "consumer directory")
 		mustGit(dir, "init", "--bare", "--template=", dir)
@@ -162,11 +163,14 @@ func run() map[string]any {
 			mustGit(dir, "config", "fetch.bundleURI", uriOrigin+"/bundle.list")
 		}
 		args := append(append([]string{}, options...), "fetch", "--no-tags", "--no-recurse-submodules", remote.URL+"/fixture.git", sha)
-		_, fetchErr := command(dir, "", extra, args...)
+		_, fetchErr := command(dir, "", append(append([]string{}, extra...), environment...), args...)
 		if fetchErr == nil {
 			need(mustGit(dir, "show", sha+":evidence.txt") == "synthetic-uri-evidence", "fixed object contents")
 		}
 		return fetchErr
+	}
+	fetch := func(configure bool, options ...string) error {
+		return fetchWithEnv(configure, nil, options...)
 	}
 	// The server really advertises and can serve a pack outside the Git origin.
 	need(fetch(false, "-c", "fetch.uriprotocols=http") == nil, "packfile URI positive control fetch")
@@ -175,7 +179,10 @@ func run() map[string]any {
 	need(fetch(false) == nil && packRequests.Load() == positivePackRequests, "default fetch ignores advertised packfile URI")
 	// Independently prove configured fetch.bundleURI can reach a second origin.
 	need(fetch(false, "-c", "fetch.bundleURI="+uriOrigin+"/bundle.list") == nil, "bundle URI positive control fetch")
-	need(listRequests.Load() > 0 && bundleRequests.Load() > 0, "bundle positive control must download list and bundle")
+	// Older Git can accept the config but not implement fetch.bundleURI. Retain
+	// that capability gap rather than labelling its zero requests as a guard.
+	bundleFetchObserved := listRequests.Load() > 0 && bundleRequests.Load() > 0
+	need(listRequests.Load() == 0 && bundleRequests.Load() == 0 || bundleFetchObserved, "bundle fixture must not produce a partial positive control")
 	positiveListRequests, positiveBundleRequests := listRequests.Load(), bundleRequests.Load()
 	// Command-level empty values must override a polluted local config.
 	need(fetch(true, "-c", "fetch.uriprotocols=", "-c", "fetch.bundleURI=", "-c", "transfer.bundleURI=false") == nil, "explicit disabled URI fetch still reads complete content")
@@ -226,6 +233,7 @@ func run() map[string]any {
 	beforePack, beforeForward := packRequests.Load(), forwarded.Load()
 	need(fetch(false, append(append([]string{}, disable...), "-c", "http.proxy="+proxy.URL)...) != nil, "proxy rejects unsolicited HTTP URI fetch")
 	need(forwarded.Load() > beforeForward && deniedHTTP.Load() > 0 && packRequests.Load() == beforePack, "HTTP URI reaches proxy rejection rather than alternate origin")
+	forcedHTTPArrivals := packRequests.Load() - beforePack
 	var tlsConnections, tlsPackRequests atomic.Int64
 	tlsURI := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "" || r.Header.Get("Proxy-Authorization") != "" {
@@ -261,8 +269,91 @@ func run() map[string]any {
 	beforeTLS, beforeTLSRequests := tlsConnections.Load(), tlsPackRequests.Load()
 	need(fetch(false, append(append([]string{}, disable...), "-c", "http.sslCAInfo="+caPath, "-c", "http.proxy="+proxy.URL)...) != nil, "proxy rejects unsolicited HTTPS URI fetch")
 	need(deniedCONNECT.Load() > 0 && tlsConnections.Load() == beforeTLS && tlsPackRequests.Load() == beforeTLSRequests, "HTTPS CONNECT rejected before any alternate TLS connection")
+	// Reuse the exact valid HTTP response, replacing only its URI packet. Each
+	// case still starts from an empty consumer and reads the pinned blob on success.
+	replaceURI := func(uri string) {
+		validURIResponse.Store(bytes.Replace(replay, oldPacket, packet("\x01"+packHash+" "+uri+"\n"), 1))
+	}
+	_, port, splitErr := net.SplitHostPort(uriServer.Listener.Addr().String())
+	need(splitErr == nil, "alternate fixture port")
+	matrix := []map[string]any{}
+	for _, item := range []struct{ name, uri string }{
+		{"localhost", "http://localhost:" + port + "/object.pack"},
+		{"decimal_loopback", "http://2130706433:" + port + "/object.pack"},
+		{"encoded_loopback", "http://%31%32%37.0.0.1:" + port + "/object.pack"},
+	} {
+		replaceURI(item.uri)
+		beforeDirect := packRequests.Load()
+		directErr := fetch(false, disable...)
+		directArrivals := packRequests.Load() - beforeDirect
+		beforeGuard, beforeDeny, beforeFetch := packRequests.Load(), deniedHTTP.Load(), fetchCommands.Load()
+		guardErr := fetch(false, append(append([]string{}, disable...), "-c", "http.proxy="+proxy.URL)...)
+		need(guardErr != nil && packRequests.Load() == beforeGuard && fetchCommands.Load() > beforeFetch, "URI host variant does not bypass guarded fetch")
+		matrix = append(matrix, map[string]any{"case": item.name, "direct_fetch_succeeded": directErr == nil, "direct_pack_arrivals": directArrivals, "proxy_denials": deniedHTTP.Load() - beforeDeny, "guarded_pack_arrivals": packRequests.Load() - beforeGuard})
+	}
+	// This local file is the same synthetic pack already downloaded successfully
+	// over HTTP. No user file is used. Failure is a client observation, not proof
+	// that a forward proxy inspected file IO or that no open(2) was attempted.
+	replaceURI("file://" + packPrefix + "-" + packHash + ".pack")
+	fileDirectErr := fetch(false, append(append([]string{}, disable...), "-c", "protocol.file.allow=always")...)
+	fileGuardErr := fetch(false, append(append([]string{}, disable...), "-c", "http.proxy="+proxy.URL)...)
+	// FTP has a real, accepting loopback TCP endpoint. It closes immediately;
+	// positive control concerns the connection, not successful pack retrieval.
+	ftp, listenErr := net.Listen("tcp", "127.0.0.1:0")
+	need(listenErr == nil, "FTP connection fixture")
+	var ftpConnections atomic.Int64
+	ftpDone := make(chan struct{})
+	go func() {
+		defer close(ftpDone)
+		for {
+			connection, acceptErr := ftp.Accept()
+			if acceptErr != nil {
+				return
+			}
+			ftpConnections.Add(1)
+			connection.Close()
+		}
+	}()
+	defer func() { ftp.Close(); <-ftpDone }()
+	replaceURI("ftp://" + ftp.Addr().String() + "/object.pack")
+	_ = fetch(false, append(append([]string{}, disable...), "-c", "protocol.ftp.allow=always")...)
+	ftpPositiveConnections := ftpConnections.Load()
+	ftpDisabledErr := fetch(false, disable...)
+	need(ftpDisabledErr != nil && ftpConnections.Load() == ftpPositiveConnections, "disabled FTP makes no extra connection")
+	beforeFTPProxy := deniedHTTP.Load()
+	ftpProxyErr := fetch(false, append(append([]string{}, disable...), "-c", "protocol.ftp.allow=always", "-c", "http.proxy="+proxy.URL)...)
+	need(ftpProxyErr != nil && ftpConnections.Load() == ftpPositiveConnections, "forced proxy makes no direct FTP connection")
+	ftpProxyDenials := deniedHTTP.Load() - beforeFTPProxy
+	// Explicitly demonstrate why a forced proxy alone is insufficient if callers
+	// allow no_proxy through. This is a deliberate synthetic bypass control.
+	validURIResponse.Store(replay)
+	proxyOptions := append(append([]string{}, disable...), "-c", "http.proxy="+proxy.URL)
+	beforePolluted, beforePollutedForward := packRequests.Load(), forwarded.Load()
+	pollutedErr := fetchWithEnv(false, []string{"NO_PROXY=*", "no_proxy=*"}, proxyOptions...)
+	noProxyBypass := pollutedErr == nil && packRequests.Load() > beforePolluted && forwarded.Load() == beforePollutedForward
+	need(noProxyBypass, "NO_PROXY positive control actually bypasses forced proxy")
+	previousNoProxy, hadNoProxy := os.LookupEnv("NO_PROXY")
+	need(os.Setenv("NO_PROXY", "*") == nil, "synthetic parent environment")
+	defer func() {
+		if hadNoProxy {
+			_ = os.Setenv("NO_PROXY", previousNoProxy)
+		} else {
+			_ = os.Unsetenv("NO_PROXY")
+		}
+	}()
+	beforeClean, beforeCleanForward := packRequests.Load(), forwarded.Load()
+	cleanErr := fetch(false, proxyOptions...)
+	need(cleanErr != nil && packRequests.Load() == beforeClean && forwarded.Load() > beforeCleanForward, "whitelist child environment strips parent NO_PROXY")
+	// A failed proxy must not cause the client to retry the Git origin directly.
+	unsolicited.Store(false)
+	deadProxy := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	deadProxyURL := deadProxy.URL
+	deadProxy.Close()
+	beforeDead := remoteRequests.Load()
+	deadErr := fetch(false, append(append([]string{}, disable...), "-c", "http.proxy="+deadProxyURL)...)
+	need(deadErr != nil && remoteRequests.Load() == beforeDead, "unreachable proxy does not directly fallback to Git origin")
 	need(wrongAuth.Load() == 0 && uriAuth.Load() == 0, "credentials scoped to Git origin only")
-	return map[string]any{"synthetic_only": true, "git_version": mustGit(root, "--version"), "actual_packfile_uri_advertisement": advertised.Load(), "positive_packfile_uri_requests": positivePackRequests, "positive_bundle_list_requests": positiveListRequests, "positive_bundle_requests": positiveBundleRequests, "default_packfile_uri_zero_requests": true, "ordinary_server_config_override": true, "disabled_fetch_reads_fixed_content": true, "replayed_real_server_response": true, "unsolicited_fetch_succeeded": unsolicitedErr == nil, "unsolicited_packfile_uri_requests": unsolicitedPackRequests, "unsolicited_packfile_uri_bypasses_disable": unsolicitedPackRequests > 0, "forced_proxy_http_rejections": deniedHTTP.Load(), "forced_proxy_https_connect_rejections": deniedCONNECT.Load(), "forced_proxy_extra_http_requests": packRequests.Load() - beforePack, "forced_proxy_extra_tls_connections": tlsConnections.Load() - beforeTLS, "alternate_origin_authorization_headers": uriAuth.Load(), "production_adapter_tested": false}
+	return map[string]any{"synthetic_only": true, "git_version": mustGit(root, "--version"), "actual_packfile_uri_advertisement": advertised.Load(), "positive_packfile_uri_requests": positivePackRequests, "positive_bundle_list_requests": positiveListRequests, "positive_bundle_requests": positiveBundleRequests, "configured_fetch_bundle_uri_observed": bundleFetchObserved, "default_packfile_uri_zero_requests": true, "ordinary_server_config_override": true, "disabled_fetch_reads_fixed_content": true, "replayed_real_server_response": true, "unsolicited_fetch_succeeded": unsolicitedErr == nil, "unsolicited_packfile_uri_requests": unsolicitedPackRequests, "unsolicited_packfile_uri_bypasses_disable": unsolicitedPackRequests > 0, "forced_proxy_http_rejections": deniedHTTP.Load(), "forced_proxy_https_connect_rejections": deniedCONNECT.Load(), "forced_proxy_extra_http_requests": forcedHTTPArrivals, "forced_proxy_extra_tls_connections": tlsConnections.Load() - beforeTLS, "alternate_origin_authorization_headers": uriAuth.Load(), "host_variant_matrix": matrix, "file_uri_direct_fetch_succeeded": fileDirectErr == nil, "file_uri_guarded_fetch_succeeded": fileGuardErr == nil, "ftp_permitted_positive_connections": ftpPositiveConnections, "ftp_disabled_extra_connections": ftpConnections.Load() - ftpPositiveConnections, "ftp_permitted_proxy_denials": ftpProxyDenials, "no_proxy_pollution_bypasses_forced_proxy": noProxyBypass, "whitelist_environment_stops_parent_no_proxy": true, "dead_proxy_zero_direct_fetch": true, "production_adapter_tested": false}
 }
 
 func main() {

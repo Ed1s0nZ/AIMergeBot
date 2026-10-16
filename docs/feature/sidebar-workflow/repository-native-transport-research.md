@@ -10,6 +10,33 @@
 
 最新资源证据见[Git资源实测](repository-git-resource-research.md)（35a2285）；基于该证据的[资源合同草稿](repository-resource-contract.md)明确监控基线和平台增强的区别。该草稿仍列有跨重启所有权、wrapper装配和matcher等交接缺口，不批准完整S4生产实施；本文件下方各阶段CI描述为当时观察，不是最新实时状态。
 
+## 额外URI/代理绕过矩阵：本轮结果
+
+2026-10-16，仍为F2隔离研究；仅修改scripts/probes/git_uri_egress.go及说明，正常Go包不含ignore脚本，主Go/TS/依赖未变。最终源码实际执行：
+
+- 本机：`go run -race scripts/probes/git_uri_egress.go > /tmp/aim-uri-matrix-darwin-20261016.json`，exit0，无race，Git2.50.1 Apple Git-155。
+- Linux：`CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /tmp/aim-uri-probe-linux-20261016 scripts/probes/git_uri_egress.go`，exit0；只读挂载该临时binary到本地Docker已存在研究镜像sha256:1f1ddfb87f57b061e019f2f1c4a4b77aba29a09d6cd2a4aa4951cc53e1001ba4运行，exit0/stderr0，Git2.39.5。Unix daemon固定本地socket；network none（允许容器内部loopback），只读root、nonroot10001、cap-drop ALL/no-new-privileges、256MiB/32pids/1CPU、64MiB noexec tmpfs；外层120s timeout和唯一container清理。本轮不是应用部署，未挂载项目或真实凭据。Linux未启用Go race，不借Mac结果声称Linux race通过。
+
+| 案例 | Apple2.50.1 | Debian2.39.5 | 可得结论 |
+| --- | --- | --- | --- |
+| 成功CGI响应重放，URI配置关闭 | 固定fetch成功，额外pack1次 | 相同 | 关闭协商不阻止被动消费 |
+| 原HTTP额外地址/HTTPS | proxy拒绝各1；HTTP到达0、TLS连接0 | 相同 | 这两条明确经过proxy的负例成立 |
+| localhost/十进制IPv4/百分号IPv4三种host | 各直接成功/pack1；guard各拒绝1/到达0 | 相同 | 不把无效URL或恒零捕获算拦截 |
+| file指向同一合成真实pack | 允许file时直接fetch仍失败；guard也失败 | 相同 | 只证明未完成读取；不声称proxy检查了file或没有open syscall |
+| FTP主动允许的TCP正对照 | 连接1，server立即关闭 | 相同 | 捕获有效，不声称FTP pack已成功 |
+| FTP按默认protocol拒绝 | 额外连接0 | 相同 | 协议限制在本案例有效 |
+| FTP主动允许但强制proxy | proxy拒绝1，额外TCP0 | 相同 | 另一层明确代理拦截 |
+| 显式子进程NO_PROXY/no_proxy=* | fetch成功且绕过proxy，到达额外pack | 相同 | **仅设置http.proxy仍不够，白名单环境是必要条件** |
+| 父进程NO_PROXY污染，子进程白名单 | proxy收到并拒绝，额外pack0 | 相同 | 当前实验构造环境能剥离污染 |
+| proxy端口关闭 | 失败，Git origin所有HTTP请求0 | 相同 | 没观察到直接fallback，不只数fetch命令 |
+| 配置fetch.bundleURI | list/bundle各1 | 两项0，记录capability=false | 不能把旧版本未观察下载当保护通过 |
+
+首次Linux运行因沿用“必须下载bundle”的Apple单版本前提而exit1，不是网络隔离通过。修正为显式capability观察，部分bundle/list仍失败；保留Linux0/Apple1差异，不隐藏缺失的正对照。最终双平台源码均已重新执行成功。首次FTP denial统计意外包含后续HTTP测试计数；已在FTP调用后立即冻结为1，并最终双平台复现，旧2次不作证据。原HTTP强制proxy统计也在该案例结束冻结，避免随后故意NO_PROXY正对照污染“额外到达0”口径。
+
+固定[Git2.50.1 http.c](https://github.com/git/git/blob/v2.50.1/http.c)的get_curl_allowed_protocols和get_curl_handle说明：helper的curl协议集合按Git传输策略选择HTTP/HTTPS/FTP/FTPS，显式proxy分支仍设置环境NO_PROXY/no_proxy。它支持本轮实验解释，不替代2.39实测，也不扩展为所有版本保证。[Git2.40 release notes](https://github.com/git/git/blob/v2.40.0/Documentation/RelNotes/2.40.0.txt)仅提供bundle子系统演进背景，不从该文推断所有旧版本行为。
+
+清理核对aim-uri-matrix-前缀无遗留容器；生成binary/JSON/诊断仅在/tmp、不提交。根`go list ./...`仍为原7包；最终代码还需当前精确CI追踪。前一代码/设计70debaa1200971835fb33b30d743023b900665b3的CI38851677498已查询completed/success，不取消旧验证。本轮没有运行未变的应用全量测试，不把应用CI当独立probe验收。完整S4网络gateway/预算/资源和provider消费者尚待合并设计，UAR-001不关闭。
+
 2026-10-16，codex/sidebar-workflow，F2研究；承接Confirmed requirements及repository-recovery-implementation-plan.md的S4。目的为闭合原生factory依赖，不缩减默认Git工具链或改成永久API-only产品。尚不是完整F3实施许可。
 
 ## Workflow / Maintainability Gate

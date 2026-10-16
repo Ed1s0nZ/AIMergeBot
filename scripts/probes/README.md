@@ -72,7 +72,10 @@ origin and an experimental fixed forward proxy. Verified locally with Apple Git
 2.50.1 (Apple Git-155); other versions require their own evidence. It is excluded
 from normal packages by its build tag and is not executed by application CI.
 
-Positive controls must download a pack and a bundle/list. The normal server path
+Positive controls must download a pack. Configured fetch.bundleURI is reported
+separately: Apple Git 2.50.1 downloads the bundle/list; Debian Git 2.39.5 in the
+tested fixture does not. That absence is a capability observation, not proof of
+bundle protection. A partial bundle/list control fails the probe. The normal server path
 then checks empty command-level URI settings against a polluted local config,
 and reads the expected fixed blob. A malicious server path replays the complete
 successful CGI response, including correct sideband framing, to a client which
@@ -88,8 +91,30 @@ fixture CA and a successful direct-download control; TLS connection counts avoid
 mistaking certificate failure for network isolation. The reported zero extra
 HTTP requests/TLS connections applies only to these cases. No production factory,
 bridge assembly, OS sandbox, filesystem or malicious-pack resource isolation is
-validated. File/other URI schemes, proxy bypass variations and a supported Git
-version matrix remain separate work.
+validated.
+
+The extended matrix replays the same real response with localhost, decimal
+loopback and percent-encoded loopback HTTP authorities. Each can download the
+pack directly; the fixed proxy rejects them without a pack-origin arrival.
+An actual synthetic pack file URI fails to complete fetch even with file
+protocol enabled; this is not a syscall-level claim that no local file was
+opened. A loopback FTP connection succeeds when explicitly permitted, is not
+made when protocol policy denies it, and is rejected by the proxy when FTP is
+deliberately permitted for the control.
+
+An intentional child NO_PROXY/no_proxy `*` control **bypasses the forced proxy**.
+The whitelist child environment then strips a polluted parent NO_PROXY and
+restores denial. A dead proxy yields zero Git-origin requests; no direct fallback
+is observed. Exit zero includes these counterexamples and must not be called
+"all proxy settings are safe". The JSON reports each positive control and denied
+case separately; the parent process environment is restored on exit.
+
+The matrix also ran as a CGO-disabled Linux/arm64 binary under the existing
+isolated Debian fixture image with Git 2.39.5, nonroot, no network, read-only root
+and bounded tmpfs. Only that temporary binary was mounted, never the project,
+configuration or credentials. Native -race and Linux no-race are distinct proof.
+Other versions, URI/userinfo/parser variations and production gateway/OS
+isolation remain separate verification; two Git builds are not all-platform proof.
 
 
 ## API text matching candidate
