@@ -54,7 +54,9 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | purpose | TEXT，必须，无隐式默认 | audit/scope_preview/codeowners/publication/poll/diagnostic，服务端固定；未知拒绝 | audit才允许Attach根run；辅助profile见repository-native-execution-plan.md |
 | related_run_id | INTEGER FK run，可NULL | 仅辅助查询已授权历史run时设置；不是root_run_id | 不授予重开/执行历史run或退款权限 |
 | root_run_id | INTEGER UNIQUE FK run，可NULL | 准入时NULL；根run INSERT同事务绑定，之后不可改 | 无run的准入也有消耗记录 |
-| project_id, actor_id | INTEGER，必须正值 | 启动准入时授权；actor不可由HTTP body伪造 | 保留原发起者，不随retry改派 |
+| project_id | INTEGER，必须正值 | 启动准入时授权，内部项目ID | 不随retry改派 |
+| principal_kind, actor_id | TEXT必须user/service；INTEGER FK users可NULL | user必须正actor_id；service必须NULL；CHECK强制二选一 | run.requested_by为0仅兼容service序列化，不是预算授权凭证 |
+| principal_json, principal_digest | TEXT必须，严格版本1/<=8192bytes/64hex SHA256 | 服务端私有principal构造器生成；JSON与principal_kind/actor_id/project/purpose一致，恢复重新授权 | 不接受HTTP/模型直接提供，不伪造管理员；root/retry不可换principal |
 | limits_json, limits_digest | TEXT，必须 | 严格有限JSON与SHA256；入队后匹配冻结policy | 不热更新、不从当前Settings重算 |
 | state | TEXT，必须 | admitting / active / closed / abandoned | 仅规定迁移可变更 |
 | session_epoch | INTEGER，必须 | 初始0；OpenSession条件递增、溢出拒绝 | 旧session无法退款或继续取额 |
@@ -64,6 +66,16 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | created_at, updated_at | TEXT，必须 | 服务端UTC | 不用客户端时钟 |
 
 ### platform_run_repository_budgets（新增）
+
+#### Principal JSON v1（NTR-001修订）
+
+严格union，无未知/重复key；IDs采用规范正int64十进制字符串，version为整数1。user对象仅{version,kind:"user",actor_id}，必须与列actor_id相等；每次操作按其真实账号当前角色/disabled与全部snapshot范围验证，查不到actor拒绝，不降service。
+
+service对象仅{version,kind:"service",source,project_id,binding_revision,integration_revision,receipt_id?,run_id?}。source有限hook/poll/automatic_comment；hook必须且仅带receipt_id，验证已验签receipt的project/provider/冻结版本、预算关联，准入阶段需其processing claim，执行阶段需admitted且run_id为该预算根run；自动child通过同预算祖先证明。poll不得带receipt_id/run_id，准入需当前EnablePolling和绑定/集成project scope，之后以已验证根预算与scope、项目启用/凭据scope为授权；automatic_comment必须且仅带run_id，限publication purpose，原run.requested_by=0且能追溯其有效hook/poll根principal、当前发布opt-in，不能把已撤权的普通user run转换为service发布。
+
+所有service构造只允许对应已验证内部入口、当前worker实例和冻结配置；actor_id=NULL不单独授予权限。绑定/凭据/关联集合/项目权限撤销仍立即fence；Webhook/Poll触发开关关闭阻止新准入，不凭此改写已授权run的历史主体。模型或无关outbox配置变化不改变principal身份。purpose/source不兼容、无关联receipt、伪造HTTP service字段、缺原principal或版本矛盾均零远端dispatch/入队。保存的digest只检查结构一致性，不冒称签名或替代授权。旧v50 actor=0不回填service证明。
+
+预算表必须使用CHECK((principal_kind='user' AND actor_id IS NOT NULL AND actor_id>0) OR (principal_kind='service' AND actor_id IS NULL))，并保留actor FK；不能用0绕过FK或创建假admin。Attach将user写真实requested_by、service写兼容0，同时保存上述原根principal；worker/自动retry/auxiliary均消费该记录，不能从requested_by=0推断可信后台权限。
 
 run_id INTEGER PK/FK、budget_id TEXT FK，二者必须；根run绑定与INSERT在同事务，自动retry child绑定同budget_id且先验证现有retryBudgetAncestors固定身份/digest/序号。不得给同run换账本；一个根budget只能对应一条无分叉retry链。显式followup/新人工run创建新budget，不能挪用旧grant。
 

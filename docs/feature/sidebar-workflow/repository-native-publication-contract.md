@@ -66,12 +66,43 @@ Store的native enqueue与receipt.admitted/run_id/claim fence必须同一个SQL�
 | --- | --- | --- |
 | id/kind | INTEGER PK；comment/check | 服务器产生；kind不是客户端开关 |
 | project_id/provider/api_origin/remote_id/number/namespace/head_key | 当前授权远端身份；namespace现有安装随机值；head_key comment为空、check为完整HEAD | 复合unique；binding/credential revision变更不丢弃同远端对象身份；远端repo变化使用新目标 |
-| desired_run_id/generation | FK/正int64 | 同PR最新run仲裁后CAS更新；generation不回退；native outbox绑定该generation |
+| desired_run_id/generation | FK/正int64 | 同PR最新run仲裁后CAS更新；generation不回退；native outbox绑定该generation；不覆盖claimed字段 |
+| claimed_run_id/claimed_target_generation/claimed_outbox_generation | FK/正int64，可NULL且成组 | claim前NULL；发送前同事务冻结当前run、target代次及per-run outbox代次；sending/unknown期间不可被新desired覆盖 |
 | state/remote_object_id/remote_author_kind/remote_author_id | uncreated/ready/sending/unknown/conflict；可NULL正ID；user/app | 未ack前不伪造remote ID；GitHub检查记录真实回执app ID，评论记录真实author user ID；不能仅凭公共marker认领别人对象 |
-| ack_hash/attempted_hash | 可NULL SHA256 | 使用确切有限request bytes；含run/generation/HEAD身份；不同generation不能碰巧同body |
+| projection_version/ack_hash/attempted_hash | INTEGER固定1/可NULL SHA256 | 哈希对象为下文OwnedContentV1，不是HTTP JSON bytes；attempt含冻结run/generation/HEAD，unknown期间保留 |
+| expected_author_user_id | 可NULL正int64 | GitHub评论首次写前若GET /user已核实则保存；NULL不授予unknown创建自动认领能力，不能从候选反推 |
 | claim_owner/claim_until/updated_at | TEXT/UTC | 与per-run outbox claim同事务；发送期限20s、租约60s；过期sending变unknown，不能直接reclaim为一次新创建 |
 
 claim时同时锁目标与outbox、复查当前desired generation/全部snapshot权限及配置。网络在事务外，写前再次fence；已dispatch后失去权限/代次时记录unknown，不称“未发送”。native caller使用冻结reference的remote ID/凭据，不走全局GitLab client。已知remote object GET确认身份后才更新；404/作者或marker矛盾是conflict，不自动另建。
+
+### 冻结attempt与新desired（NTR-003修订）
+
+native outbox增加native_claimed_target_generation（nullable正int64），与现有claimed_generation（该outbox的本地代次）分开；claim同时复制到target.claimed_*，freeze attempted_hash及projection version，然后才允许外部写。另增private native_claim_token（nullable随机32-byte hex），每次发送/只读reconcile claim新生成，target.claim_owner使用同token，不能复用Runner实例owner；worker实例租约仍另外验证。两个outbox及target同事务比较该token，防止同实例、同attempt重领后的迟到回调借新租约通过。
+
+queue新run/同run新复核只更新desired及native_target_generation；不修改active claimed_*、attempted_hash或native_claimed_target_generation。target sending/unknown时不能为新desired另起POST；只读reconcile可换claim token但不能换原attempt三元组。legacy行native字段NULL，原claimed_generation/claim_owner协议不变。
+
+Finish/只读reconcile必须匹配冻结的claimed run/target/outbox三元组、当前claim owner/租约和attempted hash，结算的是原attempt。新desired已经推进时，旧attempt仅更新自己的已发送回执和target最后ACK，不能标新desired完成；随后只为仍有效的最新desired排新pending。若原outbox已有更新desired_generation，只推进其sent_generation到旧claimed值，不能设sent_generation=最新值。unknown保留三元组供新reconcile owner读取，新owner不得重新生成旧attempt内容或把它改成最新run。
+
+target只有在原attempt已ACK/可证明只读对账后才回ready；未确认的更新可能迟到，保持unknown并阻止新写。丢失owner的迟到回调不能覆盖新claim；不能因当前desired与原attempt不同而丢弃旧unknown再新建目标。测试A正在发送→B排队→崩溃→A回执/GET对账，只允许A完成，B仍需自己claim。
+
+### OwnedContentV1：对账对象（NTR-002修订）
+
+使用固定字段顺序的内部struct JSON、UTF8、SetEscapeHTML(false)、去Encoder末尾单个LF后SHA256。projection<=128KiB，strings禁止NUL/非法UTF8；仅renderer首次生成时规范输出LF，**对GET返回的body不再次换行/空白/Markdown归一化**。响应JSON字段顺序、额外id/app/timestamp不参与哈希；缺必须字段拒绝，不用zero-value假成功。未来version未知拒绝，不借新版本另建目标。
+
+共同字段：version=1、kind、provider、api_origin、remote_id、namespace、project_id、number、head_sha、run_id、generation，类型为整数version及其余规范string（ID为正十进制、SHA/namespace按固定长度小写hex）。target的固定repo身份来自已验证请求上下文；其余身份必须由remote marker/external_id精确解析并与冻结claimed三元组匹配。不是从任意候选字段自动信任身份。
+
+- comment额外字段仅body(string，含首行精确marker及完整正文，<=32KiB)。marker为<!-- aimangebot-native:v1:<namespace>:<project>:<number>:<run>:<generation>:<head> -->，各段不能包含分隔符/额外空白。producer用该body构造POST/PATCH {body}；GET从原始body解析相同marker并构造projection，另核对comment ID、author及issue_url属于被冻结repo/PR。额外HTML渲染/反应数不参与hash。
+- check额外字段name/status/conclusion/details_url/output_title/output_summary/output_text。name固定安装/PR上下文，head_sha必须匹配目标；external_id使用同一marker字段组的无HTML前缀字符串。queued/in_progress的conclusion为null，completed必须为有限合法值。details_url/output_text在意图本来为空时允许远端缺省/null等价为空；其它必须字段缺失拒绝。GET从external_id、head_sha及output构造projection；create body可带head_sha而PATCH省略它，二者仍能比较同一个拥有内容。started_at/completed_at不参与拥有内容hash，不因服务端时间格式规范化破坏对账。
+
+producer意图、ACK与GET使用同一projection函数和版本。每个ACK先验证HTTP状态、ID/repo/HEAD/author或app及owned字段，再存ack_hash；unknown对账只能将remote projection和已持久attempted_hash比较。不能把整个远端响应JSON hash当作原请求hash，也不从当前新reviews重建旧attempt再称为已发送内容。语义字段任何差异保持unknown/conflict；纯额外响应字段/JSON重排不应改变结果。
+
+### 首次创建的作者依据（NTR-004修订）
+
+GitHub评论在首次intent前用当前冻结token GET /user，结果必须是可核实正ID，成功则在目标存expected_author_user_id；后续credential revision变更时也须重新查询并与已有expected/ACK作者一致，不能默默切换作者认领旧评论。此GET计入publication读取预算，错误正文不得返回。
+
+某些token种类不能通过该接口核实主体时，明确记录作者未核实：可以在用户已启用发布的前提下进行一次有界create，只有完整201回执中的正ID/准确body/author可作为ACK后身份；**创建回执丢失且expected_author_user_id为NULL时禁止列表自动认领**，保持unknown供人工核对。不能从列表第一个匹配marker的author设置expected再自证。若expected已存在，则首次201作者必须相同，否则unknown/conflict，不能覆盖expected。
+
+Check首次创建的app ID同样不能从公共external_id推导；完整ACK可记录真实app ID，未知创建且无先验可信app身份保持unknown，不为“恢复闭环”假装支持所有token/App类型。已有可信remote ID的GET更新对账仍须匹配原ACK app ID。S6诊断分别显示读能力、写权限、作者已核实与结果未知；has_secret/token保存不代表这些状态已通过。
 
 unknown create没有可信remote ID时不自动再POST。评论仅在完整有界列表中找到唯一“同已核实author+精确namespace/PR+attempted body hash”的对象时可只读对账；无/多候选或不完整分页仍unknown。Check Runs若没有可核实app身份，公共external_id/name不足以认领，保持unknown并人工核对。已知ID的unknown更新可读核对精确attempted hash后确认已应用；仍为前一ack hash时不能证明迟到请求不会应用，因此不盲PATCH。没有显式可靠恢复语义的路径保持禁用，不增加“强制重试创建”按钮。
 

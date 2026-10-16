@@ -32,6 +32,8 @@ native准入只走专用EnqueueRepositoryAdmission内部接口，持有完整adm
 
 Factory调用形状：BeginAdmission(ctx,principal,internalProject,number)→Admission；Capture生成固定Snapshot/policy；Store专用入队事务Attach；OpenRun(ctx,run,workerOwner)→Session；OpenAuxiliary(ctx,purpose,run,principal)→AuxiliaryRead。错误只含有限分类；Close幂等、等待自身监督任务并保留cleanup失败。不能把返回的Repository单独缓存到全局跨run复用。
 
+NTR-001修订：预算持久化principal_kind/user actor或service source证明，service的actor_id为NULL并使用严格版本化principal JSON，不能与原“actor必须正值”冲突。requested_by=0只是run兼容载体，worker/auxiliary需沿原根principal验证；普通HTTP无权提交service。具体union、SQL CHECK和各source恢复约束见budget合同。
+
 ## 固定身份与PR观察
 
 1. Store预查target启用、永久identity kind、绑定revision、集成enabled/revision/project scope和principal；创建同一次admission账本。远端调用不在DB事务内。
