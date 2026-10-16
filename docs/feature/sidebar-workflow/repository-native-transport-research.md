@@ -1,5 +1,13 @@
 # S4前置研究：原生Git网络与整次审计预算
 
+## 网络出口矩阵实验输入（2026-10-16）
+
+当前P6/F2；本轮承接原真实pack URI响应重放和固定proxy反例，允许仅扩展scripts/probes/git_uri_egress.go隔离实验，不改生产transport/runner/依赖或开放仓库绑定。维护gate：该probe约276行，单一协议实验；复用真实成功CGI response及fetch fixture，避免新建生产代理壳。用户“没想清楚先不实现”继续适用。
+
+待验证：同一额外HTTP捕获端的localhost/数值地址写法、file URI指向仅本实验生成的真实pack、FTP指向仅回环TCP捕获器；每项区分“客户端本来不支持”与“proxy实际拒绝”，不能将恒零捕获当保护证据。增加关闭proxy后零直接fallback、NO_PROXY污染的显式反例与正常白名单环境对照。绝不指向真实用户文件、外网、SSH agent或任意已有命令；仅合成对象/临时目录/本地listener，不输出URI原值/本机路径或raw Git错误。
+
+在不启动新部署的前提下，可用已验证本地Unix Docker、现有隔离Linux研究镜像及CGO_ENABLED=0交叉编译probe，比较实际发行版Git与本机Apple Git。容器不联网、不挂载项目/凭据，仅只读挂载单个临时probe二进制，非root、cap-drop、只读root和有限tmpfs；运行/清理仅本次唯一name。结果只覆盖实际Git/curl组合，不宣称所有版本、所有scheme或OS沙箱。
+
 最新资源证据见[Git资源实测](repository-git-resource-research.md)（35a2285）；基于该证据的[资源合同草稿](repository-resource-contract.md)明确监控基线和平台增强的区别。该草稿仍列有跨重启所有权、wrapper装配和matcher等交接缺口，不批准完整S4生产实施；本文件下方各阶段CI描述为当时观察，不是最新实时状态。
 
 2026-10-16，codex/sidebar-workflow，F2研究；承接Confirmed requirements及repository-recovery-implementation-plan.md的S4。目的为闭合原生factory依赖，不缩减默认Git工具链或改成永久API-only产品。尚不是完整F3实施许可。
