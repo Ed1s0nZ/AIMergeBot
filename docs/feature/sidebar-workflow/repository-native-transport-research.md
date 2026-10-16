@@ -1,5 +1,7 @@
 # S4前置研究：原生Git网络与整次审计预算
 
+最新资源证据见[Git资源实测](repository-git-resource-research.md)（35a2285）；基于该证据的[资源合同草稿](repository-resource-contract.md)明确监控基线和平台增强的区别。该草稿仍列有跨重启所有权、wrapper装配和matcher等交接缺口，不批准完整S4生产实施；本文件下方各阶段CI描述为当时观察，不是最新实时状态。
+
 2026-10-16，codex/sidebar-workflow，F2研究；承接Confirmed requirements及repository-recovery-implementation-plan.md的S4。目的为闭合原生factory依赖，不缩减默认Git工具链或改成永久API-only产品。尚不是完整F3实施许可。
 
 ## Workflow / Maintainability Gate
