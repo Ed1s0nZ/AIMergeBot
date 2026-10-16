@@ -16,7 +16,7 @@ Linux容器仍是现有部署方式之一，不强制所有用户改用Linux/Doc
 
 ## 对象和字段边界
 
-本稿暂不提出新增持久表或产品设置，不引入“资源已隔离”布尔权限。沿用schema3预算根、当前worker owner/lease及session_epoch；工作区是其短期资源。跨重启的root所有权回执尚未定案，不能由这句话推断仅内存状态已经足够。以下为拟议内部对象，尚未实现：
+本稿不新增持久表或产品设置，不引入“资源已隔离”布尔权限。沿用schema3预算根、当前worker owner/lease及session_epoch；工作区是其短期资源。跨重启选择隔离遗留目录，不自动重领/删除旧root，也不按PID杀进程；因此不需要伪造“租约过期即进程退出”的持久证明。以下为拟议内部对象，尚未实现：
 
 | 对象/字段 | 类型/必须/来源 | 所有者、校验及兼容 |
 | --- | --- | --- |
@@ -50,7 +50,17 @@ stateDiagram-v2
 - 前后校验原budget/owner/epoch/全部ACL/凭据fence。返回stdout/更新cache/写最终结果前完成后置扫描及fence；不能先把输出交给模型再发现已撤权或磁盘超限。
 - 停止后先拒绝新命令并关本session网络route，再取消/等待自有命令及监督任务，之后删除自有root。cleanup可重复；删除失败记录有限code并隔离该root，不吞错、不计为成功释放。
 - 自动retry仍用原网络账本；新epoch不复用旧root，也不能以清理为由退款。旧epoch不能继续读/返回输出/清理新root。上一个root未清理可追踪为隔离遗留，不得隐形排除在宿主容量检查之外。
-- 多worker并发各有root；不能用每run阈值推导整宿主配额。启动及新session前对账自有root：不删除仍有有效worker实例/epoch的目录；确认过期后清理。若同机旧任务是否仍活着不可判定，保留隔离，不按目录年龄盲删。具体receipt/本机owner对账随S4 worker装配实现，不给任意文件名授予清理权限。
+- 多worker并发各有root；不能用每run阈值推导整宿主配额。启动及新session只登记未知root为隔离遗留，**不自动删除或重领任何前一进程的目录**。正常退出只清理当前进程实际创建、仍在私有registry中且已等待命令退出的root。DB租约不是OS进程退出证明，manifest、目录年龄和PID也不授予删除/kill权限。
+
+### 重启与遗留目录的可执行规则
+
+基础profile采用同安装隔离父目录：os.TempDir下固定前缀加现有comment installation namespace的SHA256 hex（完整64位，不存原值）；namespace读取失败则准备失败，不能换随机父目录隐藏遗留。父目录必须是当前OS用户所有的真实目录、权限0700且不是symlink；校验失败拒绝使用，不chmod/接管未知既有目录。具体跨平台owner检验在能力诊断中确认；不能证明私有性则拒绝该Git资源模式，不影响历史报告查看或API-only。
+
+root使用MkdirTemp在该父目录创建随机子目录，0700。只允许当前进程创建成功后注册；最多16个active（沿worker上限），父目录最多64个子root（含隔离遗留），超出时停止新Git准备并返回cleanup pending。根条目计数流式、有界；未知条目/类型一律隔离，不遍历其内容或跟随链接。容量Statfs已包含遗留、甚至已unlink但仍打开文件占用，不能以只扫active目录声称宿主有空间。
+
+每个新root写0600、<=2048-byte owner.json，字段version=1、budget_id（64hex）、run_id（正int64十进制字符串）、session_epoch（正int64）、created_at（服务端UTC）、state（open/closed/quarantined）；不存token、URL、PID或源码。创建顺序：验证DB session→创建root→写临时manifest并rename→私有registry注册→再复查session→允许Git。任一步失败均尚无Git可执行；只删除本次已知自创目录，失败则留隔离。manifest供诊断而非授权；缺失/坏JSON/多字段/超限保持unknown，不根据内容删除他人的root。
+
+进程崩溃后新worker仍按原budget计量，但使用新root/epoch；旧root不复用，旧进程无法通过原Go gateway/fence获得新的读取额度。不能据此声称旧Git进程已退出或释放全部资源。离线运维确认遗留目录无进程写入后才清理；不提供自动killall、任意路径删除或把manifest当成进程身份的便利按钮。普通失败在同一存活进程内按实际command handle取消/等待/清理，能正常retry；只有跨崩溃且无退出证明的资源留待诊断。该保守恢复不会阻止有足够容量和目录额度的新任务，连续崩溃耗尽目录额度时明确要求处理遗留。
 
 ## 工作区扫描、异常与容量
 
@@ -64,7 +74,9 @@ stateDiagram-v2
 
 ## 平台增强：Linux逐进程限制
 
-候选使用发行版util-linux的固定可信prlimit绝对路径，仅包裹Git子进程；不对Go服务调用setrlimit，不用root/CAP_SYS_RESOURCE，不设置按UID计数的NPROC或无效RSS限制。正式镜像若采用此profile，Dockerfile显式安装并验证依赖；不从PATH自动执行未知wrapper。
+第一版正式基础profile为monitored，含本稿明确的输入/输出/网络/工作区监督与进程组wall取消；它符合确认需求的真实预算/覆盖反馈，不声称进程硬隔离。Linux rlimit属于候选增强，不作为尚未验证便必须启用的发布前提；它仍是后续优化项，不能显示为已实现能力。
+
+增强候选使用发行版util-linux的固定可信prlimit绝对路径，仅包裹Git子进程；不对Go服务调用setrlimit，不用root/CAP_SYS_RESOURCE，不设置按UID计数的NPROC或无效RSS限制。未来镜像若采用此profile，Dockerfile显式安装并验证依赖；不从PATH自动执行未知wrapper。
 
 提案：AS=512MiB，CPU soft=hard=min(30,向上取整剩余run秒数)，FSIZE=workspaceThresholdBytes，NOFILE=min(256,继承hard值)，CORE=0。它们分别约束单进程虚拟地址空间、CPU、单文件、FD和core；多个helper的总RAM/CPU、全部文件仍不受单进程限额等价保护。512MiB为待压力验证的兼容值，实验只证明256MiB下小型Git正常，不能由此声称正式候选值对大pack足够。
 
@@ -100,8 +112,8 @@ API模式维持每侧256KiB/2000行、hunk512KiB/文件与整次8MiB、受限cac
 
 | 项目 | 现在可确定的事实 | 必须补齐的交接内容 |
 | --- | --- | --- |
-| 跨重启工作区所有权 | 现有worker lease只证明DB写授权，过期不证明OS子进程已退出 | root→budget/run/epoch/实例的持久回执、文件系统与DB先后顺序、崩溃窗口及自有进程退出证明；不能凭过期lease或PID数字盲删/杀进程。该内容在完整S4方案定案，必要时明确schema3新增对象，不伪称本稿已有完整恢复实现 |
-| Linux增强额度/装配 | 实验中256MiB/2s的小型Git成功；正式512MiB/30s仅提案 | 正式支持版本、可信wrapper路径/诊断协议和大输入兼容验证；不能把实验小值直接当可交付默认 |
+| 跨重启工作区所有权 | 已选择新root/epoch和遗留隔离，manifest只诊断，禁止自动重领/删除未知目录 | 按上文文件/registry顺序实现和故障注入；当前进程实际handle退出后才清理，不伪造跨崩溃进程证明 |
+| Linux增强额度/装配 | 实验中256MiB/2s的小型Git成功；正式512MiB/30s仅提案；基础profile为monitored | 增强暂缓启用，未来需可信wrapper/支持版本/大输入验证；基础profile诊断不得显示硬限制已生效 |
 | API matcher CPU/ctx | d8948ce的有界LCS已验证可取消及共享工作量，旧库保持对照 | 正式adapter及根预算预扣、并发串行、重启/retry传承和coverage传播；局部probe不是生产CPU硬quota |
 | 公开反馈传播 | 当前结果有Notes/coverage，但新有限错误尚未接线 | 明确现有结果字段与失败/partial映射、TS文案、检查规则及导出消费者；不能只增加code字符串 |
 

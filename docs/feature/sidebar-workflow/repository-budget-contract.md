@@ -51,6 +51,8 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | 字段 | 类型/必须 | 创建/校验/所有者 | 生命周期 |
 | --- | --- | --- | --- |
 | id | TEXT PK，32字节随机hex，必须 | 服务端生成；不作为授权凭证、不放URL | 一次准入及其根run的账本 |
+| purpose | TEXT，必须，无隐式默认 | audit/scope_preview/codeowners/publication/poll/diagnostic，服务端固定；未知拒绝 | audit才允许Attach根run；辅助profile见repository-native-execution-plan.md |
+| related_run_id | INTEGER FK run，可NULL | 仅辅助查询已授权历史run时设置；不是root_run_id | 不授予重开/执行历史run或退款权限 |
 | root_run_id | INTEGER UNIQUE FK run，可NULL | 准入时NULL；根run INSERT同事务绑定，之后不可改 | 无run的准入也有消耗记录 |
 | project_id, actor_id | INTEGER，必须正值 | 启动准入时授权；actor不可由HTTP body伪造 | 保留原发起者，不随retry改派 |
 | limits_json, limits_digest | TEXT，必须 | 严格有限JSON与SHA256；入队后匹配冻结policy | 不热更新、不从当前Settings重算 |
@@ -171,6 +173,12 @@ HTTP/Git整链必须用真实CGI/受控API验证：上传/下载并行预留不�
 4. 所有后台准入、重试、结束后读取与发布消费者如何获得正确op；session_epoch的schema/映射与原worker lease交互需要在实施计划逐点列出调用方。
 
 这些尚未完成，故本文件不批准生产开发；完整用户目标保持进行中。本轮仅写设计，不调用模型/真实平台/邮件或机器人，不合并main。
+
+### 完整消费者接线补充
+
+[repository-native-execution-plan.md](repository-native-execution-plan.md)具体定义v50/v51并存、Factory admission/session、真实Git对象工具兼容、native gateway、辅助读取profile及所有消费者/失败状态矩阵。辅助purpose不是另给原audit根续额；limits按各purpose严格校验，AuditPolicy只冻结audit公式。scope_preview只取catalog，所有辅助op的text_match_cells/per_text_match_cells=0；publication/codeowners/poll/diagnostic的Git/upload=0。它们的owner_kind=admission、run_id=NULL、root_run_id=NULL，related_run_id只作已授权关联；关闭后不可Attach或借给worker。此补充改变的是未实施schema3设计，历史schema2/v50不回填purpose或统计。
+
+资源恢复已选择当前进程自有handle清理、跨崩溃遗留隔离/新root，不再把“跨重启精准kill所有后代/自动回收任意旧目录”当成已确认产品前提；具体边界见resource合同。Linux硬限额增强暂缓启用；监控基线必须如实呈现。正式实现仍需整体方案评审，不因本补充允许先落未接入ledger。
 
 
 ## 本轮设计检查记录

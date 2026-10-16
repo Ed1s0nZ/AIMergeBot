@@ -1,5 +1,7 @@
 # 仓库身份与恢复：F3实施计划
 
+2026-10-16 S4交接：完整工厂/版本/消费者与失败矩阵作者稿见[repository-native-execution-plan.md](repository-native-execution-plan.md)，具体预算/API/resource合同与真实探针为输入。以下S1–S6表是原始依赖序列，不表示今天尚未开始S1，也不表示S4已获完整批准；已实施片段以对应implementation记录和代码为准。管理写入口当前只读/501，必须按S4–S6完整场景验收后开放。
+
 - Feature: 原生GitHub/多仓固定身份与UAR-001恢复。
 - Branch: codex/sidebar-workflow。
 - Confirmed input: requirements.md；设计repository-recovery-contract.md；F2审查technical-review-2026-10-08-repository-recovery-3.md @532db69 Pass。
