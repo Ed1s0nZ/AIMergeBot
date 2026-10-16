@@ -117,3 +117,16 @@ The candidate has no mid-match context interruption; recorded microseconds are
 local observations, not a runtime guarantee. Normal application CI excludes
 this nested module; invoke it explicitly. Full tree/PR/provider/budget/BuildDiff
 integration remains separate verification.
+
+## Child resource capabilities
+
+```sh
+python3 scripts/probes/resource-limits/probe.py --docker
+```
+
+See [resource-limits/README.md](resource-limits/README.md) for prerequisites,
+cleanup and exact scope. This experiment compares native child rlimits with a
+local nonroot Linux container and actual Git under prlimit. Exit zero is not a
+cross-platform guarantee: Darwin address-space and hard CPU enforcement gaps
+are retained in the result. Single-file limits intentionally do not constrain
+aggregate workspace size. No production executor is changed or validated.
