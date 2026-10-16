@@ -32,7 +32,9 @@ scope v1 保持原校验、原字节语义和历史查看，不能重新解释�
 
 legacy reference 仍要求登记 kind=legacy/health=valid、identity_revision 一致、binding_revision=0、provider=gitlab、remote_id=内部项目 ID；project API 返回 ID 与真实 path_with_namespace 必须匹配。本次 prospective 远端验证可以证明新任务，不依赖不存在的历史 origin 登记。full_name 仅路由元数据，不代替 ID。internal/repair_required/已有绑定的项目不能借 legacy union 逃回全局凭据。
 
-每个 v2 reference 派生 `EndpointKeyV1`：固定 struct JSON `{version:1,provider,api_base_url}`，UTF8、固定字段顺序、无尾 LF；≤4608 bytes。api_base_url 来自对应 SDK 的真实 API base（integration 由其规范 origin 构造，legacy 使用上表）；仅 endpoint key 中将 scheme/主机小写、去其对应默认端口，IPv6 保留括号；path 大小写、转义和尾斜杠严格保留，不 decode/clean。派生 key 不修改发送 URL。等价的 HTTPS-root legacy/native GitLab 取得相同 key；不同有效前缀不会混仓。测试以同版 SDK 构造出的 wire URL 证明这些规则，不能只测字符串。
+每个 v2 reference 派生 `EndpointKeyV1`：固定 struct JSON `{version:1,provider,api_base_url}`，UTF8、固定字段顺序、SetEscapeHTML(false)、无尾 LF；≤4608 bytes。**key里的api_base_url使用实际请求构造器的有效前缀，不直接采用SDK BaseURL().String()**：GitLab用固定配置构造同版SDK，调用NewRequest(GET,"",nil,nil)（仅构造、零网络）的URL.String()；integration GitLab用规范origin同样构造；GitHub按现有requestURL构造规则使用规范origin+"/"。scope legacy_endpoint.api_base_url仍保存原SDK BaseURL以核对配置，两字段用途不同。
+
+仅派生key时将scheme/主机小写、去对应默认端口，IPv6保留括号；请求构造器返回的path/escaping/尾斜杠不再手工decode或path.Clean，也不改实际发送URL。这样既保留SDK确实区分的前缀，又合并SDK已经发送为同一前缀的编码别名。等价HTTPS-root legacy/native GitLab key相同。SDK升级若改变请求构造语义，必须复验key与material并按传输版本规则迁移，不从BaseURL字符串猜wire身份。
 
 远端身份比较使用 `(provider, endpoint_key, remote_id)`，不使用空 api_origin 作仓库键。scope target/source 必须 endpoint_key 相同，context 可不同；同远端不得映射到两个内部 ACL ID，source/context 重复必须全 reference 一致。key 为派生公开地址信息，不是 secret hash；API/错误仍不外泄内部 endpoint，日志用有限分类。
 
@@ -48,7 +50,7 @@ Go 侧 legacy transport 保留管理员配置的 HTTP/HTTPS 和其已激活代�
 
 ### NTR-007：material 与实际 transport 同版本切换
 
-`legacy_http_default_v1`只表示现有旧reader及旧material；新scope/会话禁止使用该值。新增私有material producer `newLegacyFixedSessionMaterial`，严格固定struct字段顺序：Version整数2、TransportPolicy=`legacy_fixed_session_v2`、BaseURL=实际SDK base、Token=精确UTF8、Networks=[]、Proxy=对该base解析的有效代理字符串或空。token/proxy只参与原HMAC私有material，不存scope/公开DTO。沿既有32-byte安装HMAC key与generation CAS；不能复用旧producer再只改scope文案。
+`legacy_http_default_v1`只表示现有旧reader及旧material；新scope/会话禁止使用该值。新增私有material producer `newLegacyFixedSessionMaterial`，严格固定struct字段顺序：Version整数2、TransportPolicy=`legacy_fixed_session_v2`、BaseURL=SDK BaseURL、EffectiveAPIBaseURL=上述NewRequest空相对路径构造出的真实有效前缀、Token=精确UTF8、Networks=[]、Proxy=对该有效前缀解析的有效代理字符串或空。token/proxy只参与原HMAC私有material，不存scope/公开DTO。沿既有32-byte安装HMAC key与generation CAS；不能复用旧producer再只改scope文案。
 
 新profile语义同时包含：SDK固定API base、捕获proxy供API与clone使用、禁止重定向、每次dispatch/stream和缓存复查fence、Git仅访问本地受控bridge且上游token只在Go内存。header/预算/资源限制仍沿对应合同。选择profile来自已验证服务端readiness/程序版本，非用户或HTTP参数；scope、descriptor、material与实际client任一profile不一致都零dispatch，不fallback v1。
 
@@ -104,3 +106,5 @@ scope/endpoint 随不可变 run policy 生命周期保留，不到期删除身�
 ## 本次作者修订的验证记录
 
 Go1.27.2 本地执行 `go test ./internal/platform -run '^TestLegacyCredentialMaterial(UsesEffectiveSDKEndpoint|RejectsLossyAndSecretErrors)$' -count=1 -v`，exit 0，两测试通过。覆盖真实SDK BaseURL作为material来源、HTTP/path大小写、尾斜杠、token/代理变化与脱敏；测试构造客户端但不请求真实服务。此证据不证明拟议EndpointKeyV1的wire路由、scope v2或startup已实现。sonic在该Go版本回退encoding/json，测试正常结束。文档另执行diff空白与相对链接检查。
+
+后续实际wire探针scripts/probes/legacy_sdk_endpoint.go以当前SDK v0.90.0和本机TLS fixture证明：编码dash/slash的BaseURL字符串不同，但实际请求相同；大小写前缀及encoded-dot仍不同。NewRequest空相对路径的有效前缀与8种实际GetProject请求一致。`go run -race`、`go vet`均exit0。这修正了原“直接BaseURL作key”的假设；不声称服务端会进一步怎样归一化路径，禁止自行path.Clean合并dot。尚未提交的生产codec尝试已撤回，主Go/TS没有此片变化；新key规则仍须复审后再集成。

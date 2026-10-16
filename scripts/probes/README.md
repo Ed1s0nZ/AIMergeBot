@@ -199,6 +199,20 @@ used. In particular, accepting 64-character OIDs in this fixture does **not**
 prove SHA-256 support in every real GitLab version. Normal application CI
 excludes ignore probes; run these commands explicitly.
 
+## Legacy SDK endpoint identity
+
+```sh
+GOTOOLCHAIN=go1.27.2 go run -race scripts/probes/legacy_sdk_endpoint.go
+GOTOOLCHAIN=go1.27.2 go vet scripts/probes/legacy_sdk_endpoint.go
+```
+
+This ignore-tag probe uses only synthetic TLS requests with the current GitLab
+SDK. Distinct `BaseURL` strings can produce the same wire prefix for encoded
+dash/slash paths. Path case and encoded-dot remain distinct. Constructing an SDK
+request with an empty relative path yields the effective prefix observed in all
+eight actual project requests. No real GitLab account or repository is used;
+this is evidence for the proposed endpoint-key rule, not a production adapter.
+
 ## Child resource capabilities
 
 ```sh
