@@ -59,7 +59,7 @@ compare只可提供经固定观察验证的merge-base等元信息；其files/pat
 
 ## 行匹配与hunk渲染候选
 
-拟固定github.com/pmezard/go-difflib v1.0.0，只使用NewMatcher/GetGroupedOpCodes(3)的成熟行匹配，不直接采用GetUnifiedDiffString输出。已读[该tag源码](https://github.com/pmezard/go-difflib/blob/v1.0.0/difflib/difflib.go)：writer原样拼接输入行，不能直接保证无末尾换行文件的Git sentinel语义；其buffer Flush错误也不作为调用返回。主go.mod当前未新增此依赖，go.sum已有校验不代表已经正式依赖或验收。
+拟固定github.com/pmezard/go-difflib v1.0.0，只使用NewMatcherWithJunk(base, head, false, nil)/GetGroupedOpCodes(3)的行匹配；默认NewMatcher的autojunk已被下文实测否决，不可用于PR行锚，不直接采用GetUnifiedDiffString输出。已读[该tag源码](https://github.com/pmezard/go-difflib/blob/v1.0.0/difflib/difflib.go)：writer原样拼接输入行，不能直接保证无末尾换行文件的Git sentinel语义；其buffer Flush错误也不作为调用返回。主go.mod当前未新增此依赖，go.sum已有校验不代表已经正式依赖或验收。
 
 纯适配器需：
 
@@ -110,3 +110,25 @@ matcher正反例性能/依赖检查；GitLab固定raw对象及SHA256协议证据
 ## 行匹配候选实测输入（2026-10-16）
 
 沿用F2/P6 gate，仅允许scripts/probes/text-diff独立module对固定go-difflib v1.0.0做合成验证；不修改主依赖或生产reader。夹具需覆盖空/新增删除/CRLF/Unicode/无末尾LF及仅LF变化，生成patch由实际Git apply --check/apply还原到目标bytes；对简单确定case检查Added/Removed行号。重复1999行中间一个修改必须额外比较默认autojunk与关闭heuristic，不能仅证明patch能apply就声称PR锚精确。按2000行/256KiB边界记录开销，取消不启动遗留计算goroutine。库不具ctx中断的局限继续记录，结果不自动批准生产采用或完整API模式。所有文件/命令在临时合成目录，禁止读取用户repo或调用真实平台/模型。
+
+
+## 候选实测结果：默认autojunk不能作为PR行锚
+
+独立scripts/probes/text-diff模块固定go-difflib v1.0.0，主go.mod/go.sum无变化；实际Go1.27.2本机Git2.50.1，合成目录和文本，无真实仓库/平台/模型访问。
+
+- 默认autojunk=true：1999行“same”重复内容中只改第1000行，输出1000行added和1000行removed。patch能由Git apply正确还原，但会把大量本来相同的尾部行列为修改，故仅验证patch可用不足以证明PR审计精度。提案从NewMatcher改为显式false的NewMatcherWithJunk，不能将此默认模式直接生产接入。
+- autojunk=false：相同case只标added=[1000]/removed=[1000]；简单替换只标两侧第2行；两者都由真实Git apply还原到精确head bytes。
+- 自定义有界渲染13个明确case通过：空/不变、增删、CRLF/只改行尾、Unicode、无末尾LF和仅末尾LF变化等；另64个固定seed的重复/空白/类似hunk header内容、混合行尾随机case全部由真实Git apply还原。未用生产BuildDiff或API reader，不能据此宣称pipeline验收完成。
+- 原库直接writer在无末尾LF的old→new case不能通过Git apply还原；不能直接用该writer产生审计hunk。probe补齐无末尾LF标记，限额错误不输出部分成功。
+- 最终-race运行exit0，无race；重复1999行精确模式342653微秒，2000行120-byte稠密替换2390微秒。此前独立非race观测分别169033/704微秒，只是该输入/本机的观测，不是最坏时延或SLA。取消预检查和输入行/byte/NUL/UTF8拒绝通过；库本身不支持匹配中途ctx终止，仍不能用goroutine超时掩盖残留计算。
+- 独立模块govulncheck@v1.8.0 -show verbose ./... exit0，扫描此module、固定library和Go1.27.2；reachable/package/module均未发现漏洞。扫描时点结果不是未来无漏洞保证，主module未加依赖。
+
+选择边界收窄为“显式关闭autojunk的matcher+保留LF的自定义有界renderer”；需后续生产adapter/完整双树/覆盖映射测试及资源设计后才能实施。此研究不关闭S4/S5/S6或UAR-001。raw writer/默认启发式失败属于未接入候选的反例，不是当前生产已发生的误报。
+
+
+### GitLab raw对象协议的资料核对
+
+[官方Repositories API](https://docs.gitlab.com/api/repositories/#retrieve-raw-blob-content)明确提供GET /projects/:id/repository/blobs/:sha/raw按blob SHA取得原始bytes；同页说明普通base64 blob响应可能先把非UTF8内容转码，size仍是原始size。因此原始对象hash验证与文本分类必须基于raw endpoint，不从转码后的JSON内容假称原始证据。接口文档仅将sha定义为字符串，没有据此证明所有GitLab版本都支持64位SHA；SHA256、权限/限额、分页及异常响应仍需受控协议测试，不把本次资料核对计为实际provider验收。批量blob仍处beta，当前方案不为省请求引入该接口。
+
+
+最终渲染校验还拒绝Git apply --verbose报告的offset/fuzz；已用同一正确patch故意把hunk起点+1做正/负对照：允许offset时Git可还原，严格模式拒绝。因此77组还原不会借Git偏移校正掩盖错误坐标。最终-race命令exit0，精确重复行338593微秒、2000行稠密替换1894微秒；均为单次本机观测。最终source的govulncheck仍exit0/无漏洞，未使用抑制。一次gofmt调用误带根目录相对路径，未格式化该文件；正确module目录下gofmt完成，实际Go执行与最终检查以成功命令为准。

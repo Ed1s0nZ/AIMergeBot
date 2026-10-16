@@ -90,3 +90,30 @@ HTTP requests/TLS connections applies only to these cases. No production factory
 bridge assembly, OS sandbox, filesystem or malicious-pack resource isolation is
 validated. File/other URI schemes, proxy bypass variations and a supported Git
 version matrix remain separate work.
+
+
+## API text matching candidate
+
+```sh
+cd scripts/probes/text-diff
+go run -mod=readonly -race .
+go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -show verbose ./...
+```
+
+This separate module pins go-difflib v1.0.0 without changing application
+dependencies. It creates synthetic files and asks actual local Git to apply the
+generated patches and compare exact target bytes. Offset/fuzz correction is
+rejected, with a shifted-hunk positive/negative control. It checks 13 named cases,
+64 deterministic mixed-text cases, simple line anchors, repeated-line precision,
+CRLF/Unicode/empty content, missing final LF, input/output bounds, and pre-cancel.
+All temporary files are removed; no remote repository or model is accessed.
+
+The default autojunk heuristic can label 1000 lines added/removed for one edit
+in a 1999-line repetitive file while still producing a valid patch. The precise
+candidate explicitly disables autojunk. The raw library writer's no-final-LF
+failure is recorded as a negative control. Exit zero means the experiment ran,
+not that defaults are appropriate or the production API adapter is complete.
+The candidate has no mid-match context interruption; recorded microseconds are
+local observations, not a runtime guarantee. Normal application CI excludes
+this nested module; invoke it explicitly. Full tree/PR/provider/budget/BuildDiff
+integration remains separate verification.
