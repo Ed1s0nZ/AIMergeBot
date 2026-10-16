@@ -1,5 +1,11 @@
 # API模式固定双树差异合同（F2设计）
 
+## GitLab固定对象协议实验输入（2026-10-16）
+
+P6/F2研究，沿Confirmed需求；已核对现有SDK v0.90.0的ListTree/RawBlobContent及生产metadataEntries。允许新增ignore-tag的scripts/probes/gitlab_objects.go，只用当前依赖、临时真实SHA1/SHA256仓库和本机TLS GitLab协议fixture，不改生产reader/工厂/入口。维护风险low：单独协议探针，不向Runner或现有repository.go叠加解析分支。完整factory与N5协议仍待补齐，不从实验许可推断生产可开放。
+
+用真实Git生成100+项目录、regular/executable/symlink/gitlink/空blob/无效UTF8原始blob，对照固定commit+path分页和固定OID raw endpoint。重点验证：64位SHA不会在SDK路径层被截断；raw bytes能按对象格式重算OID；单体/共享传输限制不会被SDK bytes.Buffer绕过；缺页/重复/错误ref/hash拒绝；取消和错误脱敏。fixture只证明客户端兼容规定wire形状，**不证明所有真实GitLab版本支持SHA256或权限配置**。生产实现还须独立协议/集成验收，不新增真实服务请求或数据导出。
+
 ## 可取消匹配器实验输入（2026-10-16）
 
 本轮仍P6/F2研究，沿Confirmed需求和用户“没想清楚先不实现”。已有go-difflib行锚/无损渲染证据，但该候选不能匹配中途ctx取消；本轮允许仅修改独立scripts/probes/text-diff模块，不修改主依赖、生产reader/factory、仓库管理入口或运行合同。实现许可仅为合成算法探针，不能扩大为S4批准。
