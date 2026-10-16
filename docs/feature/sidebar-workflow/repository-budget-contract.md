@@ -53,6 +53,7 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | project_id, actor_id | INTEGER，必须正值 | 启动准入时授权；actor不可由HTTP body伪造 | 保留原发起者，不随retry改派 |
 | limits_json, limits_digest | TEXT，必须 | 严格有限JSON与SHA256；入队后匹配冻结policy | 不热更新、不从当前Settings重算 |
 | state | TEXT，必须 | admitting / active / closed / abandoned | 仅规定迁移可变更 |
+| session_epoch | INTEGER，必须 | 初始0；OpenSession条件递增、溢出拒绝 | 旧session无法退款或继续取额 |
 | admission_owner, admission_lease_until | TEXT，必须 | 随机owner/合法UTC时间，准入独占lease30s、每5s续期，且不超过准入deadline | 绑定根run后清空，不作为worker owner |
 | api_charged, git_charged, upload_charged, download_charged, requests_charged | INTEGER，必须 | 初始0，CHECK非负且不超过冻结limit；SQL条件扣减/CAS | 已消费或仍不确定的预留均保留计费 |
 | created_at, updated_at | TEXT，必须 | 服务端UTC | 不用客户端时钟 |
@@ -74,7 +75,7 @@ run_id INTEGER PK/FK、budget_id TEXT FK，二者必须；根run绑定与INSERT�
 | state | TEXT，必须 | open / settled / charged_unknown；只允许open到后两者 |
 | created_at, settled_at | TEXT/TEXT可NULL | 服务端UTC；审计顺序 |
 
-receipt不保存token、URL、响应或源码。终态receipt保留以拒绝矛盾重放，不能删除后再次退款；行数受512请求和有限bytes/grant限制，保留策略随run历史而非循环积累无界。未结算receipt和counter必须事务一致。
+receipt不保存token、URL、响应或源码。终态receipt保留以拒绝矛盾重放，不能删除后再次退款。新增固定max_reservations=8192（required int64，v1只允许该值，纳入limits_json/digest和policy严格解码）；每次预留前同事务检查该预算累计行数，不能用1字节反复预留/退款制造无限行。正常byte grant必须等于min(1MiB、分类/整体可用余额、单响应剩余含探测字节)，不能由调用者任意缩小；只在耗尽或EOF时结算后再取下一grant。最大4096MiB Git+32MiB API、8MiB上传及512次请求的正常消费在该行数边界内，仍需压力测试验证。保留策略随run历史；abandoned且root_run_id为NULL的账本在所有lease/请求结束至少7天后可整组清理，不能只删receipt后复用counter。未结算receipt和counter必须事务一致。
 
 ## 准入→运行→重试生命周期
 
@@ -103,6 +104,8 @@ Recover/FailAndRetry与child映射在现有事务内完成，不能先写child�
 ## 预留/读取/结算协议
 
 1. 在任何HTTP dispatch前先进行已有scope/ACL/凭据/lease检查，再事务验证账本状态/owner/epoch并扣request=1；提交成功才可dispatch。请求receipt不退款，构造失败也保守计费，不能靠错误请求获得免费重试。
+request reservation在收到响应并关闭body后以used=1标settled，关闭只释放并发slot、不退款请求计数。只有当前有效session的open request计入parallel_requests；更换session先把旧open标charged_unknown，不能因为旧owner永不结算而永久占据新session的slot；旧owner后续任何grant/结算都被epoch和run lease拒绝。请求并发和预算累计次数是两个不同计数。
+
 2. 请求体只接受有限内存体或受控reader。upload-pack体先有界构造到最多1MiB，派发前预留其完整长度；实际写入不超过预留。API必须GET无体；不转发caller cookies/headers或跟随redirect。禁止自动压缩，响应Content-Encoding非空且非identity直接拒绝，不能在账本外解压。
 3. 响应stream申请最多1MiB grant，同时扣download及api/git分类。SQL检查used+requested<=limit，溢出前先比较limit-used。并发grants的总和也已计入counter，所以任一时刻承诺可读取的bytes不会超过整体额度。
 4. 每次Read buffer不超过本grant未消费部分、单响应剩余额度与64KiB；Read返回n即增加内存consumed，错误/撤权后丢弃的n也计费。probe超限的额外1字节同样要先预留，不能免费peek。每次消费前后沿现有fence检查，不将DB授权观察解释为已派发网络可瞬间撤回。
@@ -140,7 +143,7 @@ Recover/FailAndRetry与child映射在现有事务内完成，不能先写child�
 
 ## 验收与实施依赖（尚未执行）
 
-预算本身必须真实SQLite/Close-Open/双连接并发验证：只剩一次请求时16个并发reserve仅1个成功；总/分类bytes一起扣；跨4个context不增额；退款相同重放一次、矛盾重放零退款；lost commit/settlement错误/owner切换保守计费；过期admission不能attach；重启/recover/child不重置；强制child插入失败时映射/事件回滚；旧schema拒绝；v51缺字段/unknown/重复key/映射缺失零网络；v50历史不被重写。
+预算本身必须真实SQLite/Close-Open/双连接并发验证：只剩一次请求时16个并发reserve仅1个成功；8192行满后新预留拒绝、旧行矛盾退款不被当作可复用位置；总/分类bytes一起扣；跨4个context不增额；退款相同重放一次、矛盾重放零退款；lost commit/settlement错误/owner切换保守计费；过期admission不能attach；重启/recover/child不重置；强制child插入失败时映射/事件回滚；旧schema拒绝；v51缺字段/unknown/重复key/映射缺失零网络；v50历史不被重写。
 
 HTTP/Git整链必须用真实CGI/受控API验证：上传/下载并行预留不超承诺量，grant边界/limit+1/EOF不假成功，错误/撤权/超时后已有bytes不免费；API-only>300文件、fork及上下文共享；正常固定SHA/SHA256、本地Git工具与额外HTTP/CONNECT拒绝；运行后CODEOWNERS/发布明确独立op而不污染旧统计。还需有观测数据评估1MiB grant和SQLite串行写的开销，再决定是否调整常量；不能先宣称性能最优。
 
@@ -154,3 +157,10 @@ HTTP/Git整链必须用真实CGI/受控API验证：上传/下载并行预留不�
 4. 所有后台准入、重试、结束后读取与发布消费者如何获得正确op；session_epoch的schema/映射与原worker lease交互需要在实施计划逐点列出调用方。
 
 这些尚未完成，故本文件不批准生产开发；完整用户目标保持进行中。本轮仅写设计，不调用模型/真实平台/邮件或机器人，不合并main。
+
+
+## 本轮设计检查记录
+
+已对照当前audit_retry.go（最多2个自动child）、retry_model_budget.go（固定祖先身份对账）、worker_lease.go（30s实例lease与5s心跳）、repository_scope_json.go（最多4个context）以及现有Git/API限额核对。提出的持久预算没有被假装成现有功能；上述自动重试传承与旧v50边界均有明确记录。轻量git diff --check通过；本轮没有实现或运行预算测试，前文验收仍是待执行清单。
+
+writer提交ba1dc89已推送；后续本补充仅修正设计中的receipt行数上限、session_epoch字段位置与并发slot回收规则。上一研究代码b2cd0bd的CI38844119652查询仍in_progress，未借旧成功续期；本文文档变更不改变其受测源码。
