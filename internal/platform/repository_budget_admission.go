@@ -276,7 +276,17 @@ func (s *Store) endRepositoryBudgetAdmission(ctx context.Context, h repositoryBu
 	if row.state == "closed" || row.state == "abandoned" {
 		return nil
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE platform_repository_budget_reservations SET state='charged_unknown',settled_at=? WHERE budget_id=? AND owner_kind='admission' AND owner=? AND lease_epoch=? AND state='open'`, now(), h.id, h.owner, h.epoch); err != nil {
+	if err = s.endRepositoryBudgetAdmissionTx(ctx, tx, h); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return budgetAccountingError(ctx)
+	}
+	return nil
+}
+
+func (s *Store) endRepositoryBudgetAdmissionTx(ctx context.Context, tx *sql.Tx, h repositoryBudgetAdmission) error {
+	if _, err := tx.ExecContext(ctx, `UPDATE platform_repository_budget_reservations SET state='charged_unknown',settled_at=? WHERE budget_id=? AND owner_kind='admission' AND owner=? AND lease_epoch=? AND state='open'`, now(), h.id, h.owner, h.epoch); err != nil {
 		return budgetAccountingError(ctx)
 	}
 	state := "closed"
@@ -286,9 +296,6 @@ func (s *Store) endRepositoryBudgetAdmission(ctx context.Context, h repositoryBu
 	result, err := tx.ExecContext(ctx, `UPDATE platform_repository_budgets SET state=?,admission_owner='',admission_lease_until='',updated_at=? WHERE id=? AND state='admitting' AND admission_owner=? AND session_epoch=?`, state, now(), h.id, h.owner, h.epoch)
 	if err = budgetAffectedOne(ctx, result, err); err != nil {
 		return err
-	}
-	if err = tx.Commit(); err != nil {
-		return budgetAccountingError(ctx)
 	}
 	return nil
 }
