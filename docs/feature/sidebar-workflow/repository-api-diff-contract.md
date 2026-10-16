@@ -1,5 +1,15 @@
 # API模式固定双树差异合同（F2设计）
 
+## 可取消匹配器实验输入（2026-10-16）
+
+本轮仍P6/F2研究，沿Confirmed需求和用户“没想清楚先不实现”。已有go-difflib行锚/无损渲染证据，但该候选不能匹配中途ctx取消；本轮允许仅修改独立scripts/probes/text-diff模块，不修改主依赖、生产reader/factory、仓库管理入口或运行合同。实现许可仅为合成算法探针，不能扩大为S4批准。
+
+对照候选为标准最长公共子序列动态规划（[MIT课程原始材料](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2008/resources/lec20/)），不fork不可取消的第三方库。采用原始行token、精确相等、去除确定相同前后缀，再对中间区域计算完整LCS；重建最小增删脚本，不用超时后的“整片替换”fallback。算法实现为本项目研究代码，不能称为MIT/第三方维护的库。
+
+拟验证：两侧仍各2000行/256KiB；每file DP最多4000000 cell，uint16完整表最多(2001×2001×2)=8008002 bytes。按行检查ctx和共享工作量，单次未检查循环<=2000个整数cell；backtrace和渲染另检查ctx。行内容精确intern后DP只比整数，避免内层反复比较长字符串。共享cell预算候选32000000（多个文件同实例、不自动重置）；不足/取消丢弃整个该文件hunk，错误不能降成空diff。该预算不是OS CPU硬限额，也不是已经持久化的run预算。
+
+维护gate：现有main.go约271行，IO/oracle与renderer混合；新候选独立bounded_lcs.go，新增研究测试单独文件，不往原matcher插取消goroutine。仅抽出原renderer接受opcodes，原库对照继续运行，保留默认启发式反例。验收：原77组真实Git apply且拒绝offset/fuzz、重复单行精确锚、带长公共前缀的不同长行/反向/交错/完全替换、穷举短序列与独立oracle最小编辑距离、确定性中途取消、共享预算耗尽、输入/输出上限、内存和cell计数。超时不得遗留worker goroutine。性能仅观测，不宣称SLA；通过后再修订正式matcher选型及完整预算传播。
+
 2026-10-16；codex/sidebar-workflow；输入为Confirmed requirements.md的语言无关PR审计、REQ-007/012/020、AC-007/018，以及repository-recovery-contract.md、repository-budget-contract.md和S4计划。当前不是已实现API-only原生审计，也不是完整S4开发许可。
 
 ## Workflow / Maintainability Gate
