@@ -103,3 +103,8 @@ Go后端生产代码自定向和完整测试起未再改变。Go全量platform12
 删除的是尚未发布且当前不可执行的HTTP mutation handler与其旧成功合同，底层Store协议/迁移/CAS/receipt/sync回归保持；新增真实HTTP测试证明全库行hash、文件和内存配置完全不变。schema无变化，无新增启用flag。新字段已沿Go projection→JSON→TS type/predicate→页面→Node/HTTP测试及CI传播，旧/malformed能力响应默认关闭。浏览器过程中发现并实际修掉了error冒充empty及旧多平台引导文案，不以源码推测代替最终页面证明。
 
 本片可提交功能分支并独立验收精确HEAD CI，不合并main/部署。全功能仍不可合并声明完成：UAR-001只缓解新的写入口陷阱，既有绑定审计/身份恢复、S4–S6、UAR-002/004及完整REQ/AC仍open。没有以收起功能替代完整最终目标。
+
+
+### 提交/CI追踪
+
+ea25ab59f56507a4fc629713f38a55774f8f9299已推送codex/sidebar-workflow。[精确代码CI38847438292](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38847438292)已实际查询in_progress、conclusion为空，不借前一b2cd0bd成功代替；后续观察同一handle。本条仅文档更新，不修改受测代码。未合并main、发布或部署；完整目标仍未完成。
