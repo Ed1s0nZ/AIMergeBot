@@ -157,3 +157,8 @@ bundle URI独立验证fetch.bundleURI配置的正/负对照；transfer.bundleURI
 HTTPS初次正对照因fixture只允许HTTP协议而失败（certificate=false、ssl=false、protocol=true、TLS连接0），明确不是证书/网络隔离通过；将fixture协议允许范围对齐现有生产HTTP+HTTPS后，使用真实CA校验成功，不关闭TLS验证。先前无sideband的错误响应结论已撤销，最终重放完整真实响应，未以畸形包/检测恒零冒充安全证据。
 
 阶段决策修正：纯reverse bridge+URI禁用不满足唯一网络出口要求。CLI候选若保留，至少需要独立强制网络gate及其绕过矩阵；本轮loopback forward proxy证明其中HTTP/HTTPS两条可行防线，不能直接照搬为生产代理。文件/其他scheme、代理绕过形式、版本矩阵与OS资源/pack展开约束仍未验证；库候选也需相同边界审查。尚未批准完整S4实施，仍保持native guard，不将probe退出0计为生产就绪。
+
+
+### URI实验提交追踪
+
+b2cd0bdb2926abca65b2ace8532a9fa35911de91已推送codex/sidebar-workflow。精确HEAD的[CI38844119652](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38844119652)已实际查询in_progress、conclusion为空，后续继续同一handle；该CI不运行ignore probe，实验结果依据前文显式本地命令，不以普通应用CI替代。本条仅文档，不改受测源码。完整目标仍进行中，无main合并/部署/真实平台发送。
