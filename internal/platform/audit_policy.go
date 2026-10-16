@@ -9,23 +9,24 @@ import (
 
 // AuditPolicy is immutable per run; it deliberately contains no credentials.
 type AuditPolicy struct {
-	RepositoryScope     *RepositoryScope    `json:"repository_scope,omitempty"`
-	Workflow            *WorkflowPolicy     `json:"workflow,omitempty"`
-	ContextRepositories []ContextRepository `json:"context_repositories,omitempty"`
-	FollowupOf          int64               `json:"followup_of,omitempty"`
-	SelectedFiles       []string            `json:"selected_files,omitempty"`
-	VerificationModel   string              `json:"verification_model"`
-	ModelBudget         ModelBudgetSettings `json:"model_budget"`
-	RepositoryURL       string              `json:"repository_url"`
-	ModelURL            string              `json:"model_url"`
-	Model               string              `json:"model"`
-	Temperature         float32             `json:"temperature"`
-	MaxSteps            int                 `json:"max_steps"`
-	TimeoutSeconds      int                 `json:"timeout_seconds"`
-	Git                 GitAuditSettings    `json:"git"`
-	Excluded            []string            `json:"excluded"`
-	VerifyFindings      bool                `json:"verify_findings"`
-	GenerateDiagrams    bool                `json:"generate_diagrams"`
+	RepositoryScope     *RepositoryScope        `json:"repository_scope,omitempty"`
+	RepositoryBudget    *RepositoryBudgetLimits `json:"repository_budget,omitempty"`
+	Workflow            *WorkflowPolicy         `json:"workflow,omitempty"`
+	ContextRepositories []ContextRepository     `json:"context_repositories,omitempty"`
+	FollowupOf          int64                   `json:"followup_of,omitempty"`
+	SelectedFiles       []string                `json:"selected_files,omitempty"`
+	VerificationModel   string                  `json:"verification_model"`
+	ModelBudget         ModelBudgetSettings     `json:"model_budget"`
+	RepositoryURL       string                  `json:"repository_url"`
+	ModelURL            string                  `json:"model_url"`
+	Model               string                  `json:"model"`
+	Temperature         float32                 `json:"temperature"`
+	MaxSteps            int                     `json:"max_steps"`
+	TimeoutSeconds      int                     `json:"timeout_seconds"`
+	Git                 GitAuditSettings        `json:"git"`
+	Excluded            []string                `json:"excluded"`
+	VerifyFindings      bool                    `json:"verify_findings"`
+	GenerateDiagrams    bool                    `json:"generate_diagrams"`
 }
 
 func capturePolicy(s Settings) *AuditPolicy {

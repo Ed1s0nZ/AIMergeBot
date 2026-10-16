@@ -181,8 +181,13 @@ func (s *Store) migrate() error {
 			return err
 		}
 	}
-	if originalVersion != platformSchemaVersion {
+	if originalVersion < repositoryIdentitySchemaVersion {
 		if err = migrateRepositoryIdentities(tx); err != nil {
+			return err
+		}
+	}
+	if originalVersion < platformSchemaVersion {
+		if err = migrateRepositoryBudgetSchema(tx); err != nil {
 			return err
 		}
 	}

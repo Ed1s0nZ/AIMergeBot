@@ -34,9 +34,10 @@ func TestPlatformSchemaRejectsInvalidMetadataBeforeMigration(t *testing.T) {
 		"empty":               `CREATE TABLE platform_schema(version INTEGER)`,
 		"duplicate_current":   `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(1),(1)`,
 		"current_then_future": `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(1),(2)`,
-		"future":              `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(3)`,
-		"uppercase_future":    `CREATE TABLE PLATFORM_SCHEMA(version INTEGER);INSERT INTO PLATFORM_SCHEMA VALUES(3)`,
-		"incomplete_current":  `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(2)`,
+		"future":              `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(4)`,
+		"uppercase_future":    `CREATE TABLE PLATFORM_SCHEMA(version INTEGER);INSERT INTO PLATFORM_SCHEMA VALUES(4)`,
+		"incomplete_previous": `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(2)`,
+		"incomplete_current":  `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(3)`,
 		"zero":                `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(0)`,
 		"negative":            `CREATE TABLE platform_schema(version INTEGER);INSERT INTO platform_schema VALUES(-1)`,
 		"text":                `CREATE TABLE platform_schema(version TEXT);INSERT INTO platform_schema VALUES('1')`,
@@ -104,7 +105,7 @@ func TestPlatformSchemaCurrentAndUnversionedRemainCompatible(t *testing.T) {
 			}
 			defer s.Close()
 			var version int
-			if err = s.DB.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil || version != 2 {
+			if err = s.DB.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil || version != platformSchemaVersion {
 				t.Fatal(version, err)
 			}
 			if err = s.migrate(); err != nil {

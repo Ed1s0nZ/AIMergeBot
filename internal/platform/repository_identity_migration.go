@@ -6,7 +6,7 @@ import (
 	"database/sql"
 )
 
-const platformSchemaVersion = 2
+const repositoryIdentitySchemaVersion = 2
 
 func validateRepositorySchemaTables(tx *sql.Tx) error {
 	for _, name := range []string{"platform_repository_identities", "platform_repository_recovery_receipts", "platform_legacy_repository_state"} {
@@ -104,7 +104,7 @@ func migrateRepositoryIdentities(tx *sql.Tx) error {
 	if _, err = tx.Exec(`UPDATE platform_runs SET status='failed',error='repository schema upgraded; resubmit audit',finished_at=? WHERE status IN ('pending','running')`, now()); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(`UPDATE platform_schema SET version=?`, platformSchemaVersion); err != nil {
+	if _, err = tx.Exec(`UPDATE platform_schema SET version=?`, repositoryIdentitySchemaVersion); err != nil {
 		return err
 	}
 	return validateRepositorySchemaTables(tx)

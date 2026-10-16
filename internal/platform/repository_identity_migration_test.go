@@ -125,7 +125,7 @@ func TestRepositoryIdentityMigrationClassifiesHistoricalEvidence(t *testing.T) {
 	}
 	var version int
 	var status, result string
-	if err = s.DB.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil || version != 2 {
+	if err = s.DB.QueryRow(`SELECT version FROM platform_schema`).Scan(&version); err != nil || version != platformSchemaVersion {
 		t.Fatal(version, err)
 	}
 	if err = s.DB.QueryRow(`SELECT status,result_json FROM platform_runs WHERE id=1`).Scan(&status, &result); err != nil || status != "failed" || !strings.Contains(result, "retained") {

@@ -17,7 +17,7 @@ func requireLegacyRepositoryProject(ctx context.Context, q queryRower, project i
 	return nil
 }
 func requireLegacyRepositorySnapshot(ctx context.Context, q queryRower, snap Snapshot) error {
-	if snap.AuditPolicy != nil && snap.AuditPolicy.RepositoryScope != nil {
+	if snap.AuditPolicy != nil && (snap.AuditPolicy.RepositoryScope != nil || snap.AuditPolicy.RepositoryBudget != nil) {
 		return ErrRepositoryUnavailable
 	}
 	seen := map[int]bool{}
@@ -38,7 +38,7 @@ func requireLegacyRepositorySnapshot(ctx context.Context, q queryRower, snap Sna
 }
 func requireLegacyRunRepository(ctx context.Context, q queryRower, run int64) error {
 	var bound bool
-	if err := q.QueryRowContext(ctx, `WITH ids(id) AS (SELECT project_id FROM platform_runs WHERE id=? UNION SELECT source_project_id FROM platform_runs WHERE id=? UNION SELECT project_id FROM platform_run_context_repositories WHERE run_id=?) SELECT EXISTS(SELECT 1 FROM ids i WHERE `+legacyRepositoryUnavailablePredicate+`) OR COALESCE((SELECT CASE WHEN json_valid(audit_policy_json) THEN EXISTS(SELECT 1 FROM json_each(audit_policy_json) WHERE lower(key)='repository_scope') ELSE 1 END FROM platform_runs WHERE id=?),0)`, run, run, run, run).Scan(&bound); err != nil {
+	if err := q.QueryRowContext(ctx, `WITH ids(id) AS (SELECT project_id FROM platform_runs WHERE id=? UNION SELECT source_project_id FROM platform_runs WHERE id=? UNION SELECT project_id FROM platform_run_context_repositories WHERE run_id=?) SELECT EXISTS(SELECT 1 FROM ids i WHERE `+legacyRepositoryUnavailablePredicate+`) OR COALESCE((SELECT CASE WHEN json_valid(audit_policy_json) THEN EXISTS(SELECT 1 FROM json_each(audit_policy_json) WHERE lower(key) IN ('repository_scope','repository_budget')) ELSE 1 END FROM platform_runs WHERE id=?),0)`, run, run, run, run).Scan(&bound); err != nil {
 		return err
 	}
 	if bound {

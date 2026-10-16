@@ -177,11 +177,17 @@ func (p *AuditPolicy) UnmarshalJSON(raw []byte) error {
 		if strings.EqualFold(name, "repository_scope") && (name != "repository_scope" || bytes.Equal(bytes.TrimSpace(value), []byte("null"))) {
 			return ErrRepositoryScope
 		}
+		if strings.EqualFold(name, "repository_budget") && (name != "repository_budget" || bytes.Equal(bytes.TrimSpace(value), []byte("null"))) {
+			return ErrRepositoryBudget
+		}
 	}
 	type plain AuditPolicy
 	var out plain
 	if json.Unmarshal(raw, &out) != nil {
 		return ErrRepositoryScope
+	}
+	if out.RepositoryBudget != nil && out.RepositoryBudget.validateFor((*AuditPolicy)(&out), "audit") != nil {
+		return ErrRepositoryBudget
 	}
 	*p = AuditPolicy(out)
 	return nil

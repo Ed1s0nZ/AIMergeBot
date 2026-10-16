@@ -61,6 +61,7 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | state | TEXT，必须 | admitting / active / closed / abandoned | 仅规定迁移可变更 |
 | session_epoch | INTEGER，必须 | 初始0；OpenSession条件递增、溢出拒绝 | 旧session无法退款或继续取额 |
 | admission_owner, admission_lease_until | TEXT，必须 | 随机owner/合法UTC时间，准入独占lease30s、每5s续期，且不超过准入deadline | 绑定根run后清空，不作为worker owner |
+| admission_deadline | TEXT，必须，UTC | 创建根操作时按created_at+冻结admission_timeout_seconds一次计算并持久化；不是每次claim重算 | 重领/续租不延长，Attach后保留供历史核对 |
 | admission_seed_json, admission_seed_digest | TEXT可NULL，成对出现 | 仅已验证native hook job需恢复时，由服务端冻结非秘密AdmissionSeed；严格版本/64KiB/hash，不能含凭据 | 不给普通HTTP caller恢复handle；详细字段/回执关联见native publication合同 |
 | api_charged, git_charged, upload_charged, download_charged, requests_charged, match_cells_charged | INTEGER，必须 | 初始0，CHECK非负且不超过对应冻结limit；SQL条件扣减/CAS | 已消费或仍不确定的预留均保留计费；cells不是bytes |
 | created_at, updated_at | TEXT，必须 | 服务端UTC | 不用客户端时钟 |

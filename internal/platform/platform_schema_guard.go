@@ -17,7 +17,7 @@ func inspectPlatformSchema(tx *sql.Tx) (int64, error) {
 	}
 	if !exists {
 		var future bool
-		if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE lower(name) IN ('platform_repository_identities','platform_repository_recovery_receipts','platform_legacy_repository_state'))`).Scan(&future); err != nil {
+		if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE lower(name) IN ('platform_repository_identities','platform_repository_recovery_receipts','platform_legacy_repository_state','platform_repository_budgets','platform_run_repository_budgets','platform_repository_budget_reservations'))`).Scan(&future); err != nil {
 			return 0, err
 		}
 		if future {
@@ -62,7 +62,16 @@ func requireCurrentPlatformSchema(tx *sql.Tx) error {
 		}
 	}
 	if version == platformSchemaVersion {
-		return validateRepositorySchemaTables(tx)
+		if err := validateRepositorySchemaTables(tx); err != nil {
+			return err
+		}
+		return validateRepositoryBudgetSchemaTables(tx)
+	}
+	if version == repositoryIdentitySchemaVersion {
+		if err := validateRepositorySchemaTables(tx); err != nil {
+			return err
+		}
+		return requireStoppedSchemaUpgrade(tx)
 	}
 	if version != 1 {
 		return fmt.Errorf("unsupported platform schema %d", version)
