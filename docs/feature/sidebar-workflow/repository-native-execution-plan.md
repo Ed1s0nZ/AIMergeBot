@@ -81,6 +81,24 @@ AuditPolicy.RepositoryBudget仍只接受audit公式；辅助profile不写回历�
 
 ## 消费者接入清单：不得仅接Submit
 
+### Native轮询持久基线（NTR-005修订）
+
+不复用legacy platform_poll_seen。schema3新增platform_native_poll_baselines，以(project_id,provider,api_origin,remote_id)为复合PK，字段initialized BOOL必填初始false、scan_existing BOOL在新baseline创建时冻结当前选项、next_page INTEGER必填初始1（1..10000）、revision正int64初始1、updated_at UTC。同远端换凭据/绑定revision不会重置进度；换provider/origin/remote ID得到独立baseline，不能沿旧数字项目ID继承。每次cycle仍校验当前绑定/集成revision，changed时零seen/init/cursor写。
+
+platform_native_pr_states的相同远端复合身份再加number构成PK；新增seen_head TEXT可NULL、seen_source_remote_id INTEGER可NULL、seen_reason TEXT可NULL（initial/admitted）、seen_run_id FK可NULL、revision正int64初始1。seen三项同时NULL或同时有效；initial必须seen_run_id=NULL，admitted必须有精确run ID且source remote ID正值。initial允许source ID=0仅表示列表的未知source元数据，不能作为RepositoryReference授权。HEAD按provider校验完整格式。observed_head/state/observed_at仍只表达观察，不是seen或成功审计证明；不能因hook读取过HEAD而跳过未入队的审计。
+
+每轮原poll AuxiliaryRead只负责有限ListOpenedRequests：per_page100、最多10页/1000个hint，受16次/8MiB/15s更小限额约束。hint必须有规范number/full HEAD和已知或显式未知source remote ID，来源于当前固定目标repo的真实列表；不能用默认branch替代缺SHA。GitHub/GitLab分别取实际列表SHA/source字段；无法取得合法hint时记录partial，不宣布初始化完成。已seen且HEAD/source相同的hint在本地跳过，不逐项Snapshot/compare。需要准入的hint另开audit admission并先做当前项目配额检查，不能把1000个PR的元数据/模型工作塞进poll的16次额度。
+
+cycle从第一页和持久next_page继续枚举（重复第一页只取一次）；第一页优先发现近期变化，其余最多9页推进cursor。只有完整验证的page可提交cursor到下一页；错误/预算中断保留未完成page，下轮继续，不从第一页重做所有昂贵准入。cursor上限或无法证明终页时保留partial，明确缩小范围/诊断，不能伪造ready。分页顺序固定为provider支持的updated降序；远端列表不是不可变快照，页间移动可在后续轮次重复观察，不能据列表缺席判PR已closed/merged。
+
+initialized=false且scan_existing=false时，首次看到某PR、其seen仍NULL，才能写initial baseline；该写不产生run、不授予内容读取。已seen的PR若HEAD/source改变，即使全项目初始化尚未完成也尝试正式准入。initialized=true或scan_existing=true时，未seen的新PR走正式准入。只有一次完整走到明确终页、期间无解析/授权/准入错误且所有需要处理的hint已baseline或成功admit，才能CAS initialized=true并cursor=1。初始化窗口按首次完整枚举期间实际观察定义，不宣传为远端某一时刻的原子快照；有Webhook时新事件仍直接准入，不被initial baseline阻止。
+
+**观察、seen与enqueue的提交顺序**：opened类admission开始远端读取前，先捕获该PR state的revision（无行记0）及当前远端key；完成固定观察后，native enqueue事务CAS该revision并原子插入/查重run、budget attach、seen_reason=admitted、seen_run_id、seen HEAD/source和revision+1。若并发观察已改变row，重新捕获元数据，不用迟到旧HEAD回写seen；完全相同且已admitted的快照可幂等返回现有run。Hook receipt回执也在该事务更新。失败/超时/权限/配额/缺source绑定保持seen原样，observed字段有值不改变此规则。initial baseline只允许seen NULL的条件写，不覆写并发admitted；closed观察更新state也推进revision但不把其HEAD标admitted。
+
+该revision是私有本地ObservationReceipt的一部分，绑定本次owner/epoch，不由HTTP提供，也不作为可恢复seed内的永久远端版本；crash重领必须先重新读取row revision和PR元数据。它仲裁本服务并发，不证明外部HEAD瞬间不变；publisher仍重新核对当前PR。自动retry沿已冻结run，不受poll再次观察而伪造新seed。手工新policy/force审计用已有明确入口；poll不承诺仅因模型/凭据配置变化就对同HEAD重新跑模型。
+
+验收包含：两provider相同remote数字ID/项目改绑、列表已观察但enqueue失败、hook/poll争同HEAD、旧观察晚到、initial条件写竞争admitted、第一页成功第二页失败和重开、未知source后权限恢复、>1000项cursor前进、扫描中binding变化、明确终页与缺页区别。必须断言run/budget/receipt/seen/revision/initialized全链，而非仅检查请求数。schema3旧v50 legacy rows不回填native基线，首次native发现按已保存scan_existing选项处理。
+
 | 当前路径 | 新native行为 | 反例/保持边界 |
 | --- | --- | --- |
 | Runner.Submit / HTTP runs | Factory admission→专用原子入队 | 内部ID不冒充远端；未授权零内容读取 |
