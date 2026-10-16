@@ -133,3 +133,16 @@ Go1.27.2、Git2.50.1，全部exit0，无race报告：
 bundle URI独立验证fetch.bundleURI配置的正/负对照；transfer.bundleURI只作为clone相关选项，不能仅凭fetch不发bundle-uri命令证明clone安全。只测试本机Git版本的有限协议情况，不把零捕获请求称为所有额外出口均被阻断。禁用候选需确认空配置值的实际行为及内容成功后，才进入未来生产设计。
 
 脚本不读取真实配置/凭据/代码、不访问外部托管服务；只输出类别/次数，不输出raw Git/provider错误。失败主动清理临时文件和server。正常root CI不运行独立probe，需显式-race复现。上一生产18409c0对应CI38780235612仍in_progress，研究代码等待其终态后推送，不能取消它。
+
+
+### URI反例：禁用协商不等于阻止被动消费
+
+本机Git2.50.1的实际-race实验已推翻“关闭URI配置就足够”的假设：真实blob pack正对照1次额外下载，bundle list/bundle各1次；默认和命令级关闭可阻止普通服务端协商及local config污染。但重放正对照已成功消费的完整CGI响应给未请求packfile-uris的客户端时，fetch仍成功、额外pack下载1次。捕获端Authorization为0，不能把网络越界说成已观察到凭据泄露。
+
+第一次异常响应夹具漏掉sideband-all封装，其失败不能作为安全证据，已撤销；最终使用实际成功响应重放。此前正对照还因未打开server sideband-all没有下载；补齐官方测试同类服务端能力后，捕获端实际收到pack。没有以错误/恒零夹具声称通过。
+
+该观察与[固定版本fetch-pack.c](https://github.com/git/git/blob/v2.50.1/fetch-pack.c)收到packfile-uris后启动http-fetch的路径一致；不是所有Git版本结论，也未进行真实托管平台测试。当前候选reverse bridge不能仅靠URI配置声称唯一出口，保持生产factory未开放。
+
+下一隔离实验允许在CLI HTTP侧强制固定loopback forward proxy：只向实验Git origin转发、其他绝对URL/CONNECT直接拒绝；用相同成功重放分别检验HTTP额外请求与HTTPS CONNECT。HTTPS捕获使用connection计数而非仅handler计数，防止证书错误导致“零请求”假阳性。成功只证明本夹具HTTP(S)的强制proxy路径，不是OS级网络/文件沙箱，不直接批准生产代理实现。
+
+上一Git取消修复18409c04e59e9cfe1c7493e0401f65de1a36417b的[CI38780235612](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38780235612)已查询completed/success、HEAD匹配，Linux受控取消回归可计入该修复证据；不覆盖当前未提交URI probe。

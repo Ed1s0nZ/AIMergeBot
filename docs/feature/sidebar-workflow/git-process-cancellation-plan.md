@@ -94,3 +94,6 @@ Cmd为每次调用创建的内存对象，Run拥有启动/Wait；没有跨调用
 ### 提交与远端验证
 
 修复18409c04e59e9cfe1c7493e0401f65de1a36417b已推送codex/sidebar-workflow。[精确代码CI 38780235612](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38780235612)已查询queued/conclusion为空，尚不计为通过，也不借前一4eac0e1成功替代。后续观察同一handle，无重复重启。本条为文档追踪；无main合并、部署或真实外部写入。
+
+
+2026-10-16后续查询：CI38780235612已completed/success，headSha=18409c04e59e9cfe1c7493e0401f65de1a36417b精确匹配，Linux verify job全步骤成功。该窄修复的本地与Linux CI验证已完成；不等于整体REQ或native接入完成。
