@@ -105,3 +105,8 @@ matcher正反例性能/依赖检查；GitLab固定raw对象及SHA256协议证据
 
 
 本轮只完成设计；writer提交601ff98已推送codex/sidebar-workflow。已对现有调用/对象读取与固定tag候选源码作静态核对，git diff --check通过；没有运行尚未实现的双树/文本测试或安装新主依赖。未来必须按上文受控反例取得证据，不能将本轮写作计为功能完成。
+
+
+## 行匹配候选实测输入（2026-10-16）
+
+沿用F2/P6 gate，仅允许scripts/probes/text-diff独立module对固定go-difflib v1.0.0做合成验证；不修改主依赖或生产reader。夹具需覆盖空/新增删除/CRLF/Unicode/无末尾LF及仅LF变化，生成patch由实际Git apply --check/apply还原到目标bytes；对简单确定case检查Added/Removed行号。重复1999行中间一个修改必须额外比较默认autojunk与关闭heuristic，不能仅证明patch能apply就声称PR锚精确。按2000行/256KiB边界记录开销，取消不启动遗留计算goroutine。库不具ctx中断的局限继续记录，结果不自动批准生产采用或完整API模式。所有文件/命令在临时合成目录，禁止读取用户repo或调用真实平台/模型。
