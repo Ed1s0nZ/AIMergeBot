@@ -101,7 +101,7 @@ BuildDiff的96KiB是模型初始窗口，不能替代完整变化目录；窗口
 
 ## 仍需关闭的实施决策
 
-matcher正反例性能/依赖检查；GitLab固定raw对象及SHA256协议证据；symlink读取工具的一致语义；typed gaps到现有覆盖与状态投影的准确映射。不得默默猜测这些规则进入生产。完整资源隔离设计独立推进；本文件不宣称原生GitHub/API模式、跨仓完整流水线或UAR-001已完成。
+生产matcher adapter与完整链的CPU/ctx资源约束（局部语义/依赖实验见下）；GitLab固定raw对象及SHA256受控协议证据（仅资料核对已完成）；symlink读取工具的一致语义；typed gaps到现有覆盖与状态投影的准确映射。不得默默猜测这些规则进入生产。完整资源隔离设计独立推进；本文件不宣称原生GitHub/API模式、跨仓完整流水线或UAR-001已完成。
 
 
 本轮只完成设计；writer提交601ff98已推送codex/sidebar-workflow。已对现有调用/对象读取与固定tag候选源码作静态核对，git diff --check通过；没有运行尚未实现的双树/文本测试或安装新主依赖。未来必须按上文受控反例取得证据，不能将本轮写作计为功能完成。
@@ -132,3 +132,8 @@ matcher正反例性能/依赖检查；GitLab固定raw对象及SHA256协议证据
 
 
 最终渲染校验还拒绝Git apply --verbose报告的offset/fuzz；已用同一正确patch故意把hunk起点+1做正/负对照：允许offset时Git可还原，严格模式拒绝。因此77组还原不会借Git偏移校正掩盖错误坐标。最终-race命令exit0，精确重复行338593微秒、2000行稠密替换1894微秒；均为单次本机观测。最终source的govulncheck仍exit0/无漏洞，未使用抑制。一次gofmt调用误带根目录相对路径，未格式化该文件；正确module目录下gofmt完成，实际Go执行与最终检查以成功命令为准。
+
+
+### 提交与CI追踪
+
+6e93e420c7bd413e1523e61ff98cc4946de2274b已推送codex/sidebar-workflow，正常root module未引入新依赖/生产调用。[精确代码CI38848503334](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38848503334)已查询in_progress、conclusion为空；普通CI不运行独立module，实验依据仍为上述显式Go run/race/govulncheck命令。上一生产ea25ab59f56507a4fc629713f38a55774f8f9299的CI38847438292已completed/success后才推本研究代码，没有取消旧验证。本条只更新文档；无main合并/部署。完整目标与native流水线继续进行中。

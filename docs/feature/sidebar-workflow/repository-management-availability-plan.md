@@ -108,3 +108,6 @@ Go后端生产代码自定向和完整测试起未再改变。Go全量platform12
 ### 提交/CI追踪
 
 ea25ab59f56507a4fc629713f38a55774f8f9299已推送codex/sidebar-workflow。[精确代码CI38847438292](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38847438292)已实际查询in_progress、conclusion为空，不借前一b2cd0bd成功代替；后续观察同一handle。本条仅文档更新，不修改受测代码。未合并main、发布或部署；完整目标仍未完成。
+
+
+后续查询：CI38847438292已completed/success，HEAD精确为ea25ab59f56507a4fc629713f38a55774f8f9299；Go全量/race/vet、operations、漏洞、前端（含repository资格）及embedded build全步骤成功。此窄修复的远端验收完成；S4–S6与完整原生审计/恢复仍未完成。
