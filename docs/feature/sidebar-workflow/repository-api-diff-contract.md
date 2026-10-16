@@ -147,3 +147,19 @@ BuildDiff的96KiB是模型初始窗口，不能替代完整变化目录；窗口
 ### 提交与CI追踪
 
 6e93e420c7bd413e1523e61ff98cc4946de2274b已推送codex/sidebar-workflow，正常root module未引入新依赖/生产调用。[精确代码CI38848503334](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38848503334)已查询in_progress、conclusion为空；普通CI不运行独立module，实验依据仍为上述显式Go run/race/govulncheck命令。上一生产ea25ab59f56507a4fc629713f38a55774f8f9299的CI38847438292已completed/success后才推本研究代码，没有取消旧验证。本条只更新文档；无main合并/部署。完整目标与native流水线继续进行中。
+
+## 有界LCS实测结果（2026-10-16）
+
+本轮仅独立module：bounded_lcs.go为新增候选，bounded_lcs_test.go为验证；main.go只抽共享输入/renderer/named cases并在写入前检查ctx，原library实验保留。未改变生产Go/TS、主go.mod/go.sum或仓库管理gate。算法为本项目实现的标准DP，不声称第三方维护或“所有输入最快”。
+
+Go1.27.2、Darwin arm64，本机真实Git，实际命令及结果：
+
+- `go test -mod=readonly -race -v .`：最终exit0，2.906s，无race报告。13个named+64个固定seed文本由真实Git精确还原，故意偏移hunk的对照可被oracle拒绝。重复1999行仅标added=[1000]/removed=[1000]，确定相同前后缀剪枝后DP charged=1。
+- 独立递归最小增删距离oracle验证3969对长度0–5的二元序列：opcodes完整连续、相等段真实相等、重建精确且增删数最小。它验证最小编辑脚本，不声称唯一人类语义对齐；歧义时使用确定性delete优先。
+- 最大2000行/长公共前缀全替换、倒序不同长行、交错重复三例各charged=4000000；race下观测55567/57474/48545微秒；多hunk长相等间隔例484 cells/60微秒，全部真实Git精确还原。
+- 真实context在DP第4次row扣额后同步cancel，charged=8000<4000000，返回context.Canceled及空body；证明已经开始的匹配可停止，不用异步超时遗留计算。budget耗尽返回独立错误，绝不返回空成功或“整片替换”。输入及512KiB hunk上限均拒绝且不暴露部分body。
+- 同一个32000000-cell allowance连续完成8个最坏4M-cell文件，第9个拒绝且body为空；另12-cell小额度证明跨文件中途不足时不越额/重置。此为单进程、单owner研究对象，不冒称数据库重启/并发/自动retry预算已经实现。
+- `go test -mod=readonly -run '^$' -bench '^BenchmarkBoundedLCSWorstCase$' -benchtime=1x -benchmem .`：exit0，单次5524667 ns/op、11533840 B/op、4067 allocs/op。完整DP表理论最多8008002 bytes，测量B/op还含token/map/opcodes/renderer分配，二者不是同一口径，更不是峰值RSS。单次时间不是SLA。
+- `go run -mod=readonly -race .`：原库对照exit0，77组、原始writer反例及default autojunk1000/1000维持；报告中的mid_match_context_interrupt_supported=false只描述原库。`go vet -mod=readonly ./...` exit0。依赖未变，不以新增算法声称主应用验收完成。
+
+结论：有了可取消、明确DP工作量上限且保持真实行证据的可行候选，原“无法中途取消”的局部选型缺口可收敛。正式采用仍需修改消费者合同：整次持久匹配额度、重试传承、缓存/并发所有权及coverage传播，不直接把本地matchWork复制为每file新额度。GitLab raw完整协议、正式factory/producer/所有consumer、跨重启资源回执和网络gate仍待完成；UAR-001保持open。

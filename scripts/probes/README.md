@@ -118,6 +118,35 @@ local observations, not a runtime guarantee. Normal application CI excludes
 this nested module; invoke it explicitly. Full tree/PR/provider/budget/BuildDiff
 integration remains separate verification.
 
+### Interruptible line matcher comparison
+
+```sh
+cd scripts/probes/text-diff
+go test -mod=readonly -race -v .
+go test -mod=readonly -run '^$' -bench '^BenchmarkBoundedLCSWorstCase$' -benchtime=1x -benchmem .
+```
+
+These commands exercise the separate bounded-LCS candidate. `go run .` above
+continues to exercise the original library comparison; its report that
+mid-match interruption is unavailable refers to go-difflib, not this candidate.
+The candidate is project research code based on the standard LCS recurrence,
+not a third-party maintained library or a production adapter.
+
+The tests retain exact line bytes, including CRLF and missing final LF; replay
+77 named/fixed-seed patches with actual Git and reject offset/fuzz. They check
+3,969 tiny sequence pairs against an independent minimum insert/delete oracle,
+repetitive-line anchors, reversed/alternating/long-line maximum-size inputs,
+in-progress cancellation and output/input limits. The synchronous cancellation
+observer cancels a real context during DP; no timeout goroutine is used.
+
+DP compares exact-line integer IDs with checks before each at-most-2,000-cell
+row. A full matrix is bounded to 8,008,002 bytes, which is not a total-memory or
+RSS guarantee. A single-owner 32-million-cell allowance spans eight worst-size
+files; the ninth fails with no partial hunk. The local allowance is neither
+concurrent-safe nor durable across retries/restarts. Production needs the
+separate shared-budget/session design and cannot reset this allowance per file.
+Benchmarks report local allocations and elapsed time, not an SLA or CPU quota.
+
 ## Child resource capabilities
 
 ```sh

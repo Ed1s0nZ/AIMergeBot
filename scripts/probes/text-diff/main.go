@@ -48,23 +48,37 @@ func unifiedRange(start, end int) string {
 	return fmt.Sprintf("%d,%d", start+1, count)
 }
 func render(ctx context.Context, base, head string, auto bool) (string, error) {
-	if err := ctx.Err(); err != nil {
+	a, b, err := textTokens(ctx, base, head)
+	if err != nil {
 		return "", err
 	}
+	matcher := difflib.NewMatcherWithJunk(a, b, auto, nil)
+	return renderGroups(ctx, a, b, matcher.GetGroupedOpCodes(3))
+}
+
+func textTokens(ctx context.Context, base, head string) ([]string, []string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 	if len(base) > 256<<10 || len(head) > 256<<10 || !utf8.ValidString(base) || !utf8.ValidString(head) || strings.ContainsRune(base, 0) || strings.ContainsRune(head, 0) {
-		return "", errLimit
+		return nil, nil, errLimit
 	}
 	a, b := tokens(base), tokens(head)
 	if len(a) > 2000 || len(b) > 2000 {
-		return "", errLimit
+		return nil, nil, errLimit
 	}
-	matcher := difflib.NewMatcherWithJunk(a, b, auto, nil)
-	groups := matcher.GetGroupedOpCodes(3)
+	return a, b, nil
+}
+
+func renderGroups(ctx context.Context, a, b []string, groups [][]difflib.OpCode) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	var out strings.Builder
 	write := func(s string) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if len(s) > (512<<10)-out.Len() {
 			return errLimit
 		}
@@ -189,11 +203,8 @@ func gitApplyVariant(root, base, head, body string, allowOffset bool) bool {
 	raw, err := os.ReadFile(file)
 	return err == nil && string(raw) == head
 }
-func run() map[string]any {
-	root, err := os.MkdirTemp("", "aim-text-diff-probe-")
-	need(err == nil, "fixture root")
-	defer os.RemoveAll(root)
-	cases := [][3]string{
+func namedCases() [][3]string {
+	return [][3]string{
 		{"empty", "", ""}, {"unchanged", "same\n", "same\n"}, {"add", "", "new\n"}, {"delete", "old\n", ""},
 		{"replace", "first\nold\nlast\n", "first\nnew\nlast\n"}, {"no_final_lf", "old", "new"},
 		{"only_add_lf", "same", "same\n"}, {"only_remove_lf", "same\n", "same"},
@@ -201,6 +212,12 @@ func run() map[string]any {
 		{"line_endings", "same\r\n", "same\n"}, {"unicode", "第一行\n旧值\n", "第一行\n新值\n"},
 		{"blank", "\n\nold\n", "\nnew\n\n"}, {"insert_last", "first\n", "first\nlast"},
 	}
+}
+func run() map[string]any {
+	root, err := os.MkdirTemp("", "aim-text-diff-probe-")
+	need(err == nil, "fixture root")
+	defer os.RemoveAll(root)
+	cases := namedCases()
 	for _, c := range cases {
 		body, err := render(context.Background(), c[1], c[2], false)
 		need(err == nil && gitApply(root, c[1], c[2], body), "lossless Git apply: "+c[0])
