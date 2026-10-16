@@ -2,6 +2,8 @@
 
 2026-10-16；codex/sidebar-workflow。输入：Confirmed requirements.md（REQ-007/012/020/023、AC-007/018/021）、repository-budget-contract.md、repository-api-diff-contract.md、repository-recovery-implementation-plan.md S4，以及35a2285的真实资源实验。本稿为待审技术设计，不是已实现能力或完整S4批准。
 
+追踪：资源实验35a228593dc3ec33dd3578aedc4b24a4127fe302的[CI38850590219](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38850590219)已实际查询completed/success（2026-10-16）；该CI不执行隔离C/Docker实验，实测依据仍为repository-git-resource-research.md。新LCS候选的研究代码/设计接线不由此获得完整生产批准。
+
 ## Workflow / Maintainability / Lifecycle Gate
 
 P6/F2，用户问题是跨仓取数不能无限放大资源，也不能把监控阈值宣传成硬隔离。已有逐命令取消、共享网络预算合同和Linux/Darwin能力证据；缺完整factory/网络gate和生产集成验证。允许设计，不允许本稿直接启动生产修改。既有Runner/GitRepository多职责，资源会话与扫描/监督独立成模块，原编排只委托，不加shell拼接和进程内setrlimit。低耦合文档变更无需先重构；未来实现属high风险，须按完整S4审查。
@@ -72,7 +74,7 @@ profile在启动受控能力诊断后确定并记录；若宣称启用linux_rlim
 
 ## API文本匹配的明确边界
 
-API模式维持每侧256KiB/2000行、hunk512KiB/文件与整次8MiB、受限cache以及总run deadline。当前go-difflib候选不能中途ctx取消，不能用资源监控掩饰这个缺口；不为它启动不可回收goroutine。生产选型前必须完成该边界内对抗性输入耗时测试，或者选择可中断且有操作次数上限的匹配器。资源session的Git子进程取消不适用于Go内存中的匹配；本稿不替该项签字。不能以此永久删除API-only模式。
+API模式维持每侧256KiB/2000行、hunk512KiB/文件与整次8MiB、受限cache以及总run deadline。原go-difflib不能中途ctx取消；d8948ce有界LCS探针已证明可逐DP row取消、4M cells/单file及共享32M cells的局部上限，F2转用该候选，具体见API diff与budget合同。资源session的Git子进程取消不适用于Go内存中的匹配，不能以监控或不可回收goroutine冒充保护。正式adapter、持久额度/重启继承及所有consumer仍需实现验收；不能把探针当API-only已经完成。
 
 ## 错误、覆盖和恢复
 
@@ -100,7 +102,7 @@ API模式维持每侧256KiB/2000行、hunk512KiB/文件与整次8MiB、受限cac
 | --- | --- | --- |
 | 跨重启工作区所有权 | 现有worker lease只证明DB写授权，过期不证明OS子进程已退出 | root→budget/run/epoch/实例的持久回执、文件系统与DB先后顺序、崩溃窗口及自有进程退出证明；不能凭过期lease或PID数字盲删/杀进程。该内容在完整S4方案定案，必要时明确schema3新增对象，不伪称本稿已有完整恢复实现 |
 | Linux增强额度/装配 | 实验中256MiB/2s的小型Git成功；正式512MiB/30s仅提案 | 正式支持版本、可信wrapper路径/诊断协议和大输入兼容验证；不能把实验小值直接当可交付默认 |
-| API matcher CPU/ctx | 行语义探针成功，候选库不支持中途取消 | 有操作上限/可中断选型或充分有界证明；输入上限不自动等于可接受的响应时延 |
+| API matcher CPU/ctx | d8948ce的有界LCS已验证可取消及共享工作量，旧库保持对照 | 正式adapter及根预算预扣、并发串行、重启/retry传承和coverage传播；局部probe不是生产CPU硬quota |
 | 公开反馈传播 | 当前结果有Notes/coverage，但新有限错误尚未接线 | 明确现有结果字段与失败/partial映射、TS文案、检查规则及导出消费者；不能只增加code字符串 |
 
 责任人为S4设计/实现者；全部在生产开发前完成。当前草稿明确选择监控基线，消除“所有OS必须先造完硬沙箱”的非需求阻塞；仍保留会影响正确执行与清理的真实阻塞，不静默替开发者做未验证决定。

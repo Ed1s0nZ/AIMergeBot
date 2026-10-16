@@ -69,18 +69,20 @@ compare只可提供经固定观察验证的merge-base等元信息；其files/pat
 
 ## 行匹配与hunk渲染候选
 
-拟固定github.com/pmezard/go-difflib v1.0.0，只使用NewMatcherWithJunk(base, head, false, nil)/GetGroupedOpCodes(3)的行匹配；默认NewMatcher的autojunk已被下文实测否决，不可用于PR行锚，不直接采用GetUnifiedDiffString输出。已读[该tag源码](https://github.com/pmezard/go-difflib/blob/v1.0.0/difflib/difflib.go)：writer原样拼接输入行，不能直接保证无末尾换行文件的Git sentinel语义；其buffer Flush错误也不作为调用返回。主go.mod当前未新增此依赖，go.sum已有校验不代表已经正式依赖或验收。
+当前F2选择有界LCS候选（d8948ce独立探针），取代go-difflib作为未来生产matcher方向；它可逐行ctx取消，最多4M DP cells/单file，并使用整次持久32M-cell额度，具体归属/预扣/重启见repository-budget-contract.md。生产只需要本地有限opcode对象，不依赖probe为兼容对照而使用的difflib.OpCode类型。该选择不是完整S4开发批准。
+
+原go-difflib v1.0.0保留为研究对照：默认NewMatcher的autojunk已被实测否决，不可用于PR行锚；关闭autojunk仍不能匹配中途取消；GetUnifiedDiffString不作生产renderer。已读[该tag源码](https://github.com/pmezard/go-difflib/blob/v1.0.0/difflib/difflib.go)：writer原样拼接输入行，不能直接保证无末尾换行文件的Git sentinel语义；其buffer Flush错误也不作为调用返回。主go.mod当前未新增此依赖，go.sum已有校验不代表已经正式依赖或验收。下方旧研究结果保留时点记录，不续用其原选型。
 
 纯适配器需：
 
 1. 按LF拆成保留原始换行的token；CRLF不归一化；空文件为0 token；最后无LF的token保持无LF。两侧token<=2000、bytes<=256KiB，否则仅标该文件text budget gap，不把整片中间区域全标新增。
-2. 用matcher的grouped opcodes建立区间；对每opcode验证单调、无越界、两侧覆盖一致。未变区间确实bytes相等，replace/delete/insert按真实输入token渲染。
+2. 精确intern原始行token后裁剪确定相等前后缀，按完整LCS表重建最小增删脚本；歧义delete优先，生成有限opcodes并保留3行context。对每opcode验证单调、无越界、两侧覆盖一致。未变区间确实bytes相等，delete/insert按真实输入token渲染；不按超时粗略替换剩余区域。
 3. 输出从@@开始，与既有Git Changes一致；hunk起点/长度从token区间算，不从服务器patch抄。空range起点按unified diff规则为相邻位置，可为0；added/removed锚仍是原侧真实1-based行。
 4. 每token写prefix后原始bytes；没有LF时补输出LF和`\ No newline at end of file`标记，不能把下一行header贴到同一行。不在源文本中补LF后再比较，必须保留仅末尾换行变化。
 5. 显式有界builder检查每次写入，hunk输出<=512KiB/文件且整次<=8MiB；不靠defer Flush吞错。单文件超过则丢弃该文件不完整hunk并标gap，不返回截断hunk。
-6. 匹配前后检查ctx；该库不支持中途ctx取消，2×2000行/2×256KiB为输入上限，不能宣称它提供硬CPU时间限制。正式采用前以重复长行/高重复/全部替换反例测运行开销；若不能满足运行预算则替换为可中断matcher，不能用goroutine超时遗留计算继续消耗CPU。
+6. 匹配前后、intern每行、每个最多2000cell的DP row、backtrace每步及renderer每次写入前检查ctx。DP表最多8008002 bytes，整次匹配串行；预扣完整n×m后执行，额度不足或取消丢弃该文件hunk。DP工作量与OS CPU硬quota不同，原probe已覆盖重复长行/倒序/交错/全替换，正式adapter仍须复验并接入持久预算，不用goroutine超时遗留计算。
 
-这是明确候选而非生产选型。API diff可与Git选择不同的有效匹配，但所有删除/新增锚必须来自能无损把base变为head的edit script；尤其不能把“首尾间全替换”当精准差异的捷径。匹配性能/边界与依赖安全扫描未验证，不能从成熟库标签推导已就绪。
+这是已收敛的F2候选，尚非生产实现。API diff可与Git选择不同的有效匹配，但所有删除/新增锚必须来自能无损把base变为head的edit script；尤其不能把“首尾间全替换”当精准差异的捷径。局部行语义、取消、额度和原库依赖扫描证据见下，不代替正式adapter、并发/重启和整链验收。
 
 ## 数据流
 

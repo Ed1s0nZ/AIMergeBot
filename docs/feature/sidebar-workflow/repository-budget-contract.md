@@ -33,6 +33,8 @@ GitHub client现有每client128次请求、32MiB，单响应8MiB；本地Git默�
 | per_git_response_bytes | git_response_bytes | 同一pack响应不能超过剩余整体Git额度，不伪称这是展开体积 |
 | parallel_requests | 2 | 同账本同时最多2个已派发请求；主/source/context公平等待，等待可取消且不消耗请求次数 |
 | admission_timeout_seconds | min(policy.timeout_seconds,60) | 准入阶段独立60s上限；worker继续沿已冻结timeout_seconds，不能把准入无限放在运行timeout外 |
+| text_match_cells | 32000000 | API文本DP比较的整体预扣额度，根run及自动retry共享；不是每文件一份或CPU秒数 |
+| per_text_match_cells | 4000000 | 两侧各2000行的最大DP中间区域，单次完整预留，不按每个cell写SQL |
 
 limits全部服务端生成，v51必须实际包含并匹配本版本公式；缺失、null、未知字段/版本、重复key、负数、算术溢出或不匹配冻结Git设置一律拒绝。不把错误值default修好后执行。GitLab/GitHub及API-only使用同合同；API-only不得因Git额度存在而启动Git。历史v50/nil没有预算证据，不能回填这组数字并宣称历史已计量。
 
@@ -55,7 +57,7 @@ limits全部服务端生成，v51必须实际包含并匹配本版本公式；�
 | state | TEXT，必须 | admitting / active / closed / abandoned | 仅规定迁移可变更 |
 | session_epoch | INTEGER，必须 | 初始0；OpenSession条件递增、溢出拒绝 | 旧session无法退款或继续取额 |
 | admission_owner, admission_lease_until | TEXT，必须 | 随机owner/合法UTC时间，准入独占lease30s、每5s续期，且不超过准入deadline | 绑定根run后清空，不作为worker owner |
-| api_charged, git_charged, upload_charged, download_charged, requests_charged | INTEGER，必须 | 初始0，CHECK非负且不超过冻结limit；SQL条件扣减/CAS | 已消费或仍不确定的预留均保留计费 |
+| api_charged, git_charged, upload_charged, download_charged, requests_charged, match_cells_charged | INTEGER，必须 | 初始0，CHECK非负且不超过对应冻结limit；SQL条件扣减/CAS | 已消费或仍不确定的预留均保留计费；cells不是bytes |
 | created_at, updated_at | TEXT，必须 | 服务端UTC | 不用客户端时钟 |
 
 ### platform_run_repository_budgets（新增）
@@ -70,12 +72,12 @@ run_id INTEGER PK/FK、budget_id TEXT FK，二者必须；根run绑定与INSERT�
 | budget_id | TEXT FK，必须 | 绑定账本，不能跨根run转移 |
 | run_id | INTEGER FK，可NULL | NULL仅admitting；active必须等于调用worker run |
 | owner_kind, owner, lease_epoch | TEXT/TEXT/INTEGER，必须 | admission或worker；worker复用当前worker_owner和run lease；epoch用于本次session，不从HTTP接受 |
-| kind | TEXT，必须 | request / api_read / git_read / upload |
-| reserved, settled_used | INTEGER/可NULL | request固定1；bytes范围1..grant_bytes；used范围0..reserved，NULL代表未结算 |
+| kind | TEXT，必须 | request / api_read / git_read / upload / text_match |
+| reserved, settled_used | INTEGER/可NULL | request固定1；bytes范围1..grant_bytes；text_match范围1..per_text_match_cells；used范围0..reserved，NULL代表未结算。text_match按下文固定全额charged，不套byte退款 |
 | state | TEXT，必须 | open / settled / charged_unknown；只允许open到后两者 |
 | created_at, settled_at | TEXT/TEXT可NULL | 服务端UTC；审计顺序 |
 
-receipt不保存token、URL、响应或源码。终态receipt保留以拒绝矛盾重放，不能删除后再次退款。新增固定max_reservations=8192（required int64，v1只允许该值，纳入limits_json/digest和policy严格解码）；每次预留前同事务检查该预算累计行数，不能用1字节反复预留/退款制造无限行。正常byte grant必须等于min(1MiB、分类/整体可用余额、单响应剩余含探测字节)，不能由调用者任意缩小；只在耗尽或EOF时结算后再取下一grant。最大4096MiB Git+32MiB API、8MiB上传及512次请求的正常消费在该行数边界内，仍需压力测试验证。保留策略随run历史；abandoned且root_run_id为NULL的账本在所有lease/请求结束至少7天后可整组清理，不能只删receipt后复用counter。未结算receipt和counter必须事务一致。
+receipt不保存token、URL、响应或源码。终态receipt保留以拒绝矛盾重放，不能删除后再次退款。新增固定max_reservations=8192（required int64，v1只允许该值，纳入limits_json/digest和policy严格解码）；每次预留前同事务检查该预算累计行数，不能用1字节反复预留/退款制造无限行。正常byte grant必须等于min(1MiB、分类/整体可用余额、单响应剩余含探测字节)，不能由调用者任意缩小；只在耗尽或EOF时结算后再取下一grant。加入text_match receipt后，高端字节额度与大量小文件、多次retry组合可能先用尽receipt行数；各limit是独立上限，不保证能同时用满，必须明确输出accounting/coverage缺口，不能重置账本规避。是否需要调整8192须以完整S4压力数据决定，当前不宣称所有最大组合均能容纳。保留策略随run历史；abandoned且root_run_id为NULL的账本在所有lease/请求结束至少7天后可整组清理，不能只删receipt后复用counter。未结算receipt和counter必须事务一致。
 
 ## 准入→运行→重试生命周期
 
@@ -114,6 +116,18 @@ request reservation在收到响应并关闭body后以used=1标settled，关闭�
 7. 没余额时不再调用底层Read；若尚未观察EOF则返回预算覆盖不足，不能返回假EOF或部分成功。恰好读到单响应limit时仍需要受预算约束的EOF探测；预留额度不足则保守incomplete，不偷读limit+1。
 
 预算记录是保守charged上界，特别是crash未结算grant；对外不得写成精确网络流量或费用。可展示charged、limit和unknown标记；没有单独精确used证据时不输出精确值。网络线上TLS/TCP与内核buffer不在实体byte语义内。
+
+## API行匹配的持久工作量（F2补充，d8948ce研究输入）
+
+采用有界LCS候选时，cells是完整DP表中执行比较的行列乘积，不是网络bytes、总指令数、CPU时间或费用。每侧2000行/256KiB输入仍先验证；精确intern和确定相同前后缀裁剪有独立有限输入与ctx检查。中间n×m由服务端计算（0..4000000，checked整数），不能由HTTP/model传入声称“只花1 cell”。
+
+生产adapter拟在一次不可变blob对匹配前，使用相同budget/owner/epoch事务预扣整个n×m，写kind=text_match receipt；再在本地逐行检查ctx运行。与byte grant不同，一次匹配最多1条receipt，不对每row/cell写SQLite。reserved全额保守charged，成功、取消、输出超限或崩溃后均不退款；settled_used固定reserved，表示额度口径而非声称实际执行了全部cell。未结算在换owner后仍charged_unknown，不转成新owner可复用的计算许可。
+
+n×m=0不创建零值receipt、不扣DP额度（纯增删、完全相同等仍受输入/输出和ctx边界）。内存中cache命中不重新执行DP，仍复查原scope/ACL/credential；cache未命中、重启或新retry即使内容相同，真实重新执行就重新预扣，不能复用旧receipt当新计算凭证。一个receipt最多授权一次本地执行，响应未知时重放只允许取既有结果；没有缓存结果不能再次执行却免扣额。
+
+同预算的匹配串行，避免多个8MiB DP表和共享单owner matchWork同时运行；排队可取消，dispatch前复查session。正式实现需要事务reserve与本地single-owner allowance连接，研究matchWork只证明局部不超额，不能直接当持久账本。并发争剩余额度只允许一方成功；自动child/restart沿同根counter；缺receipt/错误kind/非法范围/旧epoch均零DP。
+
+工作额度耗尽使对应文件text incomplete，不用全片replace或空diff冒充精确比较；缺完整变化目录仍按catalog规则失败。新有限code repository_text_work_exhausted需沿coverage/DTO/TS/导出/检查传播。极小文件的前后缀/编码/渲染工作不是DP cell，仍受整个目录最多2000changes、256KiB/side、hunk/caches和run deadline约束，不能将cells宣传为整个审计CPU硬quota。正式schema3/v51严格limits解码、digest/clone、worker/retry与SQLite反例一并进入S4计划，本轮没有实现这些持久对象。
 
 ## 所有消费者与数据传播
 
