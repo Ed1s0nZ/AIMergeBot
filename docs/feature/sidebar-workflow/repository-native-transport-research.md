@@ -162,3 +162,10 @@ HTTPS初次正对照因fixture只允许HTTP协议而失败（certificate=false�
 ### URI实验提交追踪
 
 b2cd0bdb2926abca65b2ace8532a9fa35911de91已推送codex/sidebar-workflow。精确HEAD的[CI38844119652](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38844119652)已实际查询in_progress、conclusion为空，后续继续同一handle；该CI不运行ignore probe，实验结果依据前文显式本地命令，不以普通应用CI替代。本条仅文档，不改受测源码。完整目标仍进行中，无main合并/部署/真实平台发送。
+
+
+## 后续具体合同与验证追踪
+
+共享预算的持久root、admission/worker/session/retry归属及数值提案见[repository-budget-contract.md](repository-budget-contract.md)（fcd10b8）；API-only双树、完整目录/文本覆盖、metadata/rename及行锚规则见[repository-api-diff-contract.md](repository-api-diff-contract.md)（601ff98）。两者是F2具体设计输入，尚未给完整S4生产许可；不能以文档存在代替consumer接线与实际验证。下一设计依赖仍为Git进程/工作区资源边界、API matcher和GitLab raw协议实测，再合并完整实施/评审。
+
+URI实验代码b2cd0bdb2926abca65b2ace8532a9fa35911de91的CI38844119652已重新查询completed/success、HEAD匹配。该结果验证应用CI，不运行ignore probe，不能扩大为跨Git版本出口安全或生产factory就绪。当前只是文档后续，不合并main或部署。
