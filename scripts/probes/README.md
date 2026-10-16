@@ -172,6 +172,33 @@ concurrent-safe nor durable across retries/restarts. Production needs the
 separate shared-budget/session design and cannot reset this allowance per file.
 Benchmarks report local allocations and elapsed time, not an SLA or CPU quota.
 
+## Fixed GitLab object protocol
+
+```sh
+go run -race scripts/probes/gitlab_objects.go
+go vet scripts/probes/gitlab_objects.go
+```
+
+This ignore-tag probe uses the application's existing go-gitlab v0.90.0 SDK,
+temporary real SHA-1/SHA-256 repositories and a local TLS protocol fixture.
+Actual Git creates 107 directory entries in each format, including regular,
+executable, symlink and gitlink metadata. SDK reads then run with Git removed
+from PATH. Two-page directories match actual Git exactly; raw empty/non-UTF8/
+symlink/executable bytes are checked against Git blob hashes.
+
+Wrong hashes, oversized raw bodies, provider errors, missing/duplicate pages,
+invalid metadata modes, mixed object formats and missing fixed refs are rejected.
+A shared transport allowance around SDK response buffering stops the next
+request; pre-cancel sends nothing, and mid-request cancellation reaches the
+fixture. Errors returned by the adapter omit the synthetic provider-secret
+marker. The local allowance is an experiment, not the production durable ledger
+or a proof of same-body concurrent Read/Close safety.
+
+No actual GitLab server, account, model, publication or production adapter is
+used. In particular, accepting 64-character OIDs in this fixture does **not**
+prove SHA-256 support in every real GitLab version. Normal application CI
+excludes ignore probes; run these commands explicitly.
+
 ## Child resource capabilities
 
 ```sh

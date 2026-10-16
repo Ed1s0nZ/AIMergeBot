@@ -6,6 +6,18 @@ P6/F2研究，沿Confirmed需求；已核对现有SDK v0.90.0的ListTree/RawBlob
 
 用真实Git生成100+项目录、regular/executable/symlink/gitlink/空blob/无效UTF8原始blob，对照固定commit+path分页和固定OID raw endpoint。重点验证：64位SHA不会在SDK路径层被截断；raw bytes能按对象格式重算OID；单体/共享传输限制不会被SDK bytes.Buffer绕过；缺页/重复/错误ref/hash拒绝；取消和错误脱敏。fixture只证明客户端兼容规定wire形状，**不证明所有真实GitLab版本支持SHA256或权限配置**。生产实现还须独立协议/集成验收，不新增真实服务请求或数据导出。
 
+### 最终受控结果
+
+新增scripts/probes/gitlab_objects.go，Go1.27.2/macOS实际`go run -race scripts/probes/gitlab_objects.go` exit0，无race；`go vet scripts/probes/gitlab_objects.go` exit0。固定当前SDK v0.90.0，无主依赖/生产Go/TS变化；root正常包排除ignore probe。
+
+- 真实Git在两种object format下各生成107项目录，SDK按完整commit+pkg路径读取2页，逐项相等，包含100644/100755/120000/160000。固定blob raw返回的空bytes、原始非UTF8/NUL、symlink自身内容、executable内容均按实际Git SHA1/SHA256 blob对象hash验证；没有跟随symlink或读取gitlink外仓。
+- 固定ref找不到时保持错误，不换default branch；错误OID格式在发送前拒绝。缺next page的满页、跨页重复path、非法mode及与commit格式不一致的OID均拒绝，不返回部分目录成功。
+- SDK RawBlobContent本身向bytes.Buffer拷贝；实验transport在SDK消费前预留整体额度并限制Read。单体256KiB+1被拒绝；32-byte单体/66-byte总额下连续两个30-byte读取成功，第3个零上游dispatch、剩余6 bytes；单独1次请求额度也阻止第2次dispatch。此为局部同步reservation，不替代持久receipt/owner/epoch。
+- 合成403正文含SYNTHETIC-PROVIDER-SECRET，适配错误未返回该marker；wrong-hash/超大/权限错误均没有部分raw bytes成功。预取消零请求；真实进行中的请求取消后client返回context.Canceled且TLS handler观察到context结束。未用timeout遗留goroutine。
+- fixtures生成后把PATH替换为不存在目录，全部SDK/API测试仍成功；只证明该受控读取路径不依赖PATH上的Git，不等于生产factory/API-only全链已验收。
+
+这关闭了“当前SDK能否表达40/64位固定OID/raw与分页、可否在缓冲前加限制”的局部疑问；真实GitLab版本的SHA256、账户权限/代理/限流仍未测试。官方tree API对17.7起不存在路径改为404的说明不能被当成空目录；生产reader需从已完成父目录证明absence，不能吞404。下方早期“尚未执行”指当时状态，以本节新证据为准；完整native执行与N5仍待闭合。
+
 ## 可取消匹配器实验输入（2026-10-16）
 
 本轮仍P6/F2研究，沿Confirmed需求和用户“没想清楚先不实现”。已有go-difflib行锚/无损渲染证据，但该候选不能匹配中途ctx取消；本轮允许仅修改独立scripts/probes/text-diff模块，不修改主依赖、生产reader/factory、仓库管理入口或运行合同。实现许可仅为合成算法探针，不能扩大为S4批准。
