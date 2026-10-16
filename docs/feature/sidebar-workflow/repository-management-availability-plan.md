@@ -43,7 +43,7 @@ settings与默认POST/PATCH /projects仍走原逻辑。ImportConfiguredProjects�
 
 ## 前端UX与状态
 
-Projects列表只在repository_management.available === true时展示原创建入口及mount创建组件；undefined/null/未知reason/类型错误/加载失败均不开放。当前false时admin看到简短“原生仓库审计接入尚未开放，已有绑定仅可查看”，不把false称作权限不足；member不增加管理提示。无需新增菜单。
+Projects列表资格函数仅接受对象available严格为true且reason严格为空字符串（预留完整ready状态）时展示原创建入口及mount创建组件；当前服务端只产生false/native_audit_not_ready。undefined/null/未知reason/类型错误/加载失败均不开放。当前false时admin看到简短“原生仓库审计接入尚未开放，已有绑定仅可查看”，不把false称作权限不足；member不增加管理提示。无需新增菜单。
 
 绑定按钮改为“查看仓库绑定”，当前面板只GET项目binding，不读取/integrations，不提供draft/Provider表单/保存/丢弃草稿按钮。loading、error+手动刷新、empty legacy revision0、已有绑定identity/revision、关闭/键盘focus和窄屏保持。读取失败不能显示旧项目binding；项目切换/卸载Abort；401/403/404清除显示。绑定APIOrigin为已有服务端规范值，只作为文本，不自动导航。不返回或展示token。
 
