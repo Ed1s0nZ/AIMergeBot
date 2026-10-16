@@ -23,9 +23,24 @@ func injectRepositoryScope(t *testing.T, s *Store, id int64, policy *AuditPolicy
 }
 
 func TestRepositoryScopeUnsupportedAdmissionAndExecution(t *testing.T) {
+	v2 := repositoryScopeFixture()
+	v2.Version = 2
+	for name, scope := range map[string]*RepositoryScope{
+		"v1_integration": repositoryScopeFixture(),
+		"v2_integration": v2,
+		"v2_legacy":      legacyScopeFixture(t),
+	} {
+		t.Run(name, func(t *testing.T) {
+			testRepositoryScopeUnsupportedAdmissionAndExecution(t, scope)
+		})
+	}
+}
+
+func testRepositoryScopeUnsupportedAdmissionAndExecution(t *testing.T, scope *RepositoryScope) {
+	t.Helper()
 	s, admin, _ := accessFixture(t)
 	ctx := context.Background()
-	snap := repositoryScopeSnapshot(repositoryScopeFixture())
+	snap := repositoryScopeSnapshot(scope)
 	var events int
 	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM platform_events`).Scan(&events); err != nil {
 		t.Fatal(err)

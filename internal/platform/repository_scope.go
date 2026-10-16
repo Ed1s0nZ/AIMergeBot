@@ -21,14 +21,15 @@ type RepositoryScope struct {
 }
 
 type RepositoryReference struct {
-	ProjectID        int                  `json:"project_id"`
-	IdentityRevision int64                `json:"identity_revision"`
-	Provider         string               `json:"provider"`
-	APIOrigin        string               `json:"api_origin"`
-	RemoteID         int64                `json:"remote_id"`
-	FullName         string               `json:"full_name"`
-	BindingRevision  int64                `json:"binding_revision"`
-	Credential       RepositoryCredential `json:"credential"`
+	ProjectID        int                       `json:"project_id"`
+	IdentityRevision int64                     `json:"identity_revision"`
+	Provider         string                    `json:"provider"`
+	APIOrigin        string                    `json:"api_origin"`
+	RemoteID         int64                     `json:"remote_id"`
+	FullName         string                    `json:"full_name"`
+	BindingRevision  int64                     `json:"binding_revision"`
+	Credential       RepositoryCredential      `json:"credential"`
+	LegacyEndpoint   *RepositoryLegacyEndpoint `json:"legacy_endpoint,omitempty"`
 }
 
 type RepositoryCredential struct {
@@ -56,8 +57,13 @@ func (s *RepositoryScope) clone() *RepositoryScope {
 		return nil
 	}
 	out := *s
+	out.Target = s.Target.clone()
+	out.Source = s.Source.clone()
 	if s.Context != nil {
 		out.Context = append([]RepositoryContextReference{}, s.Context...)
+		for i := range out.Context {
+			out.Context[i].Repository = s.Context[i].Repository.clone()
+		}
 	}
 	return &out
 }
@@ -72,6 +78,9 @@ func normalizeRepositoryScope(s *RepositoryScope) (*RepositoryScope, error) {
 		out.Context = []RepositoryContextReference{}
 	}
 	for _, r := range []*RepositoryReference{&out.Target, &out.Source} {
+		if out.Version == 2 && r.Credential.Kind == "legacy_gitlab" {
+			continue
+		}
 		origin, err := canonicalRepositoryAPIOrigin(r.Provider, r.APIOrigin)
 		if err != nil {
 			return nil, ErrRepositoryScope
@@ -80,11 +89,13 @@ func normalizeRepositoryScope(s *RepositoryScope) (*RepositoryScope, error) {
 	}
 	for i := range out.Context {
 		r := &out.Context[i].Repository
-		origin, err := canonicalRepositoryAPIOrigin(r.Provider, r.APIOrigin)
-		if err != nil {
-			return nil, ErrRepositoryScope
+		if out.Version != 2 || r.Credential.Kind != "legacy_gitlab" {
+			origin, err := canonicalRepositoryAPIOrigin(r.Provider, r.APIOrigin)
+			if err != nil {
+				return nil, ErrRepositoryScope
+			}
+			r.APIOrigin = origin
 		}
-		r.APIOrigin = origin
 		out.Context[i].SHA = strings.ToLower(out.Context[i].SHA)
 	}
 	sort.Slice(out.Context, func(i, j int) bool { return out.Context[i].Repository.ProjectID < out.Context[j].Repository.ProjectID })
@@ -101,6 +112,9 @@ func validRepositorySHA(provider, sha string) bool {
 func (r RepositoryReference) validate() error {
 	if r.ProjectID <= 0 || r.IdentityRevision <= 0 {
 		return ErrRepositoryScope
+	}
+	if r.LegacyEndpoint != nil {
+		return r.validateLegacyEndpoint()
 	}
 	// Reuse the route and origin grammar without loading a credential.
 	b, err := validateRepositoryBinding(RepositoryBinding{Provider: r.Provider, APIOrigin: r.APIOrigin, RemoteID: r.RemoteID, FullName: r.FullName, IntegrationID: 1})
@@ -124,10 +138,10 @@ func (r RepositoryReference) validate() error {
 }
 
 func (s *RepositoryScope) validate() error {
-	if s == nil || s.Version != 1 || s.Context == nil || len(s.Context) > 4 || s.Target.validate() != nil || s.Source.validate() != nil {
+	if s == nil || (s.Version != 1 && s.Version != 2) || s.Context == nil || len(s.Context) > 4 || s.Target.validateVersion(s.Version) != nil || s.Source.validateVersion(s.Version) != nil {
 		return ErrRepositoryScope
 	}
-	if s.Target.Provider != s.Source.Provider || s.Target.APIOrigin != s.Source.APIOrigin || s.Target.ProjectID == s.Source.ProjectID && s.Target != s.Source {
+	if !sameScopeEndpoint(s.Version, s.Target, s.Source) || s.Target.ProjectID == s.Source.ProjectID && !sameRepositoryReference(s.Target, s.Source) {
 		return ErrRepositoryScope
 	}
 	// A remote identity must not acquire two different internal ACL identities.
@@ -135,10 +149,10 @@ func (s *RepositoryScope) validate() error {
 	previous := 0
 	for _, c := range s.Context {
 		r := c.Repository
-		if r.validate() != nil || r.ProjectID <= previous || r.ProjectID == s.Target.ProjectID || !validRepositorySHA(r.Provider, c.SHA) {
+		if r.validateVersion(s.Version) != nil || r.ProjectID <= previous || r.ProjectID == s.Target.ProjectID || !validRepositorySHA(r.Provider, c.SHA) {
 			return ErrRepositoryScope
 		}
-		if prior, ok := refs[r.ProjectID]; ok && prior != r {
+		if prior, ok := refs[r.ProjectID]; ok && !sameRepositoryReference(prior, r) {
 			return ErrRepositoryScope
 		}
 		refs[r.ProjectID] = r
@@ -146,7 +160,15 @@ func (s *RepositoryScope) validate() error {
 	}
 	remote := map[string]int{}
 	for project, r := range refs {
-		key, _ := json.Marshal([]any{r.Provider, r.APIOrigin, r.RemoteID})
+		endpoint := r.APIOrigin
+		if s.Version == 2 {
+			var err error
+			endpoint, err = r.endpointKey()
+			if err != nil {
+				return ErrRepositoryScope
+			}
+		}
+		key, _ := json.Marshal([]any{r.Provider, endpoint, r.RemoteID})
 		if other, ok := remote[string(key)]; ok && other != project {
 			return ErrRepositoryScope
 		}

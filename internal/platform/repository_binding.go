@@ -63,20 +63,8 @@ func canonicalRepositoryAPIOrigin(provider, raw string) (string, error) {
 }
 
 func validateRepositoryBinding(p RepositoryBinding) (RepositoryBinding, error) {
-	if p.RemoteID <= 0 || p.IntegrationID <= 0 || len(p.FullName) > 255 {
+	if p.RemoteID <= 0 || p.IntegrationID <= 0 || !validRepositoryFullName(p.Provider, p.FullName) {
 		return RepositoryBinding{}, ErrConflict
-	}
-	parts := strings.Split(p.FullName, "/")
-	if len(parts) < 2 || p.Provider == "github" && len(parts) != 2 {
-		return RepositoryBinding{}, ErrConflict
-	}
-	if p.Provider == "github" && !githubRepositoryOwner.MatchString(parts[0]) {
-		return RepositoryBinding{}, ErrConflict
-	}
-	for _, part := range parts {
-		if !repositoryNameSegment.MatchString(part) || part == "." || part == ".." {
-			return RepositoryBinding{}, ErrConflict
-		}
 	}
 	origin, err := canonicalRepositoryAPIOrigin(p.Provider, p.APIOrigin)
 	if err != nil {
@@ -84,6 +72,22 @@ func validateRepositoryBinding(p RepositoryBinding) (RepositoryBinding, error) {
 	}
 	p.APIOrigin = origin
 	return p, nil
+}
+
+func validRepositoryFullName(provider, name string) bool {
+	if len(name) > 255 {
+		return false
+	}
+	parts := strings.Split(name, "/")
+	if len(parts) < 2 || provider == "github" && (len(parts) != 2 || !githubRepositoryOwner.MatchString(parts[0])) {
+		return false
+	}
+	for _, part := range parts {
+		if !repositoryNameSegment.MatchString(part) || part == "." || part == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 func readRepositoryBinding(ctx context.Context, q queryRower, project int) (RepositoryBinding, error) {

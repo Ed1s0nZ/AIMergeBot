@@ -90,7 +90,11 @@ func scopeObject(raw json.RawMessage, keys ...string) (map[string]json.RawMessag
 
 func repositoryScopeShape(raw json.RawMessage) error {
 	s, err := scopeObject(raw, "version", "target", "source", "context", "observation")
-	if err != nil || repositoryReferenceShape(s["target"]) != nil || repositoryReferenceShape(s["source"]) != nil {
+	if err != nil {
+		return ErrRepositoryScope
+	}
+	var version int
+	if json.Unmarshal(s["version"], &version) != nil || (version != 1 && version != 2) || repositoryReferenceShape(s["target"], version) != nil || repositoryReferenceShape(s["source"], version) != nil {
 		return ErrRepositoryScope
 	}
 	if _, err = scopeObject(s["observation"], "provider", "number", "base_tip_sha", "merge_base_sha", "head_sha"); err != nil {
@@ -102,15 +106,29 @@ func repositoryScopeShape(raw json.RawMessage) error {
 	}
 	for _, c := range contexts {
 		fields, err := scopeObject(c, "repository", "sha")
-		if err != nil || repositoryReferenceShape(fields["repository"]) != nil {
+		if err != nil || repositoryReferenceShape(fields["repository"], version) != nil {
 			return ErrRepositoryScope
 		}
 	}
 	return nil
 }
 
-func repositoryReferenceShape(raw json.RawMessage) error {
-	r, err := scopeObject(raw, "project_id", "identity_revision", "provider", "api_origin", "remote_id", "full_name", "binding_revision", "credential")
+func repositoryReferenceShape(raw json.RawMessage, version int) error {
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(raw, &fields) != nil {
+		return ErrRepositoryScope
+	}
+	keys := []string{"project_id", "identity_revision", "provider", "api_origin", "remote_id", "full_name", "binding_revision", "credential"}
+	if _, exists := fields["legacy_endpoint"]; exists {
+		if version != 2 {
+			return ErrRepositoryScope
+		}
+		keys = append(keys, "legacy_endpoint")
+		if _, err := scopeObject(fields["legacy_endpoint"], "config_url", "api_base_url", "transport_policy"); err != nil {
+			return ErrRepositoryScope
+		}
+	}
+	r, err := scopeObject(raw, keys...)
 	if err != nil {
 		return ErrRepositoryScope
 	}

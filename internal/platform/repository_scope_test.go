@@ -32,7 +32,7 @@ func TestRepositoryScopeStrictJSON(t *testing.T) {
 	}
 	base := string(raw)
 	bad := []string{
-		`null`, `{}`, `[]`, base + `{}`, strings.Replace(base, `"version":1`, `"version":2`, 1),
+		`null`, `{}`, `[]`, base + `{}`, strings.Replace(base, `"version":1`, `"version":99`, 1),
 		strings.Replace(base, `"version":1`, `"version":1,"version":1`, 1),
 		strings.Replace(base, `"version":1`, `"version":1,"VERSION":1`, 1),
 		strings.Replace(base, `"context":[]`, `"context":null`, 1),
