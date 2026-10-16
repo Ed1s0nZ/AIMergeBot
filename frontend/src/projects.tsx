@@ -1,5 +1,9 @@
+import {
+  repositoryManagementAvailable,
+  type RepositoryManagementStatus,
+} from "./repository-availability";
 import { RepositoryProjectCreate } from "./repository-project-create";
-import { RepositoryBindingEditor } from "./repository-binding-editor";
+import { RepositoryBindingDetails } from "./repository-binding-details";
 import { OwnerRoutingEditor } from "./owner-routing";
 import { ContextRepositories } from "./context-repositories";
 import { useRef, useState } from "react";
@@ -16,7 +20,6 @@ export function Projects({
   userID: number;
 }) {
   const [creating, setCreating] = useState(false);
-  const [repositoryMessage, setRepositoryMessage] = useState("");
   const [bindingProject, setBindingProject] = useState<Project | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const closeRepository = () => {
@@ -27,11 +30,17 @@ export function Projects({
   const [ownerProject, setOwnerProject] = useState<Project | null>(null);
   const [contextProject, setContextProject] = useState<Project | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const resource = useResource<{ items: Project[] }>("/projects"),
+  const resource = useResource<{
+      items: Project[];
+      repository_management?: RepositoryManagementStatus;
+    }>("/projects"),
     [id, setId] = useState(""),
     [name, setName] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const repositoryWritesAvailable = repositoryManagementAvailable(
+    resource.data?.repository_management,
+  );
   return (
     <>
       <Heading
@@ -45,7 +54,7 @@ export function Projects({
             >
               刷新项目
             </button>
-            {admin && (
+            {admin && repositoryWritesAvailable && (
               <button
                 disabled={resource.loading || !!resource.error}
                 ref={creating ? trigger : undefined}
@@ -55,7 +64,6 @@ export function Projects({
                   trigger.current = e.currentTarget;
                   setBindingProject(null);
                   setCreating(true);
-                  setRepositoryMessage("");
                   setOwnerProject(null);
                   setContextProject(null);
                   setSelectedProject(null);
@@ -68,7 +76,14 @@ export function Projects({
         }
       />
       <ErrorBox error={error || resource.error} />
-      {repositoryMessage && <p role="status">{repositoryMessage}</p>}
+      {admin &&
+        !resource.loading &&
+        !resource.error &&
+        !repositoryWritesAvailable && (
+          <p className="muted">
+            原生多平台仓库审计尚未开放，已有仓库绑定仅可查看。
+          </p>
+        )}
       {admin && (
         <details className="panel create-panel">
           <summary>
@@ -170,13 +185,12 @@ export function Projects({
                     trigger.current = e.currentTarget;
                     setCreating(false);
                     setBindingProject(p);
-                    setRepositoryMessage("");
                     setOwnerProject(null);
                     setContextProject(null);
                     setSelectedProject(null);
                   }}
                 >
-                  仓库绑定
+                  查看仓库绑定
                 </button>
               )}
               {admin && (
@@ -242,7 +256,7 @@ export function Projects({
             </article>
           ))}
       </div>
-      {admin && creating && (
+      {admin && repositoryWritesAvailable && creating && (
         <RepositoryProjectCreate
           key={userID}
           userID={userID}
@@ -258,18 +272,12 @@ export function Projects({
         !resource.loading &&
         !resource.error &&
         resource.data?.items.some((p) => p.id === bindingProject.id) && (
-          <RepositoryBindingEditor
+          <RepositoryBindingDetails
             key={bindingProject.id}
             project={
               resource.data?.items.find((p) => p.id === bindingProject.id) ||
               bindingProject
             }
-            onSaved={async () => {
-              setRepositoryMessage(
-                "仓库绑定已保存。当前审计接入待完成，历史任务保留原身份。",
-              );
-              await resource.load();
-            }}
             onClose={closeRepository}
           />
         )}
@@ -302,11 +310,11 @@ export function Projects({
       {resource.loading ? (
         <Empty>加载项目…</Empty>
       ) : (
-        !resource.data?.items.length && (
+        !resource.error &&
+        resource.data &&
+        resource.data.items.length === 0 && (
           <Empty>
-            {admin
-              ? "可添加默认 GitLab 项目，或先在集成页配置凭据再创建多平台仓库。"
-              : "请联系管理员配置项目。"}
+            {admin ? "可添加默认 GitLab 项目。" : "请联系管理员配置项目。"}
           </Empty>
         )
       )}

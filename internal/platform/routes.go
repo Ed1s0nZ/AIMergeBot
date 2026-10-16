@@ -85,7 +85,7 @@ func (h *HTTP) projects(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	c.JSON(200, gin.H{"items": items})
+	c.JSON(200, gin.H{"items": items, "repository_management": repositoryManagementAvailability()})
 }
 func (h *HTTP) saveProject(c *gin.Context) {
 	var p Project

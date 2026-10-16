@@ -39,3 +39,25 @@ resetting already accepted writes. Stop the fixture with Ctrl-C after testing.
 Browser evidence must distinguish this synthetic UI exercise from the real
 Go/SQLite reload HTTP tests; it does not prove production startup or native
 repository execution is enabled.
+
+
+## Repository management availability
+
+`npm --prefix frontend run test:repository` checks that missing, malformed or
+unready capability responses cannot mount creation; CI runs it explicitly.
+
+After building, run `python3 frontend/tests/repository-availability-fixture.py`
+and open `http://127.0.0.1:18777/#/projects`. This loopback-only synthetic fixture
+serves actual built assets, default GitLab and saved GitHub identities; it never
+contacts a model, host, credential or notification service. The admin identity
+is synthetic. `GET /_proof` records API GET paths and all attempted writes.
+
+POST `{"mode":"MODE"}` to `/_fixture` to reset counters and switch modes:
+`unready`, `missing`, `projects_error`, `binding_error`, `forbidden`, `slow`,
+`empty`. Reload after changing project-list states, or use the binding panel's
+explicit refresh for binding states. Verify no multi-platform create/save/input
+controls, saved identities remain readable, failures clear stale details,
+missing capability fails closed, and no writes or integration-list reads occur.
+Check 360px width and keyboard focus/close; stop the fixture after testing.
+These browser checks supplement the real Go/Register/SQLite zero-mutation tests;
+they do not prove native repository execution or identity recovery.

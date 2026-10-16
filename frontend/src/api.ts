@@ -22,6 +22,7 @@ export async function api<T>(
     if (res.status === 401 && path != "/auth/login")
       window.dispatchEvent(new Event("session-expired"));
     const messages: Record<string, string> = {
+      repository_management_unavailable: "原生仓库审计接入尚未完成，目前仅可查看已有配置。",
       repository_unavailable: "该仓库尚不能执行审计，请检查平台接入状态。",
       project_config_sync_pending: "配置已保存，配置文件同步待恢复。请核对当前数据后再操作。",
       context_repository_unavailable:

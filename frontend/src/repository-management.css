@@ -44,3 +44,11 @@
     white-space: normal;
   }
 }
+
+.repository-management dt {
+  font-weight: 600;
+}
+.repository-management dd {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}

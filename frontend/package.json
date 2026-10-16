@@ -7,7 +7,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build --outDir ../web/dist --emptyOutDir",
     "typecheck": "tsc -b",
-    "test:settings": "node --test tests/settings-recovery.test.mjs"
+    "test:settings": "node --test tests/settings-recovery.test.mjs",
+    "test:repository": "node --test tests/repository-availability.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

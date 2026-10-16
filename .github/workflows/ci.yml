@@ -53,6 +53,7 @@ jobs:
           npm audit
           npm run typecheck
           npm run test:settings
+          npm run test:repository
           npm run build
       - name: Embedded application build
         run: go build -o "$RUNNER_TEMP/aimangebot" .
