@@ -6,6 +6,8 @@
 
 NTR-006作者修订见[普通GitLab切换合同](repository-legacy-transition-contract.md)：以下表格中的仓库键api_origin改为EndpointKeyV1的endpoint_key；所有新v51发布（含普通legacy）统一target协议。OwnedContentV1共同仓库字段同改endpoint_key；尚未生产的version1投影直接采用该规范，不接受两种字段二选一。legacy历史outbox保持NULL仅指旧v50，不能据此给切换后的新任务走无scope发布。原webhook的receipt source/authority union/去重scope按补充合同传播，原生路由仍只接受绑定项目。合同待复审，当前不启用生产。
 
+NTR-008明确：事件去重scope不含credential revision/generation；receipt authority则不可变地保存接受时的代次。token/proxy轮换后重复body仍返回原receipt，不给旧receipt重新绑定当前凭据；当前secret验签始终先于防重查询。保留同repository identity/binding范围跨凭据更新去重的不变量。
+
 `POST /api/v1/repository-hooks/:project/:binding_revision`为native接收入口，旧`/webhook`继续只服务可证明的legacy GitLab。project/revision为规范正十进制；路由不含token。body最多1MiB，读超限413；只接受application/json，无Content-Encoding，重复/矛盾身份字段拒绝。读取当前启用项目/绑定和对应凭据revision，但未验签前不发远端请求、不写可信事件。
 
 GitHub使用原始body的HMAC-SHA256，严格sha256=64hex并constant-time核对；Secret复用服务端IntegrationCredentials.Secret，空值表示未配置Webhook。只接受pull_request事件及opened/reopened/synchronize/closed action，核对repository.id、PR号、base repo和source/head身份。GitLab核对当前集成Secret对应X-Gitlab-Token，event/object_kind/action与绑定project ID，不能用全局legacy secret接受native任意仓库。签名/secret错误统一401，不返回仓库是否存在。
