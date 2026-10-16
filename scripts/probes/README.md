@@ -58,3 +58,35 @@ proof that every dependency is vulnerability-free. Neither probe establishes
 concurrent hard byte quotas, malicious pack resilience, process isolation, or
 production provider/ACL integration. Normal root-module tests do not run this
 nested module; invoke the commands above explicitly.
+
+
+## Alternate URI egress experiment
+
+```sh
+go run -race scripts/probes/git_uri_egress.go
+```
+
+This standalone probe runs only synthetic repositories and loopback services. It
+uses real Git-generated blob packs and bundles, a CGI Git origin, a separate URI
+origin and an experimental fixed forward proxy. Verified locally with Apple Git
+2.50.1 (Apple Git-155); other versions require their own evidence. It is excluded
+from normal packages by its build tag and is not executed by application CI.
+
+Positive controls must download a pack and a bundle/list. The normal server path
+then checks empty command-level URI settings against a polluted local config,
+and reads the expected fixed blob. A malicious server path replays the complete
+successful CGI response, including correct sideband framing, to a client which
+did not request URI downloads. The observed
+`unsolicited_packfile_uri_bypasses_disable: true` is a counterexample to relying
+on configuration alone. **Exit zero means the experiment completed; it does not
+mean the configuration is safe.** Raw Git/credential errors are not printed.
+
+Finally the same response is tested with a forced local HTTP forward proxy:
+normal fixed-object reads succeed, alternate HTTP addresses are rejected, and
+HTTPS CONNECT is rejected before a TLS connection. HTTPS uses a temporary trusted
+fixture CA and a successful direct-download control; TLS connection counts avoid
+mistaking certificate failure for network isolation. The reported zero extra
+HTTP requests/TLS connections applies only to these cases. No production factory,
+bridge assembly, OS sandbox, filesystem or malicious-pack resource isolation is
+validated. File/other URI schemes, proxy bypass variations and a supported Git
+version matrix remain separate work.

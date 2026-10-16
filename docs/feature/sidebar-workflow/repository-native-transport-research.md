@@ -146,3 +146,14 @@ bundle URI独立验证fetch.bundleURI配置的正/负对照；transfer.bundleURI
 下一隔离实验允许在CLI HTTP侧强制固定loopback forward proxy：只向实验Git origin转发、其他绝对URL/CONNECT直接拒绝；用相同成功重放分别检验HTTP额外请求与HTTPS CONNECT。HTTPS捕获使用connection计数而非仅handler计数，防止证书错误导致“零请求”假阳性。成功只证明本夹具HTTP(S)的强制proxy路径，不是OS级网络/文件沙箱，不直接批准生产代理实现。
 
 上一Git取消修复18409c04e59e9cfe1c7493e0401f65de1a36417b的[CI38780235612](https://github.com/Ed1s0nZ/AIMergeBot/actions/runs/38780235612)已查询completed/success、HEAD匹配，Linux受控取消回归可计入该修复证据；不覆盖当前未提交URI probe。
+
+
+### 强制proxy补救实验结果
+
+独立源码scripts/probes/git_uri_egress.go现已完成，未改任何生产Go文件或主依赖。Go1.27.2、Apple Git2.50.1执行`go run -race scripts/probes/git_uri_egress.go`最终exit0，无race报告；root `go list ./...`确认不包含此probe；git diff --check通过。本轮不重复未变化的生产完整测试，18409c0精确Linux CI已success。
+
+实际结果：真实pack URI广告存在；主动pack URI下载1次，bundle list/bundle各1次；默认普通广告不下载，受污染local config可由显式关闭覆盖且blob完整；但重放真实成功响应时禁用配置仍fetch成功、额外HTTP pack下载1次。强制固定proxy后，正常Git固定blob取数成功；HTTP额外地址拒绝1次，额外HTTP到达0；HTTPS使用临时受信CA的直接成功下载做正对照，proxy CONNECT拒绝1次、额外TLS连接0。两个URI origin的Authorization/Proxy-Authorization观测为0，不声称已发生凭据泄露。
+
+HTTPS初次正对照因fixture只允许HTTP协议而失败（certificate=false、ssl=false、protocol=true、TLS连接0），明确不是证书/网络隔离通过；将fixture协议允许范围对齐现有生产HTTP+HTTPS后，使用真实CA校验成功，不关闭TLS验证。先前无sideband的错误响应结论已撤销，最终重放完整真实响应，未以畸形包/检测恒零冒充安全证据。
+
+阶段决策修正：纯reverse bridge+URI禁用不满足唯一网络出口要求。CLI候选若保留，至少需要独立强制网络gate及其绕过矩阵；本轮loopback forward proxy证明其中HTTP/HTTPS两条可行防线，不能直接照搬为生产代理。文件/其他scheme、代理绕过形式、版本矩阵与OS资源/pack展开约束仍未验证；库候选也需相同边界审查。尚未批准完整S4实施，仍保持native guard，不将probe退出0计为生产就绪。
